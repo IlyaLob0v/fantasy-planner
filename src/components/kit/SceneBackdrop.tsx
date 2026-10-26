@@ -13,16 +13,12 @@ export function SceneBackdrop({ asset, dim = 0, dusk = false }: { asset: AssetKe
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
       <div className="absolute inset-0" style={style}>
-        {entry.source.kind === "scene" ? (
-          <entry.source.Scene />
-        ) : (
-          <img
-            src={entry.source.src}
-            alt=""
-            className="h-full w-full object-cover"
-            style={{ objectPosition: `${entry.focus.x}% ${entry.focus.y}%` }}
-          />
-        )}
+        <img
+          src={entry.src}
+          alt=""
+          className="h-full w-full object-cover"
+          style={{ objectPosition: `${entry.focus.x}% ${entry.focus.y}%` }}
+        />
       </div>
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgb(0_0_0/0.55)_100%)]" />
       <div

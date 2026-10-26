@@ -57,7 +57,7 @@ function Shell() {
     <MotionConfig reducedMotion={settings.motion === "reduced" ? "always" : "user"}>
       <div className="relative flex h-full flex-col" style={vars}>
         <SceneBackdrop asset={backdrop} dim={screen === "questlog" ? 0.4 : 0} dusk={character.fatiguedSince !== null} />
-        <Titlebar location={assets[location].credit.title} screen={screen} onNavigate={setScreen} />
+        <Titlebar location={assets[location].name} screen={screen} onNavigate={setScreen} />
         <main className="relative min-h-0 flex-1">
           {screen === "dashboard" && (
             <Dashboard
