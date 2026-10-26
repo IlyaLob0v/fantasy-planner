@@ -2,7 +2,9 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { ComponentType, SVGProps } from "react";
 
 import { cn } from "@/lib/utils";
+import { useGame } from "@/services/game";
 
+import { Crest } from "./Crest";
 import { BoardIcon, ChestIcon, CloseIcon, GearIcon, HallIcon, HelmIcon, MaximizeIcon, MinimizeIcon } from "./icons";
 import { Tooltip } from "../ui/tooltip";
 
@@ -31,19 +33,17 @@ function Rivet({ label, onClick, children, danger = false }: { label: string; on
   );
 }
 
-/** Кастомный заголовок окна: печать гильдии, навигация печатями, латунные заклёпки управления. */
+/** Кастомный заголовок окна: герб гильдии, навигация печатями, латунные заклёпки управления. */
 export function Titlebar({ location, screen, onNavigate }: { location: string; screen: ScreenKey; onNavigate: (s: ScreenKey) => void }) {
   const win = getCurrentWindow();
+  const { crest } = useGame();
   return (
     <header
       data-tauri-drag-region
       className="relative z-30 grid h-9 shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-gold/25 bg-wood/85 px-2 backdrop-blur"
     >
       <div data-tauri-drag-region className="flex items-center gap-2 text-sm text-parchment/80">
-        <svg viewBox="0 0 20 20" className="h-5 w-5" aria-hidden>
-          <circle cx="10" cy="10" r="9" fill="#6b1e2a" stroke="#c9a24a" strokeWidth="1" />
-          <path d="M6 14V8l1.5-1V5h1v1.5L10 5.5l1.5 1V5h1v2L14 8v6Z" fill="#c9a24a" />
-        </svg>
+        <Crest choice={crest} className="h-6 w-5" />
         <span data-tauri-drag-region className="font-display text-base text-gold-bright">
           Штаб гильдии
         </span>

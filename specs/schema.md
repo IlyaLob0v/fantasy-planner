@@ -216,6 +216,8 @@ CREATE INDEX idx_inventory_source ON inventory(source_type, source_id);
 | `ledger` | записи журнала, в том числе обратные (`revert`) |
 | `days` | строки суток |
 | `character` | новый кэш персонажа |
+| `achievements`, `gear`, `removeGear` | V0.5: открытые достижения, новые предметы, находки, которые забирает отмена |
+| `weekGoalsDone`, `crestParts` | V0.5: выполненные цели недели, купленные части герба |
 
 ## Миграция 0004 (V0.5): Зал славы и Присяга гильдии
 
@@ -240,6 +242,14 @@ CREATE INDEX idx_inventory_source ON inventory(source_type, source_id);
 - **`settings`**: `loot` (`base_pct` 12, `step_pct` 4, `pity` 15, `daily_cap` 2, `weights` по редкости 60/28/10/2, `unlock_level` 1/5/10/15) и `forge_prices` (обычный 60, редкий 150). Оба меняются в «Уставе».
 - **Команды:** `list_gear`, `list_equipment`, `set_equipment(slot, gear_id)`. `commit_outcome` принимает `gear` (новые предметы) и `removeGear` (id находок, которые забирает отмена).
 
+## Миграция 0006 (V0.5): неделя гильдии и герб
+
+- **`week_goals`**: цель недели. `uid` (UUID v7), `week_start` (понедельник игровой недели), `goal_key` (ключ из `src/domain/week.ts`: `deeds`, `main`, `rituals`, `boss`, `days`, `chronicle`), `target`, `state` (`active` / `done` / `off`), `completed_at`, `updated_at`; `UNIQUE (week_start, goal_key)`. Прогресс не хранится: считается из журнала, квестов и хроники. Невыполненная цель прошлой недели так и остаётся `active`, без пометок.
+- **`crest_parts`**: купленные части герба. `key` PK (`shield.round`, `charge.star`, `tincture.blue`…), `uid`, `bought_at`, `updated_at`. Части по умолчанию (треугольный щит, башня, бордо) бесплатны и не пишутся.
+- **`settings`**: `week` (`goal_gold` 20, `chest_gold` 60, `stretch_pct` 10), `recap_seen` (понедельник недели, летопись которой закрыта), `crest` (выбранные `shield`, `charge`, `tincture`), `crest_price` (40). Всё меняется через `set_setting`.
+- **Журнал:** золото за цель — `week_chest` с `source_id` = id цели и `note` = `goal:<ключ>`; сундук — `week_chest` с `note` = `chest`. Часть герба — `purchase` с `note` «Герб: …». Предмет из сундука — `gear.source_type = 'week_chest'`.
+- **Команды:** `list_ledger_since(since)`, `list_week_goals(since)`, `create_week_goals(goals)` (`INSERT OR IGNORE`, повтор для той же недели ничего не меняет), `update_week_goal(id, goal_key, target, state)` (замена или выключение; выполненную цель не трогает), `list_crest_parts`. `commit_outcome` принимает `weekGoalsDone` (id целей: `active` → `done`, иначе откат всей транзакции) и `crestParts`.
+
 ## Производные значения (считаются в TS-сервисах, не хранятся)
 
 - **«Сегодня / завтра / просрочен»** у квеста: из `scheduled_date`, `due_date` и текущих игровых суток.
@@ -249,6 +259,7 @@ CREATE INDEX idx_inventory_source ON inventory(source_type, source_id);
 - **Ритуалы на сегодня**: из `schedule` и `paused_until`; для `times_per_week` ритуал виден, пока за текущую неделю (пн–вс) отметок меньше N.
 - **Ступень бонуса**: +1 за каждые 7 дней серии, −1 за пропуск (не ниже 0).
 - **Находка**: бросок детерминирован (сид из дела и игрового дня), шанс `base + step × промахи`, на `pity`-м деле гарантия; пул — предметы без реликвий, которых ещё нет, с редкостью, открытой уровнем. Способности — по надетым предметам.
+- **Цели недели**: прогресс из журнала в силе за неделю (дела = квесты, этапы и ритуалы; урон = `damage` выполненных этапов; дни = дни хотя бы с одним делом) и хроники. Цель подбирается как среднее последних 4 недель с делами плюс `stretch_pct`, не ниже порога новичка; цель, поставленная посреди недели, засчитывает сделанное до сегодня и просит долю на оставшиеся дни.
 - **Прогресс достижений**: из `ledger_tally`, квестов, `days` и кэша персонажа. «Возвращение» = успешный день после закрытого дня без дел.
 
 ## Что изменено относительно присланного ядра и почему

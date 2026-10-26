@@ -7,6 +7,8 @@ import { AttributePicker, DifficultyPicker, TypePicker } from "@/components/kit/
 import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { QuestCard } from "@/components/kit/QuestCard";
 import { RitualRow } from "@/components/kit/RitualRow";
+import { WeekPanel } from "@/components/kit/WeekPanel";
+import { WeekRecap } from "@/components/kit/WeekRecap";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -163,10 +165,12 @@ export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-3 scrollbar-quiet md:grid md:grid-cols-[minmax(300px,340px)_1fr] md:items-start md:gap-5 md:p-6 xl:grid-cols-[340px_1fr_minmax(480px,560px)]">
       <div className="order-2 flex shrink-0 flex-col gap-4 md:order-none md:gap-5">
         <HeroPanel />
+        <WeekPanel />
         <QuickAdd />
       </div>
       <div className="hidden xl:block" aria-hidden />
       <div className="order-1 flex shrink-0 flex-col gap-4 md:order-none md:min-h-0 md:shrink md:gap-5">
+        <WeekRecap />
         {ritualsOpen ? (
           <RitualsDrawer
             onClose={() => {

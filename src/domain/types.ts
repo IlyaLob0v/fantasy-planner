@@ -98,7 +98,7 @@ export interface Day {
   closedAt: string | null;
 }
 
-export type LedgerSource = "quest" | "boss_defeat" | "ritual" | "rest_action" | "purchase" | "rest" | "revert" | "achievement";
+export type LedgerSource = "quest" | "boss_defeat" | "ritual" | "rest_action" | "purchase" | "rest" | "revert" | "achievement" | "week_chest";
 
 export interface LedgerEntry {
   id: number;
@@ -136,6 +136,38 @@ export interface Outcome {
   gear: NewGear[];
   /** Находки, которые забирает отмена дела. */
   removeGear: number[];
+  /** Цели недели, выполненные этим ходом; их золото уже лежит в `ledger`. */
+  weekGoalsDone: number[];
+  /** Купленные части герба. */
+  crestParts: NewCrestPart[];
+}
+
+export type WeekGoalState = "active" | "done" | "off";
+
+export interface WeekGoal {
+  id: number;
+  weekStart: GameDate;
+  goalKey: string;
+  target: number;
+  state: WeekGoalState;
+  completedAt: string | null;
+}
+
+export interface NewWeekGoal {
+  uid: string;
+  weekStart: GameDate;
+  goalKey: string;
+  target: number;
+}
+
+export interface CrestPart {
+  key: string;
+  boughtAt: string;
+}
+
+export interface NewCrestPart {
+  key: string;
+  uid: string;
 }
 
 export const GEAR_SLOTS = ["weapon", "helm", "armor", "cloak", "talisman"] as const;
@@ -201,6 +233,13 @@ export interface Settings {
     unlockLevel: Record<Rarity, number>;
   };
   forgePrices: { common: number; rare: number };
+  /** Неделя гильдии: золото за цель и за сундук, насколько цель выше средней прошлых недель. */
+  week: { goalGold: number; chestGold: number; stretchPct: number };
+  /** Начало недели, летопись которой уже закрыта. */
+  recapSeen: GameDate;
+  /** Выбранный герб: ключи частей из каталога src/domain/crest.ts. */
+  crest: { shield: string; charge: string; tincture: string };
+  crestPrice: number;
 }
 
 export interface Reward {

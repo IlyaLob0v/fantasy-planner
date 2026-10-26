@@ -109,6 +109,28 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
             .await?;
     }
 
+    for id in &outcome.week_goals_done {
+        let affected = sqlx::query(
+            "UPDATE week_goals SET state = 'done', completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), \
+             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND state = 'active'",
+        )
+        .bind(id)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if affected == 0 {
+            return Err(AppError::Invalid(format!("цель недели {id} уже не в работе")));
+        }
+    }
+
+    for part in &outcome.crest_parts {
+        sqlx::query("INSERT INTO crest_parts (key, uid) VALUES (?, ?)")
+            .bind(&part.key)
+            .bind(&part.uid)
+            .execute(&mut *tx)
+            .await?;
+    }
+
     for day in &outcome.days {
         sqlx::query(
             "INSERT INTO days (game_date, kind, deeds_count, closed_at) VALUES (?, ?, ?, ?) \
@@ -238,6 +260,8 @@ mod tests {
             achievements: vec![],
             gear: vec![],
             remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         let hero = commit(&pool, outcome).await?;
         assert_eq!((hero.xp, hero.gold, hero.strength), (20, 6, 2));
@@ -260,6 +284,8 @@ mod tests {
             achievements: vec![],
             gear: vec![],
             remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         assert!(commit(&pool, outcome).await.is_err());
         let hero = character::fetch(&pool).await?;
@@ -298,6 +324,8 @@ mod tests {
             achievements: vec![],
             gear: vec![],
             remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         commit(&pool, mark(true)).await?;
         let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM ritual_completions").fetch_one(&pool).await?;
@@ -324,6 +352,8 @@ mod tests {
             achievements: vec![],
             gear: vec![],
             remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         commit(&pool, purchase).await?;
         let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
@@ -359,6 +389,8 @@ mod tests {
             achievements: vec![],
             gear: vec![],
             remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         commit(&pool, victory).await?;
         let (loot_id,): (i64,) = sqlx::query_as("SELECT id FROM inventory WHERE source_type = 'boss'").fetch_one(&pool).await?;
@@ -375,6 +407,8 @@ mod tests {
             achievements: vec![],
             gear: vec![],
             remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         commit(&pool, undo).await?;
         let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
@@ -421,6 +455,8 @@ mod tests {
             achievements,
             gear: vec![],
             remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         }
     }
 

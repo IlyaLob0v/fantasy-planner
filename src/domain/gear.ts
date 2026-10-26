@@ -180,6 +180,16 @@ export function bossFind(seed: string, hpRarity: Rarity, level: number, owned: r
   return null;
 }
 
+/** Сундук недели: гарантированный предмет из открытого уровнем, без дублей; редкость по весам находок. */
+export function chestFind(seed: string, level: number, owned: readonly Gear[], loot: Settings["loot"]): GearDef | null {
+  const pool = dropPool(owned, unlockedRarities(level, loot));
+  const rarity = pickRarity(pool, loot.weights, roll(`${seed}:rarity`));
+  return pickFrom(
+    pool.filter((g) => g.rarity === rarity),
+    roll(`${seed}:item`),
+  );
+}
+
 export function newGear(def: GearDef, source: GearSource, sourceId: number | null, gameDate: GameDate, missesBefore: number, uid: string): NewGear {
   return { uid, itemKey: def.key, sourceType: source, sourceId, gameDate, missesBefore };
 }

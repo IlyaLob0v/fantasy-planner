@@ -25,6 +25,10 @@ export const settings: Settings = {
     unlockLevel: { common: 1, rare: 5, epic: 10, legendary: 15 },
   },
   forgePrices: { common: 60, rare: 150 },
+  week: { goalGold: 20, chestGold: 60, stretchPct: 10 },
+  recapSeen: "",
+  crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
+  crestPrice: 40,
 };
 
 export function character(overrides: Partial<Character> = {}): Character {

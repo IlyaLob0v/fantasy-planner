@@ -192,6 +192,10 @@ describe("настройки", () => {
         unlock_level: { common: 1, rare: 5, epic: 10, legendary: 15 },
       },
       forge_prices: { common: 60, rare: 150 },
+      week: { goal_gold: 20, chest_gold: 60, stretch_pct: 10 },
+      recap_seen: "",
+      crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
+      crest_price: 40,
     };
     expect(parseSettings(raw)).toEqual(settings);
     expect(() => parseSettings({ ...raw, rates: null })).toThrow();
