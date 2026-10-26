@@ -221,7 +221,7 @@ function RewardEditor({ reward, onDone }: { reward: RealReward | null; onDone: (
   const sideGold = settings.rates.side.gold;
 
   return (
-    <Panel className="flex w-80 shrink-0 flex-col gap-4 self-start p-5">
+    <Panel className="mobile-sheet flex shrink-0 flex-col gap-4 self-start p-5 md:w-80">
       <div className="flex items-center justify-between">
         <PanelTitle className="text-xl">{reward ? "Награда" : "Новая награда"}</PanelTitle>
         <Button variant="ghost" size="sm" onClick={onDone}>
@@ -327,7 +327,7 @@ export function Inventory({ tab, onTab }: { tab: InventoryTab; onTab: (tab: Inve
   const waiting = unusedRewards(inventory).length;
 
   return (
-    <div className="flex h-full items-start gap-5 overflow-y-auto p-6 scrollbar-quiet">
+    <div className="flex h-full items-start gap-5 overflow-y-auto p-3 scrollbar-quiet md:p-6">
       <Panel className="flex w-full max-w-[620px] flex-col gap-4 p-5">
         <div className="flex items-baseline justify-between gap-3">
           <PanelTitle>Сокровищница</PanelTitle>
@@ -362,7 +362,7 @@ export function Inventory({ tab, onTab }: { tab: InventoryTab; onTab: (tab: Inve
         {tab === "chest" && <Chest />}
         {tab === "map" && <WorldMap />}
       </Panel>
-      <div className="flex-1" aria-hidden />
+      <div className="hidden flex-1 md:block" aria-hidden />
       {editing !== null && (
         <RewardEditor
           key={editing === "new" ? "new" : editing.id}

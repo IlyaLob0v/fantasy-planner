@@ -5,6 +5,7 @@ mod models;
 
 use tauri::Manager;
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
@@ -12,6 +13,8 @@ pub fn run() {
             std::fs::create_dir_all(&dir)?;
             let pool = tauri::async_runtime::block_on(db::open(&dir.join("guild.db")))?;
             app.manage(db::Db(pool));
+            // На ПК окно создаётся скрытым и показывается после миграций; на телефоне окно одно и видно сразу.
+            #[cfg(desktop)]
             if let Some(window) = app.get_webview_window("main") {
                 window.show()?;
             }

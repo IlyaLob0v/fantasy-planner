@@ -1,7 +1,9 @@
 import { MotionConfig } from "motion/react";
 import { useEffect, useState, type CSSProperties } from "react";
 
+import { isMobile } from "@/app/platform";
 import { assets, locationAsset, type AssetKey } from "@/assets/registry";
+import { BottomNav, MobileHeader } from "@/components/kit/BottomNav";
 import { LocationVeil } from "@/components/kit/LocationVeil";
 import { RewardLayer } from "@/components/kit/RewardLayer";
 import { SceneBackdrop } from "@/components/kit/SceneBackdrop";
@@ -24,7 +26,7 @@ function ErrorNote() {
     <button
       type="button"
       onClick={clearError}
-      className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-[var(--radius-panel)] border border-burgundy bg-wood/95 px-4 py-2 text-sm text-parchment shadow-xl"
+      className="fixed bottom-[calc(var(--bottom-chrome)+1.25rem)] left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-[var(--radius-panel)] border border-burgundy bg-wood/95 px-4 py-2 text-sm text-parchment shadow-xl"
     >
       Летописец сбился: {error}
     </button>
@@ -55,13 +57,18 @@ function Shell() {
     "--panel-wood": theme.panelWood,
     "--panel-parchment": theme.panelParchment,
     "--scene-tint": theme.tint,
+    "--bottom-chrome": isMobile ? "calc(3.5rem + env(safe-area-inset-bottom))" : "0px",
   };
 
   return (
     <MotionConfig reducedMotion={settings.motion === "reduced" ? "always" : "user"}>
       <div className="relative flex h-full flex-col" style={vars}>
         <SceneBackdrop asset={backdrop} dim={screen === "questlog" ? 0.4 : screen === "settings" ? 0.55 : 0} dusk={character.fatiguedSince !== null} />
-        <Titlebar location={assets[location].name} screen={screen} onNavigate={setScreen} />
+        {isMobile ? (
+          <MobileHeader location={assets[location].name} />
+        ) : (
+          <Titlebar location={assets[location].name} screen={screen} onNavigate={setScreen} />
+        )}
         <main className="relative min-h-0 flex-1">
           {screen === "dashboard" && (
             <Dashboard
@@ -75,6 +82,7 @@ function Shell() {
           {screen === "inventory" && <Inventory tab={inventoryTab} onTab={setInventoryTab} />}
           {screen === "settings" && <SettingsScreen />}
         </main>
+        {isMobile && <BottomNav screen={screen} onNavigate={setScreen} />}
         <RewardLayer
           onOpenMap={() => {
             setInventoryTab("map");

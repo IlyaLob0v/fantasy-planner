@@ -168,8 +168,8 @@ export function SettingsScreen() {
   ];
 
   return (
-    <div className="h-full overflow-y-auto p-6 scrollbar-quiet">
-      <Panel className="mx-auto flex max-w-3xl flex-col gap-7 p-6">
+    <div className="h-full overflow-y-auto p-3 scrollbar-quiet md:p-6">
+      <Panel className="mx-auto flex max-w-3xl flex-col gap-7 p-4 md:p-6">
         <PanelTitle>Устав гильдии</PanelTitle>
 
         <Section title="Начало суток" hint="Дела после полуночи и до этого часа засчитываются вчерашнему дню.">

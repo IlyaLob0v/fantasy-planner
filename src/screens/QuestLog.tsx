@@ -21,6 +21,7 @@ import { BossStages } from "./BossStages";
 type ColumnKey = "today" | "upcoming" | "backlog";
 type Filter = QuestType | "all";
 
+const COLUMNS: ReadonlyArray<ColumnKey> = ["today", "upcoming", "backlog"];
 const COLUMN_TITLE: Record<ColumnKey, string> = { today: "Сегодня", upcoming: "Предстоящие", backlog: "Без даты" };
 
 function scheduleFor(column: ColumnKey, today: GameDate, current: GameDate | null): GameDate | null {
@@ -78,6 +79,7 @@ function BoardCard({ quest, selected, onSelect }: { quest: Quest; selected: bool
 
 function Column({
   column,
+  hidden,
   quests,
   selectedId,
   onSelect,
@@ -86,6 +88,7 @@ function Column({
   placeholder,
 }: {
   column: ColumnKey;
+  hidden: boolean;
   placeholder: string;
   quests: Quest[];
   selectedId: number | null;
@@ -121,11 +124,12 @@ function Column({
       }}
       onDrop={drop}
       className={cn(
-        "flex min-h-0 flex-col rounded-[var(--radius-panel)] border border-dashed p-3 transition-colors",
+        "min-h-0 flex-col rounded-[var(--radius-panel)] border border-dashed p-1 transition-colors md:flex md:p-3",
+        hidden ? "hidden" : "flex",
         over ? "border-gold/70 bg-gold/10" : "border-transparent",
       )}
     >
-      <div className="mb-2 flex items-baseline justify-between">
+      <div className="mb-2 hidden items-baseline justify-between md:flex">
         <h3 className="font-display text-xl text-gold-bright">{COLUMN_TITLE[column]}</h3>
         <span className="text-xs text-parchment/40">{quests.length}</span>
       </div>
@@ -157,7 +161,7 @@ function Column({
 }
 
 function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
-  const { updateQuest, archiveQuest, settings, character, quests } = useGame();
+  const { updateQuest, archiveQuest, settings, character, quests, today } = useGame();
   const hasStages = stagesOf(quests, quest.id).length > 0;
   const [draft, setDraft] = useState<QuestFields>(() => fieldsOf(quest));
   const saved = useRef(JSON.stringify(fieldsOf(quest)));
@@ -180,7 +184,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
   const reward = questReward(draft, settings, character.windStep);
 
   return (
-    <Panel className="flex w-80 shrink-0 flex-col gap-4 overflow-y-auto p-5 scrollbar-quiet">
+    <Panel className="mobile-sheet flex shrink-0 flex-col gap-4 overflow-y-auto p-5 scrollbar-quiet md:w-80">
       <div className="flex items-center justify-between">
         <PanelTitle className="text-xl">Свиток квеста</PanelTitle>
         <Button variant="ghost" size="sm" onClick={onClose}>
@@ -240,6 +244,26 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
         {draft.type === "boss" ? "За победу" : "Награда"}: +{reward.xp} XP, <Coin className="h-4 w-4" /> {reward.gold}
       </p>
       {draft.type === "boss" && <BossStages boss={quest} />}
+      <div className="flex flex-wrap gap-2 md:hidden" aria-label="Перенести">
+        {(
+          [
+            ["На сегодня", today],
+            ["На завтра", addDays(today, 1)],
+            ["Без даты", null],
+          ] satisfies ReadonlyArray<[string, GameDate | null]>
+        ).map(([label, date]) => (
+          <Button
+            key={label}
+            size="sm"
+            variant={draft.scheduledDate === date ? "outline" : "ghost"}
+            onClick={() => {
+              set("scheduledDate", date);
+            }}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-xs text-parchment/60">
           День
@@ -285,6 +309,7 @@ export function QuestLog() {
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [tab, setTab] = useState<ColumnKey>("today");
 
   const visible = filter === "all" ? quests : quests.filter((q) => q.type === filter);
   const cols = questColumns(visible, today, settings.dayStartHour);
@@ -324,9 +349,9 @@ export function QuestLog() {
   ];
 
   return (
-    <div className="flex h-full gap-5 p-6">
-      <Panel className="flex min-w-0 flex-1 flex-col p-4">
-        <div className="mb-3 flex items-center justify-between px-2">
+    <div className="flex h-full gap-5 p-3 md:p-6">
+      <Panel className="flex min-w-0 flex-1 flex-col p-3 md:p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-2">
           <PanelTitle>Доска квестов</PanelTitle>
           <div className="flex gap-1">
             {filters.map(([key, label]) => (
@@ -343,11 +368,29 @@ export function QuestLog() {
             ))}
           </div>
         </div>
-        <div className="grid min-h-0 flex-1 grid-cols-3 gap-2">
-          {(["today", "upcoming", "backlog"] as const).map((c) => (
+        <div className="mb-2 flex gap-1 px-1 md:hidden" role="tablist">
+          {COLUMNS.map((c) => (
+            <Button
+              key={c}
+              role="tab"
+              aria-selected={tab === c}
+              size="sm"
+              variant={tab === c ? "outline" : "ghost"}
+              className="min-w-0 flex-1 px-1.5 text-[13px]"
+              onClick={() => {
+                setTab(c);
+              }}
+            >
+              {COLUMN_TITLE[c]} · {cols[c].length}
+            </Button>
+          ))}
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-3 md:gap-2">
+          {COLUMNS.map((c) => (
             <Column
               key={c}
               column={c}
+              hidden={tab !== c}
               quests={cols[c]}
               selectedId={selectedId}
               onSelect={setSelectedId}

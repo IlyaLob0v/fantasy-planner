@@ -28,6 +28,7 @@
 
 :root {
   --scene-tint: var(--color-ink-deep);
+  --bottom-chrome: 0px;
   --panel-wood: color-mix(in oklab, var(--color-wood) 86%, transparent);
   --panel-parchment: color-mix(in oklab, var(--color-parchment) 88%, transparent);
   color-scheme: dark;
@@ -88,6 +89,22 @@ h3,
   pointer-events: none;
   opacity: 0.09;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Узкий экран: свиток редактора открывается на весь экран поверх доски, под вырезом и системными панелями.
+   Вне слоёв, чтобы перекрыть утилиты подложки; на ширине от 768 px не действует. */
+@media (width < 48rem) {
+  .mobile-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    border-radius: 0;
+    border-width: 0;
+    overflow-y: auto;
+    background-color: var(--color-wood);
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
 }
 
 .scrollbar-quiet {

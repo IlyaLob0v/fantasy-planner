@@ -45,7 +45,7 @@ export function QuestCard({ quest }: { quest: Quest }) {
           <p className={cn("truncate text-[15px] text-parchment", done && "line-through decoration-gold/60")}>{quest.title}</p>
           {isOverdue(quest, today) && quest.dueDate && <Ribbon>Срок вышел {humanDate(quest.dueDate)}</Ribbon>}
         </div>
-        <p className="flex items-center gap-1.5 text-xs text-parchment/50">
+        <p className="flex flex-wrap items-center gap-x-1.5 whitespace-nowrap text-xs text-parchment/50">
           <span>{QUEST_TYPE_LABEL[quest.type]}</span>
           <span>·</span>
           <Icon className="h-3.5 w-3.5" />
@@ -54,7 +54,7 @@ export function QuestCard({ quest }: { quest: Quest }) {
         </p>
       </div>
       {!done && (
-        <div className="flex shrink-0 items-center gap-2 text-xs text-parchment/60">
+        <div className="flex shrink-0 flex-col items-end gap-0.5 text-xs text-parchment/60 md:flex-row md:items-center md:gap-2">
           <span>+{reward.xp} XP</span>
           <span className="flex items-center gap-1">
             <Coin className="h-3.5 w-3.5" />
