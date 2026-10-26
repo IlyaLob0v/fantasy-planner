@@ -12,7 +12,6 @@
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![Rust](https://img.shields.io/badge/Rust-sqlx%20%2B%20SQLite-B7410E?logo=rust&logoColor=white)
-[![License: MIT](https://img.shields.io/badge/license-MIT-C9A24A)](LICENSE)
 
 ![Тронный зал с боссом](docs/screenshots/boss.png)
 
@@ -222,6 +221,6 @@ fantasy-planner/
 
 ## Лицензия
 
-Код распространяется по лицензии [MIT](LICENSE).
+© 2026 Илья ([@IlyaLob0v](https://github.com/IlyaLob0v)). Все права защищены.
 
-Иллюстрации в `src/assets/illustrations/` не входят в MIT: все права на них принадлежат автору проекта. Происхождение каждой сцены описано в [src/assets/illustrations/README.md](src/assets/illustrations/README.md).
+Исходный код открыт для просмотра, но без отдельного разрешения автора его нельзя копировать, распространять или использовать в своих проектах. Это касается и иллюстраций в `src/assets/illustrations/`; их происхождение описано в [src/assets/illustrations/README.md](src/assets/illustrations/README.md).
