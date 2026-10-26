@@ -3,10 +3,12 @@ import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, 
 
 import { GOLD_ANCHOR_ID } from "@/app/anchors";
 import { gloryProgress, gloryStats, newlyEarned, planGlory, type GloryProgress } from "@/domain/achievements";
+import { activePerks, forgePrice, restPrice, type GearDef, type Perk } from "@/domain/gear";
 import { weekStart } from "@/domain/rituals";
 import { mergeRates, parseSettings } from "@/domain/settings";
 import { addDays } from "@/domain/time";
 import {
+  planBuyGear,
   planBuyLocation,
   planBuyRest,
   planBuyReward,
@@ -25,7 +27,10 @@ import type {
   Character,
   ChronicleEntry,
   Day,
+  EquipmentSlot,
   GameDate,
+  Gear,
+  GearSlot,
   InventoryItem,
   Location,
   Outcome,
@@ -61,6 +66,8 @@ const keys = {
   locations: ["locations"] as const,
   tally: ["ledger-tally"] as const,
   achievements: ["achievements"] as const,
+  gear: ["gear"] as const,
+  equipment: ["equipment"] as const,
 };
 
 /** Только что открытые достижения: для тоста. */
@@ -81,6 +88,8 @@ export interface RewardEvent {
   origin: DOMRect | null;
   target: DOMRect | null;
   questId: number | null;
+  /** Находка снаряжения за это дело. */
+  find: GearDef | null;
 }
 
 /** Ставки правятся отдельно через saveRates, чтобы не потерять скрытые. */
@@ -100,6 +109,10 @@ export interface GameState {
   locations: Location[];
   /** Зал славы: каждое достижение с прогрессом и датой открытия. */
   glory: GloryProgress[];
+  gear: Gear[];
+  equipment: EquipmentSlot[];
+  /** Способности надетых предметов. */
+  perks: ReadonlySet<Perk>;
   today: GameDate;
   lastReward: RewardEvent | null;
   lastGlory: GloryEvent | null;
@@ -127,6 +140,8 @@ export interface GameState {
   setSetting: (key: EditableSetting, value: unknown) => void;
   saveRates: (rates: Settings["rates"]) => void;
   renameCharacter: (name: string) => void;
+  equip: (slot: GearSlot, gearId: number | null) => void;
+  buyGear: (def: GearDef, origin: DOMRect | null) => void;
   /** Присяга гильдии пройдена или пропущена: больше не показывается. */
   finishOath: () => void;
   /** Подсказка показана и закрыта: больше не появится. */
@@ -176,6 +191,8 @@ export function useGameBoot(): Boot {
   const locations = useQuery({ queryKey: keys.locations, queryFn: ipc.listLocations });
   const tally = useQuery({ queryKey: keys.tally, queryFn: ipc.ledgerTally });
   const achievements = useQuery({ queryKey: keys.achievements, queryFn: ipc.listAchievements });
+  const gear = useQuery({ queryKey: keys.gear, queryFn: ipc.listGear });
+  const equipment = useQuery({ queryKey: keys.equipment, queryFn: ipc.listEquipment });
   const fetching = useIsFetching();
   const mutating = useIsMutating();
 
@@ -185,12 +202,14 @@ export function useGameBoot(): Boot {
   const [error, setError] = useState<string | null>(null);
   const closedFor = useRef<GameDate | null>(null);
 
+  const perks = useMemo(() => activePerks(gear.data ?? [], equipment.data ?? []), [gear.data, equipment.data]);
+
   const context = useCallback(
     (): TurnContext | null =>
-      settings && today && character.data && days.data
-        ? { character: character.data, settings, days: days.data, today, now: new Date() }
+      settings && today && character.data && days.data && gear.data
+        ? { character: character.data, settings, days: days.data, today, now: new Date(), gear: gear.data, perks, uid: uuidv7 }
         : null,
-    [settings, today, character.data, days.data],
+    [settings, today, character.data, days.data, gear.data, perks],
   );
 
   const fail = useCallback((e: unknown) => {
@@ -199,7 +218,7 @@ export function useGameBoot(): Boot {
 
   const refresh = useCallback(async () => {
     await Promise.all(
-      [keys.character, keys.quests, keys.days, keys.completions, keys.inventory, keys.tally, keys.achievements].map((queryKey) =>
+      [keys.character, keys.quests, keys.days, keys.completions, keys.inventory, keys.tally, keys.achievements, keys.gear, keys.equipment].map((queryKey) =>
         client.invalidateQueries({ queryKey }),
       ),
     );
@@ -249,7 +268,7 @@ export function useGameBoot(): Boot {
     }
     gloryInFlight.current = true;
     ipc
-      .commitOutcome(planGlory(ctx, earned, uuidv7))
+      .commitOutcome(planGlory(ctx, earned))
       .then((hero) => {
         client.setQueryData(keys.character, hero);
         setLastGlory((prev) => ({ id: (prev?.id ?? 0) + 1, keys: earned.map((d) => d.key) }));
@@ -301,6 +320,7 @@ export function useGameBoot(): Boot {
               levelUp: result.levelUp,
               revived: result.revived,
               victory: result.victory,
+              find: result.find,
               origin,
               questId,
             });
@@ -319,6 +339,7 @@ export function useGameBoot(): Boot {
         levelUp: null,
         revived: false,
         victory: null,
+        find: null,
         origin,
         questId: null,
       });
@@ -393,10 +414,10 @@ export function useGameBoot(): Boot {
   const buyRest = useCallback(
     (date: GameDate, origin: DOMRect | null) => {
       play((ctx) => planBuyRest(ctx, date), () => {
-        if (settings) spent(settings.restPrice, origin);
+        if (settings) spent(restPrice(settings.restPrice, perks), origin);
       });
     },
-    [play, spent, settings],
+    [play, spent, settings, perks],
   );
 
   const buyLocation = useCallback(
@@ -407,6 +428,15 @@ export function useGameBoot(): Boot {
       });
     },
     [play, spent, inventory.data],
+  );
+
+  const buyGear = useCallback(
+    (def: GearDef, origin: DOMRect | null) => {
+      play((ctx) => planBuyGear(ctx, def), () => {
+        if (settings) spent(forgePrice(def, settings.forgePrices, perks) ?? 0, origin);
+      });
+    },
+    [play, spent, settings, perks],
   );
 
   const invalidate = useCallback(
@@ -568,6 +598,18 @@ export function useGameBoot(): Boot {
     [client, fail],
   );
 
+  const equip = useCallback(
+    (slot: GearSlot, gearId: number | null) => {
+      ipc
+        .setEquipment(slot, gearId)
+        .then((slots) => {
+          client.setQueryData(keys.equipment, slots);
+        })
+        .catch(fail);
+    },
+    [client, fail],
+  );
+
   const finishOath = useCallback(() => {
     setSetting("oath_done", true);
   }, [setSetting]);
@@ -599,7 +641,9 @@ export function useGameBoot(): Boot {
       !chronicle.data ||
       !locations.data ||
       !stats ||
-      !achievements.data
+      !achievements.data ||
+      !gear.data ||
+      !equipment.data
     ) {
       return null;
     }
@@ -616,6 +660,9 @@ export function useGameBoot(): Boot {
       chronicle: chronicle.data,
       locations: locations.data,
       glory: gloryProgress(stats, achievements.data),
+      gear: gear.data,
+      equipment: equipment.data,
+      perks,
       today,
       lastReward,
       lastGlory,
@@ -643,6 +690,8 @@ export function useGameBoot(): Boot {
       setSetting,
       saveRates,
       renameCharacter,
+      equip,
+      buyGear,
       finishOath,
       markHintSeen,
     };
@@ -661,6 +710,9 @@ export function useGameBoot(): Boot {
     locations.data,
     stats,
     achievements.data,
+    gear.data,
+    equipment.data,
+    perks,
     lastReward,
     lastGlory,
     error,
@@ -687,6 +739,8 @@ export function useGameBoot(): Boot {
     setSetting,
     saveRates,
     renameCharacter,
+    equip,
+    buyGear,
     finishOath,
     markHintSeen,
   ]);
@@ -705,6 +759,8 @@ export function useGameBoot(): Boot {
     locations,
     tally,
     achievements,
+    gear,
+    equipment,
   ].find(
     (q) => q.error,
   )?.error;

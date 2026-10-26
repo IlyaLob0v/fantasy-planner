@@ -67,13 +67,16 @@ export interface QuestMap {
   archive: Quest[];
 }
 
-export function questMap(quests: readonly Quest[], today: GameDate, dayStartHour: number): QuestMap {
+/** Дней на карте с «Подзорной трубой» («Шлем дозорного»). */
+export const SPYGLASS_DAYS = 14;
+
+export function questMap(quests: readonly Quest[], today: GameDate, dayStartHour: number, span: number = MAP_DAYS): QuestMap {
   const archiveFrom = addDays(today, -30);
-  const horizon = addDays(today, MAP_DAYS - 1);
+  const horizon = addDays(today, span - 1);
   const active = quests.filter((q) => q.status === "active" && q.type !== "stage");
   const sort = byPriority(today);
   const planned = active.filter((q) => !isForToday(q, today));
-  const days = Array.from({ length: MAP_DAYS }, (_, offset): DayLane => {
+  const days = Array.from({ length: span }, (_, offset): DayLane => {
     const date = addDays(today, offset);
     const lane = offset === 0 ? active.filter((q) => isForToday(q, today)) : planned.filter((q) => q.scheduledDate === date);
     return { date, quests: lane.sort(sort) };

@@ -80,6 +80,27 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
         .await?;
     }
 
+    for id in &outcome.remove_gear {
+        sqlx::query("DELETE FROM gear WHERE id = ? AND source_type IN ('quest','ritual','boss')")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+    }
+
+    for item in &outcome.gear {
+        sqlx::query(
+            "INSERT INTO gear (uid, item_key, source_type, source_id, game_date, misses_before) VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&item.uid)
+        .bind(&item.item_key)
+        .bind(&item.source_type)
+        .bind(item.source_id)
+        .bind(&item.game_date)
+        .bind(item.misses_before)
+        .execute(&mut *tx)
+        .await?;
+    }
+
     for achievement in &outcome.achievements {
         sqlx::query("INSERT INTO achievements (key, uid) VALUES (?, ?)")
             .bind(&achievement.key)
@@ -105,7 +126,7 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
     let c = &outcome.character;
     sqlx::query(
         "UPDATE character SET title = ?, level = ?, xp = ?, gold = ?, strength = ?, intellect = ?, \
-         agility = ?, streak_current = ?, streak_best = ?, wind_step = ?, fatigued_since = ?, \
+         agility = ?, streak_current = ?, streak_best = ?, wind_step = ?, fatigued_since = ?, loot_misses = ?, \
          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = 1",
     )
     .bind(&c.title)
@@ -119,6 +140,7 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
     .bind(c.streak_best)
     .bind(c.wind_step)
     .bind(&c.fatigued_since)
+    .bind(c.loot_misses)
     .execute(&mut *tx)
     .await?;
 
@@ -167,6 +189,7 @@ mod tests {
             streak_best: 1,
             wind_step: 0,
             fatigued_since: None,
+            loot_misses: 0,
         }
     }
 
@@ -213,6 +236,8 @@ mod tests {
             }],
             character: state(20, 6),
             achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
         };
         let hero = commit(&pool, outcome).await?;
         assert_eq!((hero.xp, hero.gold, hero.strength), (20, 6, 2));
@@ -233,6 +258,8 @@ mod tests {
             days: vec![],
             character: state(10, -5),
             achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
         };
         assert!(commit(&pool, outcome).await.is_err());
         let hero = character::fetch(&pool).await?;
@@ -269,6 +296,8 @@ mod tests {
             days: vec![],
             character: state(5, 2),
             achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
         };
         commit(&pool, mark(true)).await?;
         let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM ritual_completions").fetch_one(&pool).await?;
@@ -293,6 +322,8 @@ mod tests {
             days: vec![],
             character: state(0, 0),
             achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
         };
         commit(&pool, purchase).await?;
         let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
@@ -326,6 +357,8 @@ mod tests {
             days: vec![],
             character: state(75, 29),
             achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
         };
         commit(&pool, victory).await?;
         let (loot_id,): (i64,) = sqlx::query_as("SELECT id FROM inventory WHERE source_type = 'boss'").fetch_one(&pool).await?;
@@ -340,6 +373,8 @@ mod tests {
             days: vec![],
             character: state(0, 0),
             achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
         };
         commit(&pool, undo).await?;
         let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
@@ -384,6 +419,8 @@ mod tests {
             days: vec![],
             character: state(0, gold),
             achievements,
+            gear: vec![],
+            remove_gear: vec![],
         }
     }
 

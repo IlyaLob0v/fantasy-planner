@@ -2,6 +2,7 @@ pub mod achievements;
 pub mod character;
 pub mod chronicle;
 pub mod days;
+pub mod gear;
 pub mod inventory;
 pub mod ledger;
 pub mod locations;

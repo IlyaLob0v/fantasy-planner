@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { GOLD_ANCHOR_ID } from "@/app/anchors";
 import { RARITY_LABEL } from "@/app/strings";
+import { Forge } from "@/components/kit/Forge";
 import { Coin } from "@/components/kit/icons";
 import { BuyButton } from "@/components/kit/BuyButton";
 import { Hearth } from "@/components/kit/Hearth";
@@ -11,6 +12,7 @@ import { Chip } from "@/components/kit/pickers";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { trophies } from "@/domain/bosses";
+import { restPrice } from "@/domain/gear";
 import { isOnSale, restDaysAhead, unusedRewards, usedRewards } from "@/domain/shop";
 import { addDays, gameDateOfIso, humanDate, humanWeekday } from "@/domain/time";
 import type { RealReward, RealRewardFields } from "@/domain/types";
@@ -19,13 +21,13 @@ import { useGame } from "@/services/game";
 
 import { WorldMap } from "./WorldMap";
 
-export type InventoryTab = "shop" | "chest" | "map";
+export type InventoryTab = "shop" | "forge" | "chest" | "map";
 
 const label = "flex flex-col gap-1 text-xs text-parchment/60";
 const card = "flex flex-col gap-3 rounded-[var(--radius-panel)] border border-parchment/10 bg-ink-deep/40 p-4";
 
 function RestDayCard() {
-  const { character, settings, days, today, buyRest } = useGame();
+  const { character, settings, days, today, perks, buyRest } = useGame();
   const [date, setDate] = useState(() => addDays(today, 1));
   const taken = days.some((d) => d.gameDate === date && d.kind === "rest");
   const past = date < today;
@@ -52,7 +54,7 @@ function RestDayCard() {
           />
         </label>
         <BuyButton
-          price={settings.restPrice}
+          price={restPrice(settings.restPrice, perks)}
           gold={character.gold}
           disabledReason={past ? "Только вперёд" : taken ? "Уже отдых" : null}
           onBuy={(origin) => {
@@ -340,6 +342,7 @@ export function Inventory({ tab, onTab }: { tab: InventoryTab; onTab: (tab: Inve
           {(
             [
               ["shop", "Лавка"],
+              ["forge", "Кузница"],
               ["chest", waiting > 0 ? `Сундук · ${waiting}` : "Сундук"],
               ["map", "Карта мира"],
             ] satisfies ReadonlyArray<[InventoryTab, string]>
@@ -359,6 +362,7 @@ export function Inventory({ tab, onTab }: { tab: InventoryTab; onTab: (tab: Inve
           ))}
         </div>
         {tab === "shop" && <Shop onEdit={setEditing} />}
+        {tab === "forge" && <Forge />}
         {tab === "chest" && <Chest />}
         {tab === "map" && <WorldMap />}
       </Panel>

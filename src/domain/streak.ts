@@ -38,7 +38,8 @@ export interface DayClosing {
 /**
  * Подводит итоги прошедших суток. Успешный день, завершивший очередные N дней серии, поднимает
  * «Попутный ветер» на ступень. Пропуск опускает его на одну ступень и включает усталость.
- * Ничего не отнимается: золото и XP не трогаются.
+ * Ничего не отнимается: золото и XP не трогаются. С «Плащом странника» (`guardSingleMiss`) одиночный
+ * пропуск после успешного дня ветер не опускает; усталость при этом всё равно включается.
  */
 export function closePastDays(
   days: readonly Day[],
@@ -47,6 +48,7 @@ export function closePastDays(
   fatiguedSince: GameDate | null,
   bonus: Settings["streakBonus"],
   closedAt: string,
+  guardSingleMiss = false,
 ): DayClosing {
   const byDate = index(days);
   const changed: Day[] = [];
@@ -71,7 +73,8 @@ export function closePastDays(
         step = Math.min(cap, step + 1);
       }
     } else {
-      step = Math.max(0, step - 1);
+      const single = guardSingleMiss && isSuccess(byDate.get(addDays(date, -1)));
+      if (!single) step = Math.max(0, step - 1);
       fatigue = date;
     }
   }

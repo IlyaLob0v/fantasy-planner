@@ -15,7 +15,7 @@ const today = "2026-10-26";
 const now = new Date("2026-10-26T12:00:00.000Z");
 
 function ctx(overrides: Partial<TurnContext> = {}): TurnContext {
-  return { character: character(), settings, days: [day(today, 0, false)], today, now, ...overrides };
+  return { character: character(), settings, days: [day(today, 0, false)], today, now, gear: [], perks: new Set(), uid: () => "uid", ...overrides };
 }
 
 describe("время", () => {
@@ -183,6 +183,15 @@ describe("настройки", () => {
       streak_bonus: { step_days: 7, step_pct: 10, max_pct: 30 },
       level_curve: { base: 50, exp: 1.4, round: 5 },
       motion: "full",
+      loot: {
+        base_pct: 12,
+        step_pct: 4,
+        pity: 15,
+        daily_cap: 2,
+        weights: { common: 60, rare: 28, epic: 10, legendary: 2 },
+        unlock_level: { common: 1, rare: 5, epic: 10, legendary: 15 },
+      },
+      forge_prices: { common: 60, rare: 150 },
     };
     expect(parseSettings(raw)).toEqual(settings);
     expect(() => parseSettings({ ...raw, rates: null })).toThrow();

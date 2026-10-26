@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { ATTRIBUTE_HINT, ATTRIBUTE_LABEL, daysWord, MOOD_LABEL } from "@/app/strings";
 import { ChronicleForm } from "@/components/kit/ChronicleForm";
+import { Equipment } from "@/components/kit/Equipment";
 import { HallOfFame } from "@/components/kit/HallOfFame";
 import { ATTRIBUTE_ICON } from "@/components/kit/icons";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
@@ -200,6 +201,8 @@ export function CharacterScreen() {
             {` (${titleForLevel(progress.level + 1)})`}
           </p>
         </Panel>
+
+        <Equipment />
 
         <Panel className="p-6">
           <PanelTitle className="mb-4 text-xl">Атрибуты</PanelTitle>

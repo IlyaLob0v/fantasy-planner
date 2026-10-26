@@ -1,8 +1,9 @@
 import { applyReward, stateOf } from "./character";
+import { newGear, relicFor } from "./gear";
 import { completedOn } from "./quests";
 import { isSuccess } from "./streak";
 import type { TurnContext } from "./turns";
-import type { Achievement, Character, Day, InventoryItem, LedgerTally, NewAchievement, NewLedgerEntry, Outcome, Quest } from "./types";
+import type { Achievement, Character, Day, InventoryItem, LedgerTally, NewAchievement, NewGear, NewLedgerEntry, Outcome, Quest } from "./types";
 
 /** Всё, из чего считаются достижения. Собирается из журнала, квестов, суток и персонажа. */
 export interface GloryStats {
@@ -200,8 +201,8 @@ export function nearestGlory(progress: readonly GloryProgress[]): GloryProgress 
   return best;
 }
 
-/** Записывает новые достижения и золото за них одной транзакцией. */
-export function planGlory(ctx: TurnContext, earned: readonly GloryDef[], uid: () => string): Outcome {
+/** Записывает новые достижения, золото за них и реликвии главных вех одной транзакцией. */
+export function planGlory(ctx: TurnContext, earned: readonly GloryDef[]): Outcome {
   const gold = earned.reduce((total, d) => total + TIER_GOLD[d.tier], 0);
   const character = applyReward(stateOf(ctx.character), { xp: 0, gold, attribute: null, attributeDelta: 0 }, 1, ctx.settings.levelCurve);
   const ledger: NewLedgerEntry[] = earned.map((d) => ({
@@ -215,8 +216,12 @@ export function planGlory(ctx: TurnContext, earned: readonly GloryDef[], uid: ()
     revertsId: null,
     note: d.key,
   }));
-  const achievements: NewAchievement[] = earned.map((d) => ({ key: d.key, uid: uid() }));
-  return { quests: [], ritual: null, inventory: [], removeInventory: [], ledger, days: [], character, achievements };
+  const achievements: NewAchievement[] = earned.map((d) => ({ key: d.key, uid: ctx.uid() }));
+  const gear: NewGear[] = earned
+    .flatMap((d) => relicFor(d.key) ?? [])
+    .filter((relic) => !ctx.gear.some((g) => g.itemKey === relic.key))
+    .map((relic) => newGear(relic, "achievement", null, ctx.today, ctx.character.lootMisses, ctx.uid()));
+  return { quests: [], ritual: null, inventory: [], removeInventory: [], ledger, days: [], character, achievements, gear, removeGear: [] };
 }
 
 export function gloryByKey(key: string): GloryDef | undefined {
