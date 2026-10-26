@@ -9,35 +9,45 @@ import { Ribbon } from "@/components/kit/Ribbon";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { bossHp, stagesOf } from "@/domain/bosses";
-import { completedOn, fieldsOf, isOverdue, questColumns } from "@/domain/quests";
+import { completedOn, dayLoad, fieldsOf, isOverdue, questMap } from "@/domain/quests";
+import { plural } from "@/domain/plural";
 import { questReward } from "@/domain/rewards";
-import { addDays, humanDate } from "@/domain/time";
+import { addDays, humanDate, humanWeekday, shortWeekday } from "@/domain/time";
 import { BOARD_TYPES, type GameDate, type Quest, type QuestFields, type QuestType } from "@/domain/types";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/services/game";
 
 import { BossStages } from "./BossStages";
 
-type ColumnKey = "today" | "upcoming" | "backlog";
-type Filter = QuestType | "all";
+/** Полоса карты: игровой день или `null` для квестов без даты. Совпадает с `scheduledDate`. */
+type LaneKey = GameDate | null;
 
-const COLUMNS: ReadonlyArray<ColumnKey> = ["today", "upcoming", "backlog"];
-const COLUMN_TITLE: Record<ColumnKey, string> = { today: "Сегодня", upcoming: "Предстоящие", backlog: "Без даты" };
+function laneTitle(lane: LaneKey, today: GameDate): string {
+  if (lane === null) return "Без даты";
+  if (lane === today) return "Сегодня";
+  if (lane === addDays(today, 1)) return "Завтра";
+  const name = humanWeekday(lane);
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
 
-function scheduleFor(column: ColumnKey, today: GameDate, current: GameDate | null): GameDate | null {
-  switch (column) {
-    case "today":
-      return today;
-    case "upcoming":
-      return current !== null && current > today ? current : addDays(today, 1);
-    case "backlog":
-      return null;
-  }
+function laneTab(lane: LaneKey, today: GameDate): string {
+  if (lane === null || lane === today || lane === addDays(today, 1)) return laneTitle(lane, today);
+  return `${shortWeekday(lane)} ${lane.slice(8).replace(/^0/, "")}`;
 }
 
 const SEAL_COLOR: Record<QuestType, string> = { main: "bg-burgundy", side: "bg-ink", boss: "bg-gold", stage: "bg-gold" };
 
-function BoardCard({ quest, selected, onSelect }: { quest: Quest; selected: boolean; onSelect: () => void }) {
+function BoardCard({
+  quest,
+  selected,
+  showDate,
+  onSelect,
+}: {
+  quest: Quest;
+  selected: boolean;
+  showDate: boolean;
+  onSelect: () => void;
+}) {
   const { today, quests } = useGame();
   const hp = quest.type === "boss" ? bossHp(stagesOf(quests, quest.id)) : null;
   return (
@@ -61,7 +71,7 @@ function BoardCard({ quest, selected, onSelect }: { quest: Quest; selected: bool
         <span>{QUEST_TYPE_SHORT[quest.type]}</span>
         <span>{ATTRIBUTE_LABEL[quest.attribute]}</span>
         <span>{"✦".repeat(quest.difficulty)}</span>
-        {quest.scheduledDate && quest.scheduledDate > today && <span>на {humanDate(quest.scheduledDate)}</span>}
+        {showDate && quest.scheduledDate && quest.scheduledDate > today && <span>на {humanDate(quest.scheduledDate)}</span>}
         {quest.dueDate &&
           (isOverdue(quest, today) ? <Ribbon>Срок вышел</Ribbon> : <span>до {humanDate(quest.dueDate)}</span>)}
       </div>
@@ -77,41 +87,50 @@ function BoardCard({ quest, selected, onSelect }: { quest: Quest; selected: bool
   );
 }
 
-function Column({
-  column,
-  hidden,
+function Lane({
+  lane,
   quests,
+  later,
+  hidden,
+  focused,
   selectedId,
+  onFocus,
   onSelect,
   onDropQuest,
-  onAdd,
-  placeholder,
 }: {
-  column: ColumnKey;
-  hidden: boolean;
-  placeholder: string;
+  lane: LaneKey;
   quests: Quest[];
+  later: Quest[];
+  hidden: boolean;
+  focused: boolean;
   selectedId: number | null;
+  onFocus: () => void;
   onSelect: (id: number) => void;
-  onDropQuest: (id: number, column: ColumnKey) => void;
-  onAdd: (title: string, column: ColumnKey) => void;
+  onDropQuest: (id: number, lane: LaneKey) => void;
 }) {
+  const { today, settings, character } = useGame();
   const [over, setOver] = useState(false);
-  const [title, setTitle] = useState("");
-
+  const load = dayLoad(quests, settings, character.windStep);
+  
   const drop = (e: DragEvent) => {
     e.preventDefault();
     setOver(false);
     const id = Number(e.dataTransfer.getData("text/plain"));
-    if (Number.isInteger(id) && id > 0) onDropQuest(id, column);
+    if (Number.isInteger(id) && id > 0) onDropQuest(id, lane);
   };
-  const submit = (e: SyntheticEvent) => {
-    e.preventDefault();
-    if (title.trim()) {
-      onAdd(title.trim(), column);
-      setTitle("");
-    }
-  };
+
+  const cards = (list: Quest[], showDate: boolean) =>
+    list.map((q) => (
+      <BoardCard
+        key={q.id}
+        quest={q}
+        selected={q.id === selectedId}
+        showDate={showDate}
+        onSelect={() => {
+          onSelect(q.id);
+        }}
+      />
+    ));
 
   return (
     <div
@@ -124,37 +143,36 @@ function Column({
       }}
       onDrop={drop}
       className={cn(
-        "min-h-0 flex-col rounded-[var(--radius-panel)] border border-dashed p-1 transition-colors md:flex md:p-3",
+        "min-h-0 flex-col rounded-[var(--radius-panel)] border border-dashed p-1 transition-colors md:flex md:basis-0 md:p-2",
+        lane === null ? "md:min-w-48 md:flex-[1.3]" : "md:min-w-[9.5rem] md:flex-1",
         hidden ? "hidden" : "flex",
-        over ? "border-gold/70 bg-gold/10" : "border-transparent",
+        over ? "border-gold/70 bg-gold/10" : focused ? "border-gold/30" : "border-transparent",
       )}
     >
-      <div className="mb-2 hidden items-baseline justify-between md:flex">
-        <h3 className="font-display text-xl text-gold-bright">{COLUMN_TITLE[column]}</h3>
-        <span className="text-xs text-parchment/40">{quests.length}</span>
-      </div>
-      <form onSubmit={submit} className="mb-3">
-        <Input
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-          }}
-          placeholder={placeholder}
-          className="h-8 text-sm"
-          aria-label={`Новый квест: ${COLUMN_TITLE[column]}`}
-        />
-      </form>
+      <button
+        type="button"
+        onClick={onFocus}
+        className="mb-2 hidden cursor-pointer flex-col items-start rounded px-1 text-left md:flex"
+        aria-pressed={focused}
+        title="Новые квесты лягут сюда"
+      >
+        <span className={cn("font-display text-xl", focused ? "text-gold-bright" : "text-parchment/80")}>
+          {laneTitle(lane, today)}
+        </span>
+        {lane !== null && <span className="text-xs text-parchment/45">{humanDate(lane)}</span>}
+        <span className="text-xs text-parchment/45">
+          {load.count > 0 ? `${load.count} ${plural(load.count, "квест", "квеста", "квестов")}${load.xp > 0 ? ` · ${load.xp} XP` : ""}` : "свободно"}
+        </span>
+      </button>
+      {lane === today && quests.length > 0 && (
+        <p className="mb-2 px-1 text-[11px] text-parchment/45">Выполняются в Тронном зале</p>
+      )}
       <ul className="flex flex-col gap-2 overflow-y-auto pb-2 scrollbar-quiet">
-        {quests.map((q) => (
-          <BoardCard
-            key={q.id}
-            quest={q}
-            selected={q.id === selectedId}
-            onSelect={() => {
-              onSelect(q.id);
-            }}
-          />
-        ))}
+        {cards(quests, false)}
+        {later.length > 0 && (
+          <li className="mt-2 px-1 text-xs uppercase tracking-wider text-parchment/40">Позже</li>
+        )}
+        {cards(later, true)}
       </ul>
     </div>
   );
@@ -303,100 +321,98 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
   );
 }
 
-/** Доска квестов: планирование по дням, перетаскивание между колонками, правка справа. */
+/** Доска квестов: квесты по дням недели вперёд, перетаскивание между днями, правка справа. */
 export function QuestLog() {
   const { quests, today, settings, createQuest, updateQuest } = useGame();
-  const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const [tab, setTab] = useState<ColumnKey>("today");
+  const [focus, setFocus] = useState<LaneKey>(null);
+  const [title, setTitle] = useState("");
 
-  const visible = filter === "all" ? quests : quests.filter((q) => q.type === filter);
-  const cols = questColumns(visible, today, settings.dayStartHour);
+  const map = questMap(quests, today, settings.dayStartHour);
+  const lanes: LaneKey[] = [null, ...map.days.map((d) => d.date)];
+  const target: LaneKey = lanes.includes(focus) ? focus : null;
   const selected = quests.find((q) => q.id === selectedId && q.status === "active") ?? null;
+  const questsOf = (lane: LaneKey) => (lane === null ? map.backlog : (map.days.find((d) => d.date === lane)?.quests ?? []));
 
-  const move = (id: number, column: ColumnKey) => {
+  const move = (id: number, lane: LaneKey) => {
     const quest = quests.find((q) => q.id === id);
     if (!quest || quest.status !== "active") return;
-    const scheduledDate = scheduleFor(column, today, quest.scheduledDate);
-    if (scheduledDate !== quest.scheduledDate) {
-      updateQuest(id, { ...fieldsOf(quest), scheduledDate });
+    if (lane !== quest.scheduledDate) {
+      updateQuest(id, { ...fieldsOf(quest), scheduledDate: lane });
     }
   };
 
-  const add = (title: string, column: ColumnKey) => {
+  const add = (e: SyntheticEvent) => {
+    e.preventDefault();
+    const clean = title.trim();
+    if (!clean) return;
     void createQuest({
-      type: filter === "all" || filter === "stage" ? "side" : filter,
-      title,
+      type: "side",
+      title: clean,
       description: null,
       attribute: "agility",
       difficulty: 1,
-      scheduledDate: scheduleFor(column, today, null),
+      scheduledDate: target,
       dueDate: null,
       sortOrder: 0,
       parentId: null,
       damage: 1,
     }).then((q) => {
+      setTitle("");
       setSelectedId(q.id);
     });
   };
 
-  const filters: ReadonlyArray<[Filter, string]> = [
-    ["all", "Все"],
-    ["main", "Main"],
-    ["side", "Side"],
-    ["boss", "Boss"],
-  ];
-
   return (
     <div className="flex h-full gap-5 p-3 md:p-6">
       <Panel className="flex min-w-0 flex-1 flex-col p-3 md:p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-2">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-2">
           <PanelTitle>Доска квестов</PanelTitle>
-          <div className="flex gap-1">
-            {filters.map(([key, label]) => (
-              <Button
-                key={key}
-                size="sm"
-                variant={filter === key ? "outline" : "ghost"}
-                onClick={() => {
-                  setFilter(key);
-                }}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
+          <form onSubmit={add} className="flex min-w-0 flex-1 basis-64 md:max-w-md">
+            <Input
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+              }}
+              placeholder={`+ квест: ${laneTitle(target, today).toLowerCase()}`}
+              className="h-8 text-sm"
+              aria-label={`Новый квест: ${laneTitle(target, today)}`}
+            />
+          </form>
         </div>
-        <div className="mb-2 flex gap-1 px-1 md:hidden" role="tablist">
-          {COLUMNS.map((c) => (
+        <div className="mb-2 flex gap-1 overflow-x-auto px-1 scrollbar-quiet md:hidden" role="tablist">
+          {lanes.map((lane) => (
             <Button
-              key={c}
+              key={lane ?? "backlog"}
               role="tab"
-              aria-selected={tab === c}
+              aria-selected={target === lane}
               size="sm"
-              variant={tab === c ? "outline" : "ghost"}
-              className="min-w-0 flex-1 px-1.5 text-[13px]"
+              variant={target === lane ? "outline" : "ghost"}
+              className="shrink-0 px-2 text-[13px]"
               onClick={() => {
-                setTab(c);
+                setFocus(lane);
               }}
             >
-              {COLUMN_TITLE[c]} · {cols[c].length}
+              {laneTab(lane, today)} · {questsOf(lane).length + (lane === null ? map.later.length : 0)}
             </Button>
           ))}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-3 md:gap-2">
-          {COLUMNS.map((c) => (
-            <Column
-              key={c}
-              column={c}
-              hidden={tab !== c}
-              quests={cols[c]}
+        <div className="flex min-h-0 flex-1 flex-col md:flex-row md:gap-2 md:overflow-x-auto md:scrollbar-quiet">
+          {lanes.map((lane) => (
+            <Lane
+              key={lane ?? "backlog"}
+              lane={lane}
+              quests={questsOf(lane)}
+              later={lane === null ? map.later : []}
+              hidden={target !== lane}
+              focused={target === lane}
               selectedId={selectedId}
+              onFocus={() => {
+                setFocus(lane);
+              }}
               onSelect={setSelectedId}
               onDropQuest={move}
-              onAdd={add}
-              placeholder={filter === "boss" ? "+ босс" : "+ квест"}
             />
           ))}
         </div>
@@ -408,11 +424,11 @@ export function QuestLog() {
               setArchiveOpen((v) => !v);
             }}
           >
-            {archiveOpen ? "▾" : "▸"} Архив подвигов за 30 дней · {cols.archive.length}
+            {archiveOpen ? "▾" : "▸"} Архив подвигов за 30 дней · {map.archive.length}
           </button>
           {archiveOpen && (
             <ul className="mt-2 flex max-h-40 flex-col gap-1 overflow-y-auto text-sm text-parchment/60 scrollbar-quiet">
-              {cols.archive.map((q) => (
+              {map.archive.map((q) => (
                 <li key={q.id} className="flex justify-between gap-4">
                   <span className="truncate line-through decoration-gold/50">{q.title}</span>
                   <span className="shrink-0 text-xs">{humanDate(completedOn(q, settings.dayStartHour) ?? today)}</span>

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { applyReward, stateOf } from "./character";
 import { character, day, quest, settings } from "./fixtures.test-helpers";
 import { levelProgress, titleForLevel, xpToNext } from "./levels";
-import { questColumns, todayBoard } from "./quests";
+import { dayLoad, MAP_DAYS, questMap, todayBoard } from "./quests";
 import { questReward, windBonusPct } from "./rewards";
 import { parseSettings } from "./settings";
 import { closePastDays, currentStreak } from "./streak";
@@ -146,11 +146,24 @@ describe("доска квестов", () => {
     expect(board.active.map((q) => q.id)).toEqual([2, 1]);
     expect(board.done.map((q) => q.id)).toEqual([5]);
   });
-  it("колонки планирования", () => {
-    const cols = questColumns(list, today, 4);
-    expect(cols.upcoming.map((q) => q.id)).toEqual([3]);
-    expect(cols.backlog.map((q) => q.id)).toEqual([4]);
-    expect(cols.archive.map((q) => q.id)).toEqual([5]);
+  it("карта похода: сегодня с просроченным, дни недели, без даты, позже", () => {
+    const map = questMap([...list, quest({ id: 6, scheduledDate: "2026-11-10" })], today, 4);
+    expect(map.days).toHaveLength(MAP_DAYS);
+    expect(map.days[0]?.quests.map((q) => q.id)).toEqual([2, 1]);
+    expect(map.days[4]).toEqual({ date: "2026-10-30", quests: [expect.objectContaining({ id: 3 })] });
+    expect(map.backlog.map((q) => q.id)).toEqual([4]);
+    expect(map.later.map((q) => q.id)).toEqual([6]);
+    expect(map.archive.map((q) => q.id)).toEqual([5]);
+  });
+  it("последний день карты ещё на карте, следующий уже позже", () => {
+    const map = questMap([quest({ id: 7, scheduledDate: "2026-11-01" }), quest({ id: 8, scheduledDate: "2026-11-02" })], today, 4);
+    expect(map.days[6]?.quests.map((q) => q.id)).toEqual([7]);
+    expect(map.later.map((q) => q.id)).toEqual([8]);
+  });
+  it("нагрузка дня: XP только за задачи", () => {
+    const boss = quest({ id: 9, type: "boss" });
+    const load = dayLoad([quest({ id: 1, type: "side" }), quest({ id: 2, type: "main", difficulty: 2 }), boss], settings, 0);
+    expect(load).toEqual({ count: 3, xp: 10 + 60 });
   });
 });
 
