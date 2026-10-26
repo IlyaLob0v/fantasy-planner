@@ -1,7 +1,10 @@
-import castleDeparture from "./illustrations/castle-departure.webp";
-import monasteryCellar from "./illustrations/monastery-cellar.webp";
-import pineForestMorning from "./illustrations/pine-forest-morning.webp";
-import wandererFog from "./illustrations/wanderer-fog.webp";
+import dragonLair from "./illustrations/dragon-lair.webp";
+import forest from "./illustrations/forest.webp";
+import gatehouse from "./illustrations/gatehouse.webp";
+import goblinMarket from "./illustrations/goblin-market.webp";
+import hero from "./illustrations/hero.webp";
+import tavern from "./illustrations/tavern.webp";
+import treasury from "./illustrations/treasury.webp";
 
 /** Цветовые токены, выведенные из доминирующих цветов иллюстрации. */
 export interface SceneTheme {
@@ -10,7 +13,7 @@ export interface SceneTheme {
   panelParchment: string;
 }
 
-/** Происхождение картины: показывается в списке кредитов. */
+/** Происхождение картинки: показывается в списке кредитов. */
 export interface Credit {
   title: string;
   author: string;
@@ -29,61 +32,67 @@ export interface AssetEntry {
   credit: Credit;
 }
 
-const PUBLIC_DOMAIN = "Общественное достояние";
+/** Арт сгенерирован для проекта по библии стиля (specs/art-bible.md). */
+function ownArt(title: string): Credit {
+  return {
+    title,
+    author: "Штаб гильдии",
+    year: "2026",
+    license: "Собственный арт проекта",
+    source: "Leonardo.ai (Lucid Origin), увеличение Real-ESRGAN ×2",
+  };
+}
 
 /** Единый слой ассетов: экраны знают только ключи. */
 export const assets = {
   "location.gatehouse": {
-    name: "Замок на холме",
-    src: castleDeparture,
-    focus: { x: 55, y: 42 },
-    theme: { tint: "#1f1a10", panelWood: "rgb(47 40 27 / 0.84)", panelParchment: "rgb(228 224 206 / 0.9)" },
-    credit: {
-      title: "Отъезд (The Departure)",
-      author: "Томас Коул",
-      year: "1837",
-      license: `${PUBLIC_DOMAIN} (CC0, Национальная галерея искусства, Вашингтон)`,
-      source: "https://commons.wikimedia.org/wiki/File:Thomas_Cole,_The_Departure,_1837,_NGA_166439.jpg",
-    },
+    name: "Надвратная башня",
+    src: gatehouse,
+    focus: { x: 47, y: 40 },
+    theme: { tint: "#0b1620", panelWood: "rgb(25 29 34 / 0.86)", panelParchment: "rgb(230 224 206 / 0.9)" },
+    credit: ownArt("Надвратная башня гильдии"),
   },
   "location.forest": {
     name: "Сосновый бор",
-    src: pineForestMorning,
-    focus: { x: 45, y: 55 },
-    theme: { tint: "#182019", panelWood: "rgb(40 38 26 / 0.84)", panelParchment: "rgb(226 220 194 / 0.9)" },
-    credit: {
-      title: "Утро в сосновом лесу",
-      author: "Иван Шишкин, Константин Савицкий",
-      year: "1889",
-      license: PUBLIC_DOMAIN,
-      source: "https://commons.wikimedia.org/wiki/File:Shishkin,_Ivan_-_Morning_in_a_Pine_Forest.jpg",
-    },
+    src: forest,
+    focus: { x: 45, y: 65 },
+    theme: { tint: "#12171c", panelWood: "rgb(28 42 43 / 0.84)", panelParchment: "rgb(228 228 200 / 0.9)" },
+    credit: ownArt("Лагерь следопытов в сосновом бору"),
+  },
+  "location.tavern": {
+    name: "Таверна «Пьяный грифон»",
+    src: tavern,
+    focus: { x: 40, y: 50 },
+    theme: { tint: "#140d0c", panelWood: "rgb(57 35 21 / 0.86)", panelParchment: "rgb(240 222 188 / 0.9)" },
+    credit: ownArt("Таверна «Пьяный грифон»"),
+  },
+  "location.goblin_market": {
+    name: "Гоблинский рынок",
+    src: goblinMarket,
+    focus: { x: 60, y: 45 },
+    theme: { tint: "#080a0b", panelWood: "rgb(16 28 30 / 0.86)", panelParchment: "rgb(222 228 214 / 0.9)" },
+    credit: ownArt("Гоблинский рынок на болоте"),
+  },
+  "location.dragon_lair": {
+    name: "Логово дракона",
+    src: dragonLair,
+    focus: { x: 50, y: 60 },
+    theme: { tint: "#0b0e12", panelWood: "rgb(47 39 29 / 0.86)", panelParchment: "rgb(230 222 200 / 0.9)" },
+    credit: ownArt("Логово дракона в старой шахте"),
   },
   hero: {
-    name: "Странник над туманом",
-    src: wandererFog,
-    focus: { x: 50, y: 42 },
-    theme: { tint: "#23232a", panelWood: "rgb(41 34 25 / 0.84)", panelParchment: "rgb(230 226 218 / 0.9)" },
-    credit: {
-      title: "Странник над морем тумана",
-      author: "Каспар Давид Фридрих",
-      year: "1818",
-      license: PUBLIC_DOMAIN,
-      source: "https://commons.wikimedia.org/wiki/File:Caspar_David_Friedrich_-_Wanderer_above_the_Sea_of_Fog.jpeg",
-    },
+    name: "Рыцарь-странник",
+    src: hero,
+    focus: { x: 35, y: 45 },
+    theme: { tint: "#14171e", panelWood: "rgb(56 52 50 / 0.84)", panelParchment: "rgb(240 226 196 / 0.9)" },
+    credit: ownArt("Рыцарь-странник над морем облаков"),
   },
   treasury: {
-    name: "Погреб гильдии",
-    src: monasteryCellar,
-    focus: { x: 50, y: 50 },
-    theme: { tint: "#1b160b", panelWood: "rgb(46 37 19 / 0.86)", panelParchment: "rgb(236 224 184 / 0.9)" },
-    credit: {
-      title: "В монастырском погребе",
-      author: "Эдуард фон Грютцнер",
-      year: "1878",
-      license: PUBLIC_DOMAIN,
-      source: "https://commons.wikimedia.org/wiki/File:Eduard_von_Gr%C3%BCtzner_Im_Klosterkeller_1878.jpg",
-    },
+    name: "Казна гильдии",
+    src: treasury,
+    focus: { x: 50, y: 45 },
+    theme: { tint: "#130e13", panelWood: "rgb(44 30 26 / 0.86)", panelParchment: "rgb(234 222 196 / 0.9)" },
+    credit: ownArt("Казна гильдии"),
   },
 } satisfies Record<string, AssetEntry>;
 

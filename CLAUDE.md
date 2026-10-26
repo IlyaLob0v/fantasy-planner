@@ -42,7 +42,7 @@ fantasy-planner/
 │   ├── lib/                    # утилиты shadcn (cn)
 │   └── assets/
 │       ├── registry.ts         # единый слой ассетов: ключ → src, focus, theme
-│       └── illustrations/      # фоны WebP 2560 px (сейчас живопись XIX века, общественное достояние)
+│       └── illustrations/      # собственный арт: фоны WebP 2560 px (стиль в specs/art-bible.md)
 └── src-tauri/
     ├── tauri.conf.json         # в Tauri v2 конфиг лежит здесь
     ├── migrations/             # 0001_core.sql, 0002_rituals_shop.sql, …
