@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { ATTRIBUTE_HINT, ATTRIBUTE_LABEL, daysWord, MOOD_LABEL } from "@/app/strings";
 import { ChronicleForm } from "@/components/kit/ChronicleForm";
+import { CrestEditor } from "@/components/kit/CrestEditor";
 import { Equipment } from "@/components/kit/Equipment";
 import { HallOfFame } from "@/components/kit/HallOfFame";
 import { ATTRIBUTE_ICON } from "@/components/kit/icons";
@@ -238,6 +239,8 @@ export function CharacterScreen() {
         </Panel>
 
         <HallOfFame />
+
+        <CrestEditor />
 
         <Chronicle />
       </div>

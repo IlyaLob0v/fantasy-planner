@@ -12,3 +12,4 @@ pub mod rest_actions;
 pub mod rewards;
 pub mod rituals;
 pub mod settings;
+pub mod week;

@@ -59,6 +59,9 @@ const GUIDE: ReadonlyArray<readonly [string, string]> = [
   ["Зал славы", "Достижения за серии, подвиги, боссов и уровни. Каждое даёт немного золота и не отбирается."],
   ["Снаряжение", "Находки падают за квесты и ритуалы. Шанс растёт с каждым промахом, на 15-м деле подряд находка гарантирована, дублей нет. Свойство предмета работает, пока он надет."],
   ["Кузница", "Обычные и редкие вещи можно купить по фиксированной цене. Эпические и легендарные только находят или получают за главные вехи."],
+  ["Неделя гильдии", "В начале недели гильдия ставит до трёх целей, чуть выше твоих прошлых недель. Цель можно заменить или убрать. За цель золото, за все сразу сундук с предметом. Невыполненная цель просто уходит."],
+  ["Летопись недели", "В новую неделю в зале появляется итог прошлой: дела, лучший день, находки и строки хроники. Закрывается одним кликом."],
+  ["Герб гильдии", "Щит, фигура и поле. По одной части даётся даром, остальные продаёт геральдист по фиксированной цене. Герб стоит в заголовке окна."],
 ];
 
 type LootNumber = "basePct" | "stepPct" | "pity" | "dailyCap";
@@ -114,6 +117,50 @@ function LootSettings() {
           />
         </label>
       ))}
+    </div>
+  );
+}
+
+type WeekNumber = "goalGold" | "chestGold" | "stretchPct";
+
+const WEEK_FIELDS: ReadonlyArray<readonly [WeekNumber, string, number]> = [
+  ["goalGold", "Золото за цель недели", 0],
+  ["chestGold", "Золото в сундуке недели", 0],
+  ["stretchPct", "Цель выше средней, %", 0],
+];
+
+function WeekSettings() {
+  const { settings, setSetting } = useGame();
+  const { week } = settings;
+  const json = (next: GameSettings["week"]) => ({ goal_gold: next.goalGold, chest_gold: next.chestGold, stretch_pct: next.stretchPct });
+  return (
+    <div className="grid gap-2 text-sm text-parchment/70 sm:grid-cols-2">
+      {WEEK_FIELDS.map(([key, title, min]) => (
+        <label key={key} className="flex items-center justify-between gap-2">
+          {title}
+          <NumberField
+            key={week[key]}
+            label={title}
+            value={week[key]}
+            min={min}
+            onCommit={(n) => {
+              setSetting("week", json({ ...week, [key]: n }));
+            }}
+          />
+        </label>
+      ))}
+      <label className="flex items-center justify-between gap-2">
+        Часть герба
+        <NumberField
+          key={settings.crestPrice}
+          label="Цена части герба"
+          value={settings.crestPrice}
+          min={1}
+          onCommit={(n) => {
+            setSetting("crest_price", n);
+          }}
+        />
+      </label>
     </div>
   );
 }
@@ -279,6 +326,10 @@ export function SettingsScreen() {
 
         <Section title="Находки и кузница" hint="Шанс растёт с каждым делом без находки, на пороге находка гарантирована. Шанс за золото не продаётся.">
           <LootSettings />
+        </Section>
+
+        <Section title="Неделя гильдии и герб" hint="Цели подбираются по последним четырём неделям. Сундук открывается, когда выполнены все цели недели.">
+          <WeekSettings />
         </Section>
 
         <Section title="Анимации" hint="Сдержанные: без полёта монет, награда видна сразу. Системная настройка «уменьшить движение» тоже учитывается.">

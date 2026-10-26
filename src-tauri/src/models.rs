@@ -165,6 +165,12 @@ pub struct Outcome {
     /// Находки, которые забирает отмена дела.
     #[serde(default)]
     pub remove_gear: Vec<i64>,
+    /// Цели недели, выполненные этим ходом; их золото уже лежит в `ledger`.
+    #[serde(default)]
+    pub week_goals_done: Vec<i64>,
+    /// Купленные части герба.
+    #[serde(default)]
+    pub crest_parts: Vec<NewCrestPart>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -209,6 +215,40 @@ pub struct NewAchievement {
 pub struct Achievement {
     pub key: String,
     pub unlocked_at: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewWeekGoal {
+    pub uid: String,
+    pub week_start: String,
+    pub goal_key: String,
+    pub target: i64,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct WeekGoal {
+    pub id: i64,
+    pub week_start: String,
+    pub goal_key: String,
+    pub target: i64,
+    pub state: String,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewCrestPart {
+    pub key: String,
+    pub uid: String,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct CrestPart {
+    pub key: String,
+    pub bought_at: String,
 }
 
 /// Сколько записей журнала каждого источника осталось в силе (без отменённых).

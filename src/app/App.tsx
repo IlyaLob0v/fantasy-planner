@@ -11,6 +11,7 @@ import { Oath } from "@/components/kit/Oath";
 import { RewardLayer } from "@/components/kit/RewardLayer";
 import { SceneBackdrop } from "@/components/kit/SceneBackdrop";
 import { SCREENS, Titlebar, type ScreenKey } from "@/components/kit/Titlebar";
+import { WeekToast } from "@/components/kit/WeekToast";
 import { CharacterScreen } from "@/screens/Character";
 import { Dashboard } from "@/screens/Dashboard";
 import { Inventory, type InventoryTab } from "@/screens/Inventory";
@@ -94,6 +95,7 @@ function Shell() {
         />
         <FindToast />
         <GloryToast />
+        <WeekToast />
         <Oath />
         <LocationVeil locationKey={character.locationKey} />
         <ErrorNote />

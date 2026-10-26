@@ -221,7 +221,7 @@ export function planGlory(ctx: TurnContext, earned: readonly GloryDef[]): Outcom
     .flatMap((d) => relicFor(d.key) ?? [])
     .filter((relic) => !ctx.gear.some((g) => g.itemKey === relic.key))
     .map((relic) => newGear(relic, "achievement", null, ctx.today, ctx.character.lootMisses, ctx.uid()));
-  return { quests: [], ritual: null, inventory: [], removeInventory: [], ledger, days: [], character, achievements, gear, removeGear: [] };
+  return { quests: [], ritual: null, inventory: [], removeInventory: [], ledger, days: [], character, achievements, gear, removeGear: [], weekGoalsDone: [], crestParts: [] };
 }
 
 export function gloryByKey(key: string): GloryDef | undefined {

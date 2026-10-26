@@ -56,7 +56,10 @@ export interface DeedResult {
 /** Откуда находка: квест (и этап босса) или ритуал. Привал лут не даёт. */
 type FindSource = { source: "quest" | "ritual"; id: number } | null;
 
-const NOTHING: Pick<Outcome, "quests" | "ritual" | "inventory" | "removeInventory" | "achievements" | "gear" | "removeGear"> = {
+export const NOTHING: Pick<
+  Outcome,
+  "quests" | "ritual" | "inventory" | "removeInventory" | "achievements" | "gear" | "removeGear" | "weekGoalsDone" | "crestParts"
+> = {
   quests: [],
   ritual: null,
   inventory: [],
@@ -64,6 +67,8 @@ const NOTHING: Pick<Outcome, "quests" | "ritual" | "inventory" | "removeInventor
   achievements: [],
   gear: [],
   removeGear: [],
+  weekGoalsDone: [],
+  crestParts: [],
 };
 
 function todayRow(days: readonly Day[], today: GameDate): Day {
@@ -330,7 +335,7 @@ export function planUndoRitual(ctx: TurnContext, ritual: Ritual, todayLedger: re
   return { ...NOTHING, ritual: { ritualId: ritual.id, gameDate: ctx.today, done: false }, ...undone };
 }
 
-function spend(ctx: TurnContext, price: number, source: "purchase" | "rest", sourceId: number | null, note: string) {
+export function spend(ctx: TurnContext, price: number, source: "purchase" | "rest", sourceId: number | null, note: string) {
   const character = applyReward(stateOf(ctx.character), { xp: 0, gold: price, attribute: null, attributeDelta: 0 }, -1, ctx.settings.levelCurve);
   const entry: NewLedgerEntry = {
     gameDate: ctx.today,
