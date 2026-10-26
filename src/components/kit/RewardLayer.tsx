@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { titleForLevel } from "@/domain/levels";
@@ -20,11 +20,22 @@ function flightFor(event: RewardEvent): Flight | null {
   if (!origin || !target) {
     return null;
   }
+  const card = {
+    x: origin.left + origin.width / 2,
+    y: origin.top + origin.height / 2,
+  };
+  const purse = {
+    x: target.left + target.width / 2,
+    y: target.top + target.height / 2,
+  };
   return {
     id: event.id,
-    from: { x: origin.left + origin.width / 2, y: origin.top + origin.height / 2 },
-    to: { x: target.left + target.width / 2, y: target.top + target.height / 2 },
-    coins: event.reward.gold > 0 ? Math.min(10, Math.max(6, Math.ceil(event.reward.gold / 3))) : 0,
+    from: event.direction === "in" ? card : purse,
+    to: event.direction === "in" ? purse : card,
+    coins:
+      event.reward.gold > 0
+        ? Math.min(10, Math.max(6, Math.ceil(event.reward.gold / 3)))
+        : 0,
     xp: event.reward.xp,
   };
 }
@@ -38,10 +49,23 @@ function CoinFlight({ flight }: { flight: Flight }) {
           <motion.div
             key={i}
             className="pointer-events-none fixed left-0 top-0 z-50 h-5 w-5"
-            initial={{ x: flight.from.x - 10, y: flight.from.y - 10, scale: 0.6, opacity: 0 }}
+            initial={{
+              x: flight.from.x - 10,
+              y: flight.from.y - 10,
+              scale: 0.6,
+              opacity: 0,
+            }}
             animate={{
-              x: [flight.from.x - 10, flight.from.x - 10 + spread, flight.to.x - 10],
-              y: [flight.from.y - 10, flight.from.y - 60 - Math.abs(spread), flight.to.y - 10],
+              x: [
+                flight.from.x - 10,
+                flight.from.x - 10 + spread,
+                flight.to.x - 10,
+              ],
+              y: [
+                flight.from.y - 10,
+                Math.max(48, Math.min(flight.from.y, flight.to.y) - 60 - Math.abs(spread)),
+                flight.to.y - 10,
+              ],
               scale: [0.6, 1, 0.7],
               opacity: [0, 1, 1, 0],
             }}
@@ -51,28 +75,31 @@ function CoinFlight({ flight }: { flight: Flight }) {
           </motion.div>
         );
       })}
-      <motion.div
-        className="pointer-events-none fixed left-0 top-0 z-50 font-display text-xl font-bold text-gold-bright drop-shadow-[0_0_8px_rgb(230_195_106/0.8)]"
-        initial={{ x: flight.from.x + 24, y: flight.from.y - 12, opacity: 0 }}
-        animate={{ y: flight.from.y - 52, opacity: [0, 1, 0] }}
-        transition={{ duration: 1.2 }}
-      >
-        +{flight.xp} XP
-      </motion.div>
+      {flight.xp > 0 && (
+        <motion.div
+          className="pointer-events-none fixed left-0 top-0 z-50 font-display text-xl font-bold text-gold-bright drop-shadow-[0_0_8px_rgb(230_195_106/0.8)]"
+          initial={{ x: flight.from.x + 24, y: flight.from.y - 12, opacity: 0 }}
+          animate={{ y: flight.from.y - 52, opacity: [0, 1, 0] }}
+          transition={{ duration: 1.2 }}
+        >
+          +{flight.xp} XP
+        </motion.div>
+      )}
     </>
   );
 }
 
 /** Слой наград поверх экрана: монеты, свечение XP, повышение уровня, отмена. */
 export function RewardLayer() {
-  const { lastReward, quests, undoQuest } = useGame();
+  const { lastReward, quests, undoQuest, settings } = useGame();
+  const calm = useReducedMotion() === true || settings.motion === "reduced";
   /** id последней награды, чьи части уже убраны с экрана. */
   const [flightDone, setFlightDone] = useState(0);
   const [levelDone, setLevelDone] = useState(0);
   const [undoDone, setUndoDone] = useState(0);
 
   const id = lastReward?.id ?? 0;
-  const flight = lastReward && flightDone < id ? flightFor(lastReward) : null;
+  const flight = lastReward && flightDone < id && !calm ? flightFor(lastReward) : null;
   const levelUp = lastReward && levelDone < id ? lastReward.levelUp : null;
   const undoFor = lastReward && undoDone < id ? lastReward.questId : null;
 
@@ -106,7 +133,10 @@ export function RewardLayer() {
     };
   }, [levelUp, id]);
 
-  const undoQuestTarget = undoFor === null ? undefined : quests.find((q) => q.id === undoFor && q.status === "done");
+  const undoQuestTarget =
+    undoFor === null
+      ? undefined
+      : quests.find((q) => q.id === undoFor && q.status === "done");
 
   return (
     <>
@@ -156,7 +186,9 @@ export function RewardLayer() {
               <div className="mx-auto mb-4 grid h-28 w-28 place-items-center rounded-full bg-gradient-to-br from-gold-bright to-gold font-display text-5xl font-bold text-wood shadow-[0_0_60px_rgb(230_195_106/0.6)]">
                 {levelUp}
               </div>
-              <p className="font-display text-4xl text-gold-bright">Новый уровень</p>
+              <p className="font-display text-4xl text-gold-bright">
+                Новый уровень
+              </p>
               <p className="mt-1 text-lg text-parchment/80">
                 {titleForLevel(levelUp) === titleForLevel(levelUp - 1)
                   ? "Путь продолжается"

@@ -1,5 +1,5 @@
 import { applyReward, stateOf } from "./character";
-import { restActionReward, questReward } from "./rewards";
+import { questReward, restActionReward, ritualReward } from "./rewards";
 import { closePastDays, currentStreak } from "./streak";
 import type {
   Character,
@@ -10,8 +10,10 @@ import type {
   NewLedgerEntry,
   Outcome,
   Quest,
+  RealReward,
   RestAction,
   Reward,
+  Ritual,
   Settings,
 } from "./types";
 
@@ -62,13 +64,18 @@ function ledgerFor(ctx: TurnContext, source: NewLedgerEntry["sourceType"], sourc
   };
 }
 
-function deed(ctx: TurnContext, reward: Reward, ledger: NewLedgerEntry, quest: Outcome["quest"]): DeedResult {
+function deed(
+  ctx: TurnContext,
+  reward: Reward,
+  ledger: NewLedgerEntry,
+  change: Pick<Outcome, "quest" | "ritual">,
+): DeedResult {
   const before = stateOf(ctx.character);
   const { row, days } = withDeeds(ctx, 1);
   const rewarded = applyReward(before, reward, 1, ctx.settings.levelCurve);
   const character = withStreak({ ...rewarded, fatiguedSince: null }, days, ctx.today);
   return {
-    outcome: { quest, ledger: [ledger], days: [row], character },
+    outcome: { ...change, inventory: [], ledger: [ledger], days: [row], character },
     reward,
     levelUp: character.level > before.level ? character.level : null,
     revived: before.fatiguedSince !== null,
@@ -81,29 +88,27 @@ export function planCompleteQuest(ctx: TurnContext, quest: Quest): DeedResult {
   }
   const reward = questReward(quest, ctx.settings, ctx.character.windStep);
   return deed(ctx, reward, ledgerFor(ctx, "quest", quest.id, reward), {
-    id: quest.id,
-    status: "done",
-    completedAt: ctx.now.toISOString(),
+    quest: { id: quest.id, status: "done", completedAt: ctx.now.toISOString() },
+    ritual: null,
   });
 }
 
 export function planRestAction(ctx: TurnContext, action: RestAction): DeedResult {
   const reward = restActionReward(ctx.settings);
   const entry = { ...ledgerFor(ctx, "rest_action", action.id, reward), note: action.title };
-  return deed(ctx, reward, entry, null);
+  return deed(ctx, reward, entry, { quest: null, ritual: null });
 }
 
-/**
- * Отмена выполнения в те же игровые сутки: обратные строки журнала, квест снова активен.
- * Усталость не возвращается: отмена защищает от случайного клика, а не наказывает.
- */
-export function planUndoQuest(ctx: TurnContext, quest: Quest, todayLedger: readonly LedgerEntry[]): Outcome {
+function revert(
+  ctx: TurnContext,
+  source: "quest" | "ritual",
+  sourceId: number,
+  todayLedger: readonly LedgerEntry[],
+): { character: CharacterState; ledger: NewLedgerEntry[]; days: Day[] } {
   const reverted = new Set(todayLedger.map((e) => e.revertsId).filter((id): id is number => id !== null));
-  const entries = todayLedger.filter(
-    (e) => e.sourceType === "quest" && e.sourceId === quest.id && !reverted.has(e.id),
-  );
+  const entries = todayLedger.filter((e) => e.sourceType === source && e.sourceId === sourceId && !reverted.has(e.id));
   if (entries.length === 0) {
-    throw new Error("Этот подвиг совершён не сегодня, его нельзя отменить");
+    throw new Error("Это дело совершено не сегодня, его нельзя отменить");
   }
   let state = stateOf(ctx.character);
   const ledger: NewLedgerEntry[] = [];
@@ -113,22 +118,87 @@ export function planUndoQuest(ctx: TurnContext, quest: Quest, todayLedger: reado
     ledger.push({
       gameDate: ctx.today,
       sourceType: "revert",
-      sourceId: quest.id,
+      sourceId,
       xpDelta: -e.xpDelta,
       goldDelta: -e.goldDelta,
       attribute: e.attribute,
       attributeDelta: -e.attributeDelta,
       revertsId: e.id,
-      note: null,
+      note: source,
     });
   }
   const { row, days } = withDeeds(ctx, -entries.length);
-  return {
-    quest: { id: quest.id, status: "active", completedAt: null },
-    ledger,
-    days: [row],
-    character: withStreak(state, days, ctx.today),
+  return { character: withStreak(state, days, ctx.today), ledger, days: [row] };
+}
+
+/**
+ * Отмена выполнения в те же игровые сутки: обратные строки журнала, квест снова активен.
+ * Усталость не возвращается: отмена защищает от случайного клика, а не наказывает.
+ */
+export function planUndoQuest(ctx: TurnContext, quest: Quest, todayLedger: readonly LedgerEntry[]): Outcome {
+  const undone = revert(ctx, "quest", quest.id, todayLedger);
+  return { quest: { id: quest.id, status: "active", completedAt: null }, ritual: null, inventory: [], ...undone };
+}
+
+export function planRitual(ctx: TurnContext, ritual: Ritual): DeedResult {
+  const reward = ritualReward(ritual, ctx.settings, ctx.character.windStep);
+  return deed(ctx, reward, ledgerFor(ctx, "ritual", ritual.id, reward), {
+    quest: null,
+    ritual: { ritualId: ritual.id, gameDate: ctx.today, done: true },
+  });
+}
+
+export function planUndoRitual(ctx: TurnContext, ritual: Ritual, todayLedger: readonly LedgerEntry[]): Outcome {
+  const undone = revert(ctx, "ritual", ritual.id, todayLedger);
+  return { quest: null, ritual: { ritualId: ritual.id, gameDate: ctx.today, done: false }, inventory: [], ...undone };
+}
+
+function spend(ctx: TurnContext, price: number, source: "purchase" | "rest", sourceId: number | null, note: string) {
+  const character = applyReward(stateOf(ctx.character), { xp: 0, gold: price, attribute: null, attributeDelta: 0 }, -1, ctx.settings.levelCurve);
+  const entry: NewLedgerEntry = {
+    gameDate: ctx.today,
+    sourceType: source,
+    sourceId,
+    xpDelta: 0,
+    goldDelta: -price,
+    attribute: null,
+    attributeDelta: 0,
+    revertsId: null,
+    note,
   };
+  return { character, entry };
+}
+
+/** Покупка реальной награды: золото списывается, награда ложится в сундук. */
+export function planBuyReward(ctx: TurnContext, reward: RealReward): Outcome {
+  const { character, entry } = spend(ctx, reward.price, "purchase", reward.id, reward.title);
+  return {
+    quest: null,
+    ritual: null,
+    inventory: [{ itemType: "reward", itemName: reward.title, sourceType: "purchase", sourceId: reward.id }],
+    ledger: [entry],
+    days: [],
+    character,
+  };
+}
+
+/**
+ * День отдыха у камина: запланированный день без квестов, серия не прерывается.
+ * Отдых на сегодня ещё и снимает усталость: это осознанный привал.
+ */
+export function planBuyRest(ctx: TurnContext, date: GameDate): Outcome {
+  if (date < ctx.today) {
+    throw new Error("Отдых можно взять только на сегодня или вперёд");
+  }
+  const existing = ctx.days.find((d) => d.gameDate === date);
+  if (existing?.kind === "rest") {
+    throw new Error("Этот день уже отдан отдыху");
+  }
+  const { character, entry } = spend(ctx, ctx.settings.restPrice, "rest", null, date);
+  const row: Day = existing ? { ...existing, kind: "rest" } : { gameDate: date, kind: "rest", deedsCount: 0, closedAt: null };
+  const days = [...ctx.days.filter((d) => d.gameDate !== date), row];
+  const rested = date === ctx.today ? { ...character, fatiguedSince: null } : character;
+  return { quest: null, ritual: null, inventory: [], ledger: [entry], days: [row], character: withStreak(rested, days, ctx.today) };
 }
 
 /** Итоги прошедших суток при запуске или смене дня. null, если записывать нечего. */
@@ -143,5 +213,8 @@ export function planDayClose(ctx: TurnContext): { outcome: Outcome; days: Day[] 
     closing.days,
     ctx.today,
   );
-  return { outcome: { quest: null, ledger: [], days: closing.changed, character }, days: closing.days };
+  return {
+    outcome: { quest: null, ritual: null, inventory: [], ledger: [], days: closing.changed, character },
+    days: closing.days,
+  };
 }

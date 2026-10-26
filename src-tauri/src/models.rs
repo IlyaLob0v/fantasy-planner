@@ -134,7 +134,106 @@ pub struct QuestStatusChange {
 #[serde(rename_all = "camelCase")]
 pub struct Outcome {
     pub quest: Option<QuestStatusChange>,
+    #[serde(default)]
+    pub ritual: Option<RitualMark>,
+    #[serde(default)]
+    pub inventory: Vec<NewInventoryItem>,
     pub ledger: Vec<NewLedgerEntry>,
     pub days: Vec<Day>,
     pub character: CharacterState,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct Ritual {
+    pub id: i64,
+    pub title: String,
+    pub real_name: Option<String>,
+    pub attribute: String,
+    pub schedule: String,
+    pub weekdays_mask: Option<i64>,
+    pub times_per_week: Option<i64>,
+    pub interval_days: Option<i64>,
+    pub start_date: String,
+    pub paused_until: Option<String>,
+    pub difficulty: i64,
+    pub sort_order: i64,
+    pub created_at: String,
+    pub archived_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RitualFields {
+    pub title: String,
+    pub real_name: Option<String>,
+    pub attribute: String,
+    pub schedule: String,
+    pub weekdays_mask: Option<i64>,
+    pub times_per_week: Option<i64>,
+    pub interval_days: Option<i64>,
+    pub start_date: String,
+    pub paused_until: Option<String>,
+    pub difficulty: i64,
+    pub sort_order: i64,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct RitualCompletion {
+    pub ritual_id: i64,
+    pub game_date: String,
+    pub completed_at: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RitualMark {
+    pub ritual_id: i64,
+    pub game_date: String,
+    pub done: bool,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct Reward {
+    pub id: i64,
+    pub title: String,
+    pub description: Option<String>,
+    pub price: i64,
+    pub repeatable: bool,
+    pub created_at: String,
+    pub archived_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RewardFields {
+    pub title: String,
+    pub description: Option<String>,
+    pub price: i64,
+    pub repeatable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct InventoryItem {
+    pub id: i64,
+    pub item_type: String,
+    pub item_name: String,
+    pub rarity: String,
+    pub asset_key: Option<String>,
+    pub source_type: Option<String>,
+    pub source_id: Option<i64>,
+    pub obtained_at: String,
+    pub redeemed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewInventoryItem {
+    pub item_type: String,
+    pub item_name: String,
+    pub source_type: Option<String>,
+    pub source_id: Option<i64>,
 }

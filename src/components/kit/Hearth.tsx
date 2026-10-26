@@ -1,9 +1,9 @@
 import { motion } from "motion/react";
 
 /** Камин героя: горит, когда герой бодр, и тлеет углями при усталости. */
-export function Hearth({ lit }: { lit: boolean }) {
+export function Hearth({ lit, className = "h-14 w-14" }: { lit: boolean; className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" className="h-14 w-14" aria-hidden>
+    <svg viewBox="0 0 64 64" className={className} aria-hidden>
       <path d="M8 60V26L32 10l24 16v34Z" fill="#3a2a20" stroke="#c9a24a" strokeOpacity="0.4" />
       <path d="M18 60V38a14 14 0 0 1 28 0v22Z" fill="#120c09" />
       <rect x="20" y="54" width="24" height="4" rx="2" fill="#5a3a24" />

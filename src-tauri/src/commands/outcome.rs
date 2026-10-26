@@ -24,6 +24,32 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
         }
     }
 
+    if let Some(mark) = &outcome.ritual {
+        if mark.done {
+            sqlx::query("INSERT INTO ritual_completions (ritual_id, game_date) VALUES (?, ?)")
+                .bind(mark.ritual_id)
+                .bind(&mark.game_date)
+                .execute(&mut *tx)
+                .await?;
+        } else {
+            sqlx::query("DELETE FROM ritual_completions WHERE ritual_id = ? AND game_date = ?")
+                .bind(mark.ritual_id)
+                .bind(&mark.game_date)
+                .execute(&mut *tx)
+                .await?;
+        }
+    }
+
+    for item in &outcome.inventory {
+        sqlx::query("INSERT INTO inventory (item_type, item_name, source_type, source_id) VALUES (?, ?, ?, ?)")
+            .bind(&item.item_type)
+            .bind(&item.item_name)
+            .bind(&item.source_type)
+            .bind(item.source_id)
+            .execute(&mut *tx)
+            .await?;
+    }
+
     for entry in &outcome.ledger {
         sqlx::query(
             "INSERT INTO ledger (game_date, source_type, source_id, xp_delta, gold_delta, attribute, \
@@ -90,7 +116,8 @@ mod tests {
     use super::*;
     use crate::commands::quests;
     use crate::db::open_memory;
-    use crate::models::{CharacterState, Day, NewLedgerEntry, QuestFields, QuestStatusChange};
+    use crate::commands::rituals;
+    use crate::models::{CharacterState, Day, NewInventoryItem, NewLedgerEntry, QuestFields, QuestStatusChange, RitualFields, RitualMark};
 
     fn fields() -> QuestFields {
         QuestFields {
@@ -137,6 +164,8 @@ mod tests {
         let pool = open_memory().await?;
         let quest = quests::create(&pool, fields()).await?;
         let outcome = Outcome {
+            ritual: None,
+            inventory: vec![],
             quest: Some(QuestStatusChange {
                 id: quest.id,
                 status: "done".into(),
@@ -172,6 +201,8 @@ mod tests {
     async fn failed_commit_changes_nothing() -> AppResult<()> {
         let pool = open_memory().await?;
         let outcome = Outcome {
+            ritual: None,
+            inventory: vec![],
             quest: None,
             ledger: vec![],
             days: vec![],
@@ -180,6 +211,60 @@ mod tests {
         assert!(commit(&pool, outcome).await.is_err());
         let hero = character::fetch(&pool).await?;
         assert_eq!((hero.xp, hero.gold), (0, 0));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn ritual_marks_and_purchases_are_written() -> AppResult<()> {
+        let pool = open_memory().await?;
+        let ritual = rituals::create(
+            &pool,
+            RitualFields {
+                title: "Утренняя молитва".into(),
+                real_name: Some("зарядка".into()),
+                attribute: "strength".into(),
+                schedule: "weekdays".into(),
+                weekdays_mask: Some(0b0011111),
+                times_per_week: None,
+                interval_days: None,
+                start_date: "2026-10-26".into(),
+                paused_until: None,
+                difficulty: 1,
+                sort_order: 0,
+            },
+        )
+        .await?;
+        let mark = |done: bool| Outcome {
+            quest: None,
+            ritual: Some(RitualMark { ritual_id: ritual.id, game_date: "2026-10-26".into(), done }),
+            inventory: vec![],
+            ledger: vec![],
+            days: vec![],
+            character: state(5, 2),
+        };
+        commit(&pool, mark(true)).await?;
+        let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM ritual_completions").fetch_one(&pool).await?;
+        assert_eq!(count, 1);
+        commit(&pool, mark(false)).await?;
+        let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM ritual_completions").fetch_one(&pool).await?;
+        assert_eq!(count, 0);
+
+        let purchase = Outcome {
+            quest: None,
+            ritual: None,
+            inventory: vec![NewInventoryItem {
+                item_type: "reward".into(),
+                item_name: "Вечер в таверне".into(),
+                source_type: Some("purchase".into()),
+                source_id: Some(1),
+            }],
+            ledger: vec![],
+            days: vec![],
+            character: state(0, 0),
+        };
+        commit(&pool, purchase).await?;
+        let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
+        assert_eq!(items, 1);
         Ok(())
     }
 }

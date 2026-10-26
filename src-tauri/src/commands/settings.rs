@@ -18,3 +18,18 @@ pub async fn get_settings(db: State<'_, Db>) -> AppResult<HashMap<String, serde_
         })
         .collect()
 }
+
+const EDITABLE: &[&str] = &["day_start_hour", "rates", "rest_price", "motion"];
+
+#[tauri::command]
+pub async fn set_setting(db: State<'_, Db>, key: String, value: serde_json::Value) -> AppResult<()> {
+    if !EDITABLE.contains(&key.as_str()) {
+        return Err(AppError::Invalid(format!("настройку {key} нельзя менять")));
+    }
+    sqlx::query("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+        .bind(&key)
+        .bind(value.to_string())
+        .execute(&db.0)
+        .await?;
+    Ok(())
+}

@@ -4,12 +4,15 @@ import { HeroPanel } from "@/components/kit/HeroPanel";
 import { AttributePicker, DifficultyPicker, TypePicker } from "@/components/kit/pickers";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { QuestCard } from "@/components/kit/QuestCard";
+import { RitualRow } from "@/components/kit/RitualRow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { todayBoard } from "@/domain/quests";
 import { humanDate, humanWeekday } from "@/domain/time";
 import type { Attribute, Difficulty, QuestType } from "@/domain/types";
 import { useGame } from "@/services/game";
+
+import { RitualsDrawer } from "./RitualsDrawer";
 
 function QuickAdd() {
   const { createQuest, today } = useGame();
@@ -62,27 +65,21 @@ function QuickAdd() {
   );
 }
 
-/** Тронный зал: что сделать сегодня и статус героя. */
-export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
+function TodayPanel({ onOpenBoard, onEditRituals }: { onOpenBoard: () => void; onEditRituals: () => void }) {
   const { quests, today, settings } = useGame();
   const board = todayBoard(quests, today, settings.dayStartHour);
 
   return (
-    <div className="grid h-full grid-cols-[minmax(300px,340px)_1fr] items-start gap-5 overflow-y-auto p-6 scrollbar-quiet xl:grid-cols-[340px_1fr_minmax(480px,560px)]">
-      <div className="flex flex-col gap-5">
-        <HeroPanel />
-        <QuickAdd />
+    <Panel className="flex max-h-full min-h-0 flex-col p-5">
+      <div className="mb-4 flex items-baseline justify-between">
+        <PanelTitle>Приказы на сегодня</PanelTitle>
+        <span className="text-sm text-parchment/50">
+          {humanWeekday(today)}, {humanDate(today)}
+        </span>
       </div>
-      <div className="hidden xl:block" aria-hidden />
-      <Panel className="flex max-h-full min-h-0 flex-col p-5">
-        <div className="mb-4 flex items-baseline justify-between">
-          <PanelTitle>Приказы на сегодня</PanelTitle>
-          <span className="text-sm text-parchment/50">
-            {humanWeekday(today)}, {humanDate(today)}
-          </span>
-        </div>
+      <div className="flex min-h-0 flex-col gap-5 overflow-y-auto scrollbar-quiet">
         {board.active.length === 0 && board.done.length === 0 ? (
-          <div className="grid place-items-center py-10 text-center">
+          <div className="grid place-items-center py-8 text-center">
             <div>
               <p className="font-display text-2xl text-parchment/80">Сегодня приказов нет</p>
               <p className="mt-1 text-sm text-parchment/50">Возьми квест с доски или отдохни у камина.</p>
@@ -92,7 +89,7 @@ export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-5 overflow-y-auto scrollbar-quiet">
+          <>
             <ul className="flex flex-col gap-2">
               {board.active.map((q) => (
                 <QuestCard key={q.id} quest={q} />
@@ -108,9 +105,41 @@ export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
                 </ul>
               </div>
             )}
-          </div>
+          </>
         )}
-      </Panel>
+        <div className="border-t border-gold/15 pt-4">
+          <RitualRow onEdit={onEditRituals} />
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+/** Тронный зал: что сделать сегодня и статус героя. Редактор ритуалов встаёт на место списка дня. */
+export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
+  const [ritualsOpen, setRitualsOpen] = useState(false);
+
+  return (
+    <div className="grid h-full grid-cols-[minmax(300px,340px)_1fr] items-start gap-5 overflow-y-auto p-6 scrollbar-quiet xl:grid-cols-[340px_1fr_minmax(480px,560px)]">
+      <div className="flex flex-col gap-5">
+        <HeroPanel />
+        <QuickAdd />
+      </div>
+      <div className="hidden xl:block" aria-hidden />
+      {ritualsOpen ? (
+        <RitualsDrawer
+          onClose={() => {
+            setRitualsOpen(false);
+          }}
+        />
+      ) : (
+        <TodayPanel
+          onOpenBoard={onOpenBoard}
+          onEditRituals={() => {
+            setRitualsOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 }

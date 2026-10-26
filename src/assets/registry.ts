@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 
 import { GatehouseScene } from "./procedural/GatehouseScene";
+import { TreasuryScene } from "./procedural/TreasuryScene";
 import { WandererScene } from "./procedural/WandererScene";
 
 export type AssetSource = { kind: "scene"; Scene: ComponentType } | { kind: "image"; src: string };
@@ -41,6 +42,12 @@ export const assets = {
     focus: { x: 32, y: 55 },
     theme: { tint: "#2a2a3a", panelWood: "rgb(40 30 26 / 0.84)", panelParchment: "rgb(232 220 192 / 0.9)" },
     credit: { title: "Странник над туманом", author: "Штаб гильдии", license: OWN_WORK },
+  },
+  treasury: {
+    source: { kind: "scene", Scene: TreasuryScene },
+    focus: { x: 50, y: 70 },
+    theme: { tint: "#2a1c13", panelWood: "rgb(36 24 18 / 0.86)", panelParchment: "rgb(232 220 192 / 0.9)" },
+    credit: { title: "Сокровищница", author: "Штаб гильдии", license: OWN_WORK },
   },
 } satisfies Record<string, AssetEntry>;
 
