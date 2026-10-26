@@ -1,0 +1,102 @@
+@import "tailwindcss";
+@import "@fontsource/cormorant-garamond/500.css";
+@import "@fontsource/cormorant-garamond/600.css";
+@import "@fontsource/cormorant-garamond/700.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+
+/* Базовая палитра. Токены локации (src/assets/registry.ts) переопределяют переменные на корне сцены. */
+@theme {
+  --color-parchment: #e8dcc0;
+  --color-parchment-deep: #d6c49c;
+  --color-wood: #2e2018;
+  --color-wood-light: #4a3426;
+  --color-gold: #c9a24a;
+  --color-gold-bright: #e6c36a;
+  --color-ink: #1e3550;
+  --color-ink-deep: #121f30;
+  --color-burgundy: #6b1e2a;
+  --color-ember: #d9772b;
+  --color-sage: #6f8a5b;
+
+  --font-display: "Cormorant Garamond", "Georgia", serif;
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+
+  --radius-panel: 6px;
+}
+
+:root {
+  --scene-tint: var(--color-ink-deep);
+  --panel-wood: color-mix(in oklab, var(--color-wood) 86%, transparent);
+  --panel-parchment: color-mix(in oklab, var(--color-parchment) 88%, transparent);
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--color-ink-deep);
+  color: var(--color-parchment);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+input,
+textarea {
+  user-select: text;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-variant-numeric: lining-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold-bright);
+  outline-offset: 2px;
+}
+
+/* Зерно пергамента и дерева: шум низкой непрозрачности поверх подложки, без картинок-рамок. */
+.grain {
+  position: relative;
+  isolation: isolate;
+}
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.scrollbar-quiet {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-gold) 40%, transparent) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
