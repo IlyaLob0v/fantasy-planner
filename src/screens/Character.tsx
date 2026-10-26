@@ -186,9 +186,9 @@ export function CharacterScreen() {
   const maxAttr = Math.max(10, character.strength, character.intellect, character.agility);
 
   return (
-    <div className="grid h-full grid-cols-2 gap-6 p-6">
-      <div aria-hidden />
-      <div className="flex flex-col gap-5 overflow-y-auto scrollbar-quiet">
+    <div className="h-full overflow-y-auto p-3 scrollbar-quiet md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:p-6">
+      <div className="hidden md:block" aria-hidden />
+      <div className="flex flex-col gap-4 md:min-h-0 md:gap-5 scrollbar-quiet md:overflow-y-auto">
         <Panel className="p-6">
           <NameField />
           <p className="text-gold-bright/90">

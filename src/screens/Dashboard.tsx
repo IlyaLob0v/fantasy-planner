@@ -78,7 +78,7 @@ function TodayPanel({ onOpenBoard, onEditRituals }: { onOpenBoard: () => void; o
 
   return (
     <Panel className="flex max-h-full min-h-0 flex-col p-5">
-      <div className="mb-4 flex items-baseline justify-between">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3">
         <PanelTitle>Приказы на сегодня</PanelTitle>
         <span className="text-sm text-parchment/50">
           {humanWeekday(today)}, {humanDate(today)}
@@ -160,13 +160,13 @@ export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
   const [ritualsOpen, setRitualsOpen] = useState(false);
 
   return (
-    <div className="grid h-full grid-cols-[minmax(300px,340px)_1fr] items-start gap-5 overflow-y-auto p-6 scrollbar-quiet xl:grid-cols-[340px_1fr_minmax(480px,560px)]">
-      <div className="flex flex-col gap-5">
+    <div className="flex h-full flex-col gap-4 overflow-y-auto p-3 scrollbar-quiet md:grid md:grid-cols-[minmax(300px,340px)_1fr] md:items-start md:gap-5 md:p-6 xl:grid-cols-[340px_1fr_minmax(480px,560px)]">
+      <div className="order-2 flex shrink-0 flex-col gap-4 md:order-none md:gap-5">
         <HeroPanel />
         <QuickAdd />
       </div>
       <div className="hidden xl:block" aria-hidden />
-      <div className="flex min-h-0 flex-col gap-5">
+      <div className="order-1 flex shrink-0 flex-col gap-4 md:order-none md:min-h-0 md:shrink md:gap-5">
         {ritualsOpen ? (
           <RitualsDrawer
             onClose={() => {

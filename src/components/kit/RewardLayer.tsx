@@ -156,7 +156,7 @@ export function RewardLayer({ onOpenMap }: { onOpenMap: () => void }) {
       <AnimatePresence>
         {undoQuestTarget && (
           <motion.div
-            className="fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-[var(--radius-panel)] border border-gold/40 bg-wood/95 px-4 py-2.5 text-sm shadow-xl"
+            className="fixed bottom-[calc(var(--bottom-chrome)+1.25rem)] right-5 z-40 flex items-center gap-3 rounded-[var(--radius-panel)] border border-gold/40 bg-wood/95 px-4 py-2.5 text-sm shadow-xl"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
