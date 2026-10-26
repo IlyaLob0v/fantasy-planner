@@ -36,6 +36,8 @@ export function parseSettings(raw: unknown): Settings {
       round: readNumber(curve, "round"),
     },
     motion: raw["motion"] === "reduced" ? "reduced" : "full",
+    oathDone: raw["oath_done"] === true,
+    hintsSeen: Array.isArray(raw["hints_seen"]) ? raw["hints_seen"].filter((k): k is string => typeof k === "string") : [],
   };
 }
 

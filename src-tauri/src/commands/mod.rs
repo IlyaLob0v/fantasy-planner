@@ -1,3 +1,4 @@
+pub mod achievements;
 pub mod character;
 pub mod chronicle;
 pub mod days;

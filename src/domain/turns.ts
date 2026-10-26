@@ -42,11 +42,12 @@ export interface DeedResult {
   victory: { boss: Quest; loot: NewInventoryItem; reward: Reward } | null;
 }
 
-const NOTHING: Pick<Outcome, "quests" | "ritual" | "inventory" | "removeInventory"> = {
+const NOTHING: Pick<Outcome, "quests" | "ritual" | "inventory" | "removeInventory" | "achievements"> = {
   quests: [],
   ritual: null,
   inventory: [],
   removeInventory: [],
+  achievements: [],
 };
 
 function todayRow(days: readonly Day[], today: GameDate): Day {

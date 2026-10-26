@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsFetching, useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { GOLD_ANCHOR_ID } from "@/app/anchors";
+import { gloryProgress, gloryStats, newlyEarned, planGlory, type GloryProgress } from "@/domain/achievements";
 import { weekStart } from "@/domain/rituals";
 import { mergeRates, parseSettings } from "@/domain/settings";
 import { addDays } from "@/domain/time";
@@ -40,6 +41,7 @@ import type {
   Settings,
 } from "@/domain/types";
 import { describeError, ipc } from "@/ipc";
+import { uuidv7 } from "@/lib/uid";
 
 import { useGameDate } from "./clock";
 
@@ -57,7 +59,15 @@ const keys = {
   inventory: ["inventory"] as const,
   chronicle: ["chronicle"] as const,
   locations: ["locations"] as const,
+  tally: ["ledger-tally"] as const,
+  achievements: ["achievements"] as const,
 };
+
+/** Только что открытые достижения: для тоста. */
+export interface GloryEvent {
+  id: number;
+  keys: string[];
+}
 
 /** Событие для слоя наград: монеты летят в сундук (награда) или из него (трата). */
 export interface RewardEvent {
@@ -88,8 +98,11 @@ export interface GameState {
   inventory: InventoryItem[];
   chronicle: ChronicleEntry[];
   locations: Location[];
+  /** Зал славы: каждое достижение с прогрессом и датой открытия. */
+  glory: GloryProgress[];
   today: GameDate;
   lastReward: RewardEvent | null;
+  lastGlory: GloryEvent | null;
   error: string | null;
   clearError: () => void;
   completeQuest: (quest: Quest, origin: DOMRect | null) => void;
@@ -114,6 +127,10 @@ export interface GameState {
   setSetting: (key: EditableSetting, value: unknown) => void;
   saveRates: (rates: Settings["rates"]) => void;
   renameCharacter: (name: string) => void;
+  /** Присяга гильдии пройдена или пропущена: больше не показывается. */
+  finishOath: () => void;
+  /** Подсказка показана и закрыта: больше не появится. */
+  markHintSeen: (key: string) => void;
 }
 
 const GameContext = createContext<GameState | null>(null);
@@ -157,8 +174,14 @@ export function useGameBoot(): Boot {
   const inventory = useQuery({ queryKey: keys.inventory, queryFn: ipc.listInventory });
   const chronicle = useQuery({ queryKey: keys.chronicle, queryFn: ipc.listChronicle });
   const locations = useQuery({ queryKey: keys.locations, queryFn: ipc.listLocations });
+  const tally = useQuery({ queryKey: keys.tally, queryFn: ipc.ledgerTally });
+  const achievements = useQuery({ queryKey: keys.achievements, queryFn: ipc.listAchievements });
+  const fetching = useIsFetching();
+  const mutating = useIsMutating();
 
   const [lastReward, setLastReward] = useState<RewardEvent | null>(null);
+  const [lastGlory, setLastGlory] = useState<GloryEvent | null>(null);
+  const gloryInFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const closedFor = useRef<GameDate | null>(null);
 
@@ -176,7 +199,7 @@ export function useGameBoot(): Boot {
 
   const refresh = useCallback(async () => {
     await Promise.all(
-      [keys.character, keys.quests, keys.days, keys.completions, keys.inventory].map((queryKey) =>
+      [keys.character, keys.quests, keys.days, keys.completions, keys.inventory, keys.tally, keys.achievements].map((queryKey) =>
         client.invalidateQueries({ queryKey }),
       ),
     );
@@ -202,6 +225,42 @@ export function useGameBoot(): Boot {
       commitOutcome(plan.outcome);
     }
   }, [context, commitOutcome]);
+
+  const stats = useMemo(
+    () =>
+      settings && character.data && tally.data && quests.data && days.data && inventory.data
+        ? gloryStats(character.data, tally.data, quests.data, days.data, inventory.data, settings.dayStartHour)
+        : null,
+    [settings, character.data, tally.data, quests.data, days.data, inventory.data],
+  );
+
+  /**
+   * Зал славы открывает заслуженное, когда мир успокоился: ни одной записи и загрузки в пути.
+   * Так золото за достижение не столкнётся с наградой за дело, а счётчики уже свежие.
+   */
+  useEffect(() => {
+    const ctx = context();
+    if (!ctx || !stats || !achievements.data || fetching > 0 || mutating > 0 || gloryInFlight.current) {
+      return;
+    }
+    const earned = newlyEarned(stats, achievements.data);
+    if (earned.length === 0) {
+      return;
+    }
+    gloryInFlight.current = true;
+    ipc
+      .commitOutcome(planGlory(ctx, earned, uuidv7))
+      .then((hero) => {
+        client.setQueryData(keys.character, hero);
+        setLastGlory((prev) => ({ id: (prev?.id ?? 0) + 1, keys: earned.map((d) => d.key) }));
+      })
+      .catch(fail)
+      .finally(() => {
+        void refresh().then(() => {
+          gloryInFlight.current = false;
+        });
+      });
+  }, [context, stats, achievements.data, fetching, mutating, client, fail, refresh]);
 
   const announce = useCallback(
     (event: Omit<RewardEvent, "id" | "target">) => {
@@ -509,6 +568,18 @@ export function useGameBoot(): Boot {
     [client, fail],
   );
 
+  const finishOath = useCallback(() => {
+    setSetting("oath_done", true);
+  }, [setSetting]);
+
+  const markHintSeen = useCallback(
+    (key: string) => {
+      if (!settings || settings.hintsSeen.includes(key)) return;
+      setSetting("hints_seen", [...settings.hintsSeen, key]);
+    },
+    [settings, setSetting],
+  );
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -526,7 +597,9 @@ export function useGameBoot(): Boot {
       !rewards.data ||
       !inventory.data ||
       !chronicle.data ||
-      !locations.data
+      !locations.data ||
+      !stats ||
+      !achievements.data
     ) {
       return null;
     }
@@ -542,8 +615,10 @@ export function useGameBoot(): Boot {
       inventory: inventory.data,
       chronicle: chronicle.data,
       locations: locations.data,
+      glory: gloryProgress(stats, achievements.data),
       today,
       lastReward,
+      lastGlory,
       error,
       clearError,
       completeQuest,
@@ -568,6 +643,8 @@ export function useGameBoot(): Boot {
       setSetting,
       saveRates,
       renameCharacter,
+      finishOath,
+      markHintSeen,
     };
   }, [
     settings,
@@ -582,7 +659,10 @@ export function useGameBoot(): Boot {
     inventory.data,
     chronicle.data,
     locations.data,
+    stats,
+    achievements.data,
     lastReward,
+    lastGlory,
     error,
     clearError,
     completeQuest,
@@ -607,6 +687,8 @@ export function useGameBoot(): Boot {
     setSetting,
     saveRates,
     renameCharacter,
+    finishOath,
+    markHintSeen,
   ]);
 
   const firstError = [
@@ -621,6 +703,8 @@ export function useGameBoot(): Boot {
     inventory,
     chronicle,
     locations,
+    tally,
+    achievements,
   ].find(
     (q) => q.error,
   )?.error;

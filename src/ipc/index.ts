@@ -2,11 +2,13 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { isRecord } from "@/domain/guards";
 import type {
+  Achievement,
   Character,
   ChronicleEntry,
   Day,
   InventoryItem,
   LedgerEntry,
+  LedgerTally,
   Location,
   Outcome,
   Quest,
@@ -30,6 +32,8 @@ export const ipc = {
   archiveQuest: (id: number) => invoke<null>("archive_quest", { id }),
   listDays: (since: string) => invoke<Day[]>("list_days", { since }),
   listLedgerForDate: (gameDate: string) => invoke<LedgerEntry[]>("list_ledger_for_date", { gameDate }),
+  ledgerTally: () => invoke<LedgerTally[]>("ledger_tally"),
+  listAchievements: () => invoke<Achievement[]>("list_achievements"),
   listRestActions: () => invoke<RestAction[]>("list_rest_actions"),
   createRestAction: (title: string) => invoke<RestAction>("create_rest_action", { title }),
   archiveRestAction: (id: number) => invoke<null>("archive_rest_action", { id }),
@@ -44,7 +48,7 @@ export const ipc = {
   archiveReward: (id: number) => invoke<null>("archive_reward", { id }),
   listInventory: () => invoke<InventoryItem[]>("list_inventory"),
   redeemItem: (id: number) => invoke<null>("redeem_item", { id }),
-  setSetting: (key: "day_start_hour" | "rates" | "rest_price" | "motion", value: unknown) => invoke<null>("set_setting", { key, value }),
+  setSetting: (key: "day_start_hour" | "rates" | "rest_price" | "motion" | "oath_done" | "hints_seen", value: unknown) => invoke<null>("set_setting", { key, value }),
   commitOutcome: (outcome: Outcome) => invoke<Character>("commit_outcome", { outcome }),
   listChronicle: () => invoke<ChronicleEntry[]>("list_chronicle"),
   saveChronicle: (entry: ChronicleEntry) => invoke<ChronicleEntry>("save_chronicle", { entry }),

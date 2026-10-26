@@ -49,6 +49,16 @@ function NumberField({ value, min, label, onCommit }: { value: number; min: numb
   );
 }
 
+const GUIDE: ReadonlyArray<readonly [string, string]> = [
+  ["Квесты", "Main — важное, можно поставить срок. Side — рутина. Boss — большой проект из этапов, у него полоса HP."],
+  ["Опыт и уровень", "Каждое дело даёт опыт. Уровень открывает титулы и путь к новым локациям."],
+  ["Золото", "Падает за дела. Тратится в лавке: свои награды, день отдыха, локации. За бездействие не отнимается никогда."],
+  ["Атрибуты", "Сила, Интеллект, Ловкость растут от дел своей категории и отражают, чем ты занимаешься."],
+  ["Серия и Попутный ветер", "Серия — дни подряд хотя бы с одним делом. Каждые 7 дней серии дают +10 % золота, до +30 %."],
+  ["Усталость", "Приходит после дня без дел. Ничего не отнимает; одно любое дело её снимает."],
+  ["Зал славы", "Достижения за серии, подвиги, боссов и уровни. Каждое даёт немного золота и не отбирается."],
+];
+
 function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2.5">
@@ -231,6 +241,26 @@ export function SettingsScreen() {
 
         <Section title="Привалы" hint="Короткие дела, которые герой предлагает, когда устал.">
           <RestActions />
+        </Section>
+
+        <Section title="Справочник гильдии" hint="Как устроен мир, коротко.">
+          <dl className="flex flex-col gap-2 text-sm text-parchment/75">
+            {GUIDE.map(([term, text]) => (
+              <div key={term}>
+                <dt className="text-parchment">{term}</dt>
+                <dd>{text}</dd>
+              </div>
+            ))}
+          </dl>
+          <button
+            type="button"
+            className="cursor-pointer self-start text-xs text-parchment/50 hover:text-gold-bright"
+            onClick={() => {
+              setSetting("hints_seen", []);
+            }}
+          >
+            Показать подсказки заново
+          </button>
         </Section>
 
         <Section title="Иллюстрации" hint="Откуда взялись сцены, которые висят на стенах гильдии.">

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 
 import { GOLD_ANCHOR_ID } from "@/app/anchors";
 import { ATTRIBUTE_HINT, ATTRIBUTE_LABEL, daysWord } from "@/app/strings";
+import { nearestGlory } from "@/domain/achievements";
 import { levelProgress } from "@/domain/levels";
 import { windBonusPct, maxWindStep } from "@/domain/rewards";
 import { nextWindIn } from "@/domain/streak";
@@ -10,6 +11,7 @@ import { useGame } from "@/services/game";
 
 import { ATTRIBUTE_ICON, Coin } from "./icons";
 import { Hearth } from "./Hearth";
+import { OnceHint } from "./OnceHint";
 import { Panel } from "./Panel";
 import { Ribbon } from "./Ribbon";
 import { XpBar } from "./XpBar";
@@ -73,7 +75,8 @@ function RestPrompt() {
 
 /** Панель героя на главном экране: уровень, опыт, золото, атрибуты, серия, камин. */
 export function HeroPanel() {
-  const { character, settings, lastReward } = useGame();
+  const { character, settings, lastReward, glory } = useGame();
+  const nearest = nearestGlory(glory);
   const progress = levelProgress(character.xp, settings.levelCurve);
   const fatigued = character.fatiguedSince !== null;
   const bonus = windBonusPct(character.windStep, settings.streakBonus);
@@ -164,9 +167,24 @@ export function HeroPanel() {
         <span className="text-xs text-parchment/50">лучшая {character.streakBest}</span>
       </div>
 
+      {nearest && (
+        <p className="-mt-2 text-xs text-parchment/55">
+          Ближайшая слава: <span className="text-parchment/80">{nearest.def.title}</span>, {nearest.current} / {nearest.def.target}
+        </p>
+      )}
+
+      {bonus > 0 && (
+        <OnceHint id="wind">
+          Попутный ветер: каждые 7 дней серии дают +10 % золота за дела, до +30 %. Пропуск опускает ветер на одну ступень, золото не отнимается.
+        </OnceHint>
+      )}
+
       {fatigued && (
         <div className="flex flex-col gap-2 border-t border-gold/15 pt-3">
           <p className="text-sm text-parchment/80">Герой просит привала. Одно дело вернёт силы.</p>
+          <OnceHint id="fatigue">
+            Усталость приходит после дня без дел. Это не штраф: ничего не отнимается, а любой квест, ритуал или привал сразу её снимает.
+          </OnceHint>
           <RestPrompt />
         </div>
       )}
