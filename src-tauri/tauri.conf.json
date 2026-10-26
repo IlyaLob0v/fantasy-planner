@@ -32,6 +32,16 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+    "publisher": "Илья (IlyaLob0v)",
+    "copyright": "© 2026 Илья (IlyaLob0v)",
+    "category": "Productivity",
+    "shortDescription": "Фэнтези-ежедневник: квесты, ритуалы, боссы и хроника дня",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
   }
 }

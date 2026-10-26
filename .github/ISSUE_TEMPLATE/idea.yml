@@ -1,0 +1,16 @@
+name: Идея
+description: Новая механика, экран или улучшение
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Идея
+      description: Что добавить или изменить.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Зачем
+      description: Какую проблему это решает или почему это добавит мотивации. Помни правило проекта: без штрафов.
