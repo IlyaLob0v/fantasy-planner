@@ -161,6 +161,9 @@ function RestActions() {
 /** Настройки: ставки, граница суток, цена отдыха, анимации, привалы и авторы иллюстраций. */
 export function SettingsScreen() {
   const { settings, setSetting } = useGame();
+  const origins = [
+    ...new Set(Object.values(assets).map(({ credit }) => `${credit.author}, ${credit.year} · ${credit.license} · ${credit.source}`)),
+  ];
 
   return (
     <div className="h-full overflow-y-auto p-6 scrollbar-quiet">
@@ -228,15 +231,19 @@ export function SettingsScreen() {
           <RestActions />
         </Section>
 
-        <Section title="Иллюстрации" hint="Фоны взяты из живописи в общественном достоянии через Wikimedia Commons.">
+        <Section title="Иллюстрации" hint="Откуда взялись сцены, которые висят на стенах гильдии.">
           <ul className="flex flex-col gap-1 text-sm text-parchment/70">
             {Object.values(assets).map(({ name, credit }) => (
               <li key={name}>
-                <span className="text-parchment">{name}:</span> «{credit.title}», {credit.author}, {credit.year}
-                <span className="text-parchment/45"> · {credit.license}</span>
+                <span className="text-parchment">{name}:</span> «{credit.title}»
               </li>
             ))}
           </ul>
+          {origins.map((origin) => (
+            <p key={origin} className="text-xs text-parchment/45">
+              {origin}
+            </p>
+          ))}
         </Section>
       </Panel>
     </div>
