@@ -3,15 +3,16 @@ import type { ComponentType, SVGProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { BoardIcon, CloseIcon, HallIcon, HelmIcon, MaximizeIcon, MinimizeIcon } from "./icons";
+import { BoardIcon, ChestIcon, CloseIcon, GearIcon, HallIcon, HelmIcon, MaximizeIcon, MinimizeIcon } from "./icons";
 import { Tooltip } from "../ui/tooltip";
 
-export type ScreenKey = "dashboard" | "questlog" | "character";
+export type ScreenKey = "dashboard" | "questlog" | "character" | "inventory" | "settings";
 
 export const SCREENS: ReadonlyArray<{ key: ScreenKey; label: string; Icon: ComponentType<SVGProps<SVGSVGElement>> }> = [
   { key: "dashboard", label: "Тронный зал", Icon: HallIcon },
   { key: "questlog", label: "Доска квестов", Icon: BoardIcon },
   { key: "character", label: "Герой", Icon: HelmIcon },
+  { key: "inventory", label: "Сокровищница", Icon: ChestIcon },
 ];
 
 function Rivet({ label, onClick, children, danger = false }: { label: string; onClick: () => void; children: React.ReactNode; danger?: boolean }) {
@@ -71,6 +72,22 @@ export function Titlebar({ location, screen, onNavigate }: { location: string; s
         ))}
       </nav>
       <div className="flex justify-end">
+        <Tooltip content="Устав гильдии">
+          <button
+            type="button"
+            aria-label="Настройки"
+            aria-current={screen === "settings" ? "page" : undefined}
+            onClick={() => {
+              onNavigate(screen === "settings" ? "dashboard" : "settings");
+            }}
+            className={cn(
+              "mr-2 grid h-7 w-9 cursor-pointer place-items-center rounded transition-colors",
+              screen === "settings" ? "bg-gold/20 text-gold-bright" : "text-parchment/50 hover:text-parchment",
+            )}
+          >
+            <GearIcon className="h-4 w-4" />
+          </button>
+        </Tooltip>
         <Rivet label="Свернуть" onClick={() => void win.minimize()}>
           <MinimizeIcon className="h-4 w-4" />
         </Rivet>

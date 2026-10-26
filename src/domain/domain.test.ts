@@ -158,7 +158,8 @@ describe("настройки", () => {
   it("разбирает сид миграции и падает на битых данных", () => {
     const raw = {
       day_start_hour: 4,
-      rates: { side: { xp: 10, gold: 3 }, main: { xp: 30, gold: 10 }, rest_action: { xp: 3, gold: 0 } },
+      rates: { side: { xp: 10, gold: 3 }, main: { xp: 30, gold: 10 }, ritual: { xp: 5, gold: 2 }, rest_action: { xp: 3, gold: 0 } },
+      rest_price: 40,
       streak_bonus: { step_days: 7, step_pct: 10, max_pct: 30 },
       level_curve: { base: 50, exp: 1.4, round: 5 },
       motion: "full",

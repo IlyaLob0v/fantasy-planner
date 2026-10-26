@@ -7,7 +7,9 @@ import { SceneBackdrop } from "@/components/kit/SceneBackdrop";
 import { SCREENS, Titlebar, type ScreenKey } from "@/components/kit/Titlebar";
 import { CharacterScreen } from "@/screens/Character";
 import { Dashboard } from "@/screens/Dashboard";
+import { Inventory } from "@/screens/Inventory";
 import { QuestLog } from "@/screens/QuestLog";
+import { SettingsScreen } from "@/screens/Settings";
 import { GameProvider, useGame, useGameBoot } from "@/services/game";
 
 function isTyping(target: EventTarget | null): boolean {
@@ -45,7 +47,7 @@ function Shell() {
   }, []);
 
   const location = locationAsset(character.locationKey);
-  const backdrop: AssetKey = screen === "character" ? "hero" : location;
+  const backdrop: AssetKey = screen === "character" ? "hero" : screen === "inventory" ? "treasury" : location;
   const theme = assets[backdrop].theme;
   const vars: CSSProperties & Record<`--${string}`, string> = {
     "--panel-wood": theme.panelWood,
@@ -56,7 +58,7 @@ function Shell() {
   return (
     <MotionConfig reducedMotion={settings.motion === "reduced" ? "always" : "user"}>
       <div className="relative flex h-full flex-col" style={vars}>
-        <SceneBackdrop asset={backdrop} dim={screen === "questlog" ? 0.4 : 0} dusk={character.fatiguedSince !== null} />
+        <SceneBackdrop asset={backdrop} dim={screen === "questlog" ? 0.4 : screen === "settings" ? 0.55 : 0} dusk={character.fatiguedSince !== null} />
         <Titlebar location={assets[location].name} screen={screen} onNavigate={setScreen} />
         <main className="relative min-h-0 flex-1">
           {screen === "dashboard" && (
@@ -68,6 +70,8 @@ function Shell() {
           )}
           {screen === "questlog" && <QuestLog />}
           {screen === "character" && <CharacterScreen />}
+          {screen === "inventory" && <Inventory />}
+          {screen === "settings" && <SettingsScreen />}
         </main>
         <RewardLayer />
         <ErrorNote />

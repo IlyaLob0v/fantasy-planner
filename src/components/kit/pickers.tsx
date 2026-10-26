@@ -1,3 +1,5 @@
+import type { ComponentProps } from "react";
+
 import { ATTRIBUTE_HINT, ATTRIBUTE_LABEL, DIFFICULTY_LABEL, QUEST_TYPE_LABEL } from "@/app/strings";
 import { ATTRIBUTES, QUEST_TYPES, type Attribute, type Difficulty, type QuestType } from "@/domain/types";
 import { cn } from "@/lib/utils";
@@ -8,6 +10,15 @@ import { Tooltip } from "../ui/tooltip";
 const chip = "grid h-8 cursor-pointer place-items-center rounded-[var(--radius-panel)] border px-2.5 text-xs transition-colors";
 const on = "border-gold/70 bg-gold/20 text-gold-bright";
 const off = "border-parchment/15 text-parchment/60 hover:text-parchment";
+
+/** Кнопка-переключатель в общем стиле выборщиков. */
+export function Chip({
+  active,
+  className,
+  ...props
+}: Omit<ComponentProps<"button">, "type"> & { active: boolean }) {
+  return <button type="button" aria-pressed={active} className={cn(chip, active ? on : off, className)} {...props} />;
+}
 
 export function TypePicker({ value, onChange }: { value: QuestType; onChange: (t: QuestType) => void }) {
   return (

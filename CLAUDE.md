@@ -31,7 +31,7 @@ fantasy-planner/
 ├── specs/                      # ТЗ: plan, schema, screens. Источник истины
 ├── src/
 │   ├── app/                    # App, переключение экранов, строки интерфейса (strings.ts)
-│   ├── screens/                # Dashboard, QuestLog, Character, Inventory
+│   ├── screens/                # Dashboard, QuestLog, Character, Inventory, Settings
 │   ├── components/
 │   │   ├── ui/                 # shadcn/ui, перекрашенные под токены
 │   │   └── kit/                # свои: Panel, Seal, Ribbon, XpBar, CoinBurst, Titlebar

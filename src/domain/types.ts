@@ -82,7 +82,7 @@ export interface Day {
   closedAt: string | null;
 }
 
-export type LedgerSource = "quest" | "rest_action" | "revert";
+export type LedgerSource = "quest" | "ritual" | "rest_action" | "purchase" | "rest" | "revert";
 
 export interface LedgerEntry {
   id: number;
@@ -107,6 +107,8 @@ export interface RestAction {
 
 export interface Outcome {
   quest: { id: number; status: QuestStatus; completedAt: string | null } | null;
+  ritual: { ritualId: number; gameDate: GameDate; done: boolean } | null;
+  inventory: NewInventoryItem[];
   ledger: NewLedgerEntry[];
   days: Day[];
   character: CharacterState;
@@ -119,7 +121,8 @@ export interface Rate {
 
 export interface Settings {
   dayStartHour: number;
-  rates: { side: Rate; main: Rate; restAction: Rate };
+  rates: { side: Rate; main: Rate; ritual: Rate; restAction: Rate };
+  restPrice: number;
   streakBonus: { stepDays: number; stepPct: number; maxPct: number };
   levelCurve: { base: number; exp: number; round: number };
   motion: "full" | "reduced";
@@ -130,4 +133,69 @@ export interface Reward {
   gold: number;
   attribute: Attribute | null;
   attributeDelta: number;
+}
+
+export const RITUAL_SCHEDULES = ["daily", "weekdays", "times_per_week", "every_n_days"] as const;
+export type RitualSchedule = (typeof RITUAL_SCHEDULES)[number];
+
+export interface RitualFields {
+  title: string;
+  realName: string | null;
+  attribute: Attribute;
+  schedule: RitualSchedule;
+  /** Бит 0 = понедельник. Только для weekdays. */
+  weekdaysMask: number | null;
+  timesPerWeek: number | null;
+  intervalDays: number | null;
+  startDate: GameDate;
+  pausedUntil: GameDate | null;
+  difficulty: Difficulty;
+  sortOrder: number;
+}
+
+export interface Ritual extends RitualFields {
+  id: number;
+  createdAt: string;
+  archivedAt: string | null;
+}
+
+export interface RitualCompletion {
+  ritualId: number;
+  gameDate: GameDate;
+  completedAt: string;
+}
+
+/** Реальная награда из лавки, которую настраивает игрок. */
+export interface RealRewardFields {
+  title: string;
+  description: string | null;
+  price: number;
+  repeatable: boolean;
+}
+
+export interface RealReward extends RealRewardFields {
+  id: number;
+  createdAt: string;
+  archivedAt: string | null;
+}
+
+export type InventoryType = "loot" | "reward" | "location";
+
+export interface InventoryItem {
+  id: number;
+  itemType: InventoryType;
+  itemName: string;
+  rarity: "common" | "rare" | "epic" | "legendary";
+  assetKey: string | null;
+  sourceType: "boss" | "purchase" | "level" | null;
+  sourceId: number | null;
+  obtainedAt: string;
+  redeemedAt: string | null;
+}
+
+export interface NewInventoryItem {
+  itemType: InventoryType;
+  itemName: string;
+  sourceType: InventoryItem["sourceType"];
+  sourceId: number | null;
 }
