@@ -30,7 +30,7 @@ fantasy-planner/
 ├── CLAUDE.md
 ├── specs/                      # ТЗ: plan, schema, screens. Источник истины
 ├── src/
-│   ├── app/                    # App, роутинг 4 экранов, провайдеры
+│   ├── app/                    # App, переключение экранов, строки интерфейса (strings.ts)
 │   ├── screens/                # Dashboard, QuestLog, Character, Inventory
 │   ├── components/
 │   │   ├── ui/                 # shadcn/ui, перекрашенные под токены
@@ -38,10 +38,11 @@ fantasy-planner/
 │   ├── domain/                 # типы и чистые функции: награды, уровни, серия, усталость
 │   ├── services/               # сценарии: completeQuest, buyReward… (domain + ipc)
 │   ├── ipc/                    # типизированные обёртки над invoke(), 1:1 с Rust-командами
-│   ├── theme/                  # токены палитры, шрифты, motion-пресеты
+│   ├── theme/                  # токены палитры, шрифты (index.css)
+│   ├── lib/                    # утилиты shadcn (cn)
 │   └── assets/
 │       ├── registry.ts         # единый слой ассетов: ключ → src, focus, theme
-│       ├── procedural/         # фоны из палитры, пока нет артов
+│       ├── procedural/         # собственные векторные сцены (замок, странник)
 │       └── illustrations/      # твои арты
 └── src-tauri/
     ├── tauri.conf.json         # в Tauri v2 конфиг лежит здесь
@@ -67,7 +68,8 @@ fantasy-planner/
 - **Без TODO, FIXME, заглушек, моков в продакшен-коде и «реализуем позже».** Если фича не входит в текущую версию, её нет в коде совсем.
 - Rust: `clippy -D warnings`, без `unwrap()`/`expect()` вне тестов.
 - Идентификаторы на английском, тексты интерфейса на русском (собраны в `src/app/strings.ts`).
-- Перед коммитом: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `cargo clippy`, `cargo test`.
+- Перед коммитом: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `cargo clippy --all-targets -- -D warnings`, `cargo test` (из `src-tauri/`).
+- Окно: `dragDropEnabled: false` в `tauri.conf.json` обязателен, иначе HTML5-перетаскивание на доске квестов не работает на Windows.
 
 ## Визуал
 
