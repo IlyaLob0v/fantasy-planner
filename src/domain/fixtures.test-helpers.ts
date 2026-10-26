@@ -2,7 +2,14 @@ import type { Character, Day, Quest, RealReward, Ritual, Settings } from "./type
 
 export const settings: Settings = {
   dayStartHour: 4,
-  rates: { side: { xp: 10, gold: 3 }, main: { xp: 30, gold: 10 }, ritual: { xp: 5, gold: 2 }, restAction: { xp: 3, gold: 0 } },
+  rates: {
+    side: { xp: 10, gold: 3 },
+    main: { xp: 30, gold: 10 },
+    stage: { xp: 15, gold: 4 },
+    bossDefeat: { xp: 60, gold: 25 },
+    ritual: { xp: 5, gold: 2 },
+    restAction: { xp: 3, gold: 0 },
+  },
   restPrice: 40,
   streakBonus: { stepDays: 7, stepPct: 10, maxPct: 30 },
   levelCurve: { base: 50, exp: 1.4, round: 5 },

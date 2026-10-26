@@ -6,22 +6,27 @@ import { weekStart } from "@/domain/rituals";
 import { mergeRates, parseSettings } from "@/domain/settings";
 import { addDays } from "@/domain/time";
 import {
+  planBuyLocation,
   planBuyRest,
   planBuyReward,
   planCompleteQuest,
+  planCompleteStage,
   planDayClose,
   planRestAction,
   planRitual,
   planUndoQuest,
   planUndoRitual,
+  planUndoStage,
   type DeedResult,
   type TurnContext,
 } from "@/domain/turns";
 import type {
   Character,
+  ChronicleEntry,
   Day,
   GameDate,
   InventoryItem,
+  Location,
   Outcome,
   Quest,
   QuestFields,
@@ -50,6 +55,8 @@ const keys = {
   completions: ["ritual-completions"] as const,
   rewards: ["rewards"] as const,
   inventory: ["inventory"] as const,
+  chronicle: ["chronicle"] as const,
+  locations: ["locations"] as const,
 };
 
 /** Событие для слоя наград: монеты летят в сундук (награда) или из него (трата). */
@@ -59,6 +66,7 @@ export interface RewardEvent {
   reward: Reward;
   levelUp: number | null;
   revived: boolean;
+  victory: DeedResult["victory"];
   /** Карточка, откуда (или куда) летят монеты, и счётчик золота; измеряются в момент клика. */
   origin: DOMRect | null;
   target: DOMRect | null;
@@ -78,6 +86,8 @@ export interface GameState {
   completions: RitualCompletion[];
   rewards: RealReward[];
   inventory: InventoryItem[];
+  chronicle: ChronicleEntry[];
+  locations: Location[];
   today: GameDate;
   lastReward: RewardEvent | null;
   error: string | null;
@@ -89,6 +99,9 @@ export interface GameState {
   buyReward: (reward: RealReward, origin: DOMRect | null) => void;
   buyRest: (date: GameDate, origin: DOMRect | null) => void;
   redeem: (item: InventoryItem) => void;
+  buyLocation: (location: Location, origin: DOMRect | null) => void;
+  setHome: (key: string) => void;
+  saveChronicle: (entry: ChronicleEntry) => Promise<void>;
   createQuest: (fields: QuestFields) => Promise<Quest>;
   updateQuest: (id: number, fields: QuestFields) => void;
   archiveQuest: (id: number) => void;
@@ -142,6 +155,8 @@ export function useGameBoot(): Boot {
   });
   const rewards = useQuery({ queryKey: keys.rewards, queryFn: ipc.listRewards });
   const inventory = useQuery({ queryKey: keys.inventory, queryFn: ipc.listInventory });
+  const chronicle = useQuery({ queryKey: keys.chronicle, queryFn: ipc.listChronicle });
+  const locations = useQuery({ queryKey: keys.locations, queryFn: ipc.listLocations });
 
   const [lastReward, setLastReward] = useState<RewardEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -221,7 +236,15 @@ export function useGameBoot(): Boot {
         },
         () => {
           if (result) {
-            announce({ direction: "in", reward: result.reward, levelUp: result.levelUp, revived: result.revived, origin, questId });
+            announce({
+              direction: "in",
+              reward: result.reward,
+              levelUp: result.levelUp,
+              revived: result.revived,
+              victory: result.victory,
+              origin,
+              questId,
+            });
           }
         },
       );
@@ -231,16 +254,29 @@ export function useGameBoot(): Boot {
 
   const spent = useCallback(
     (gold: number, origin: DOMRect | null) => {
-      announce({ direction: "out", reward: { xp: 0, gold, attribute: null, attributeDelta: 0 }, levelUp: null, revived: false, origin, questId: null });
+      announce({
+        direction: "out",
+        reward: { xp: 0, gold, attribute: null, attributeDelta: 0 },
+        levelUp: null,
+        revived: false,
+        victory: null,
+        origin,
+        questId: null,
+      });
     },
     [announce],
   );
 
   const completeQuest = useCallback(
     (quest: Quest, origin: DOMRect | null) => {
-      deed((ctx) => planCompleteQuest(ctx, quest), origin, quest.id);
+      const allQuests = quests.data ?? [];
+      deed(
+        (ctx) => (quest.type === "stage" ? planCompleteStage(ctx, quest, allQuests) : planCompleteQuest(ctx, quest)),
+        origin,
+        quest.id,
+      );
     },
-    [deed],
+    [deed, quests.data],
   );
 
   const takeRest = useCallback(
@@ -266,9 +302,13 @@ export function useGameBoot(): Boot {
 
   const undoQuest = useCallback(
     (quest: Quest) => {
-      withTodayLedger((ctx, ledger) => planUndoQuest(ctx, quest, ledger));
+      const allQuests = quests.data ?? [];
+      const items = inventory.data ?? [];
+      withTodayLedger((ctx, ledger) =>
+        quest.type === "stage" ? planUndoStage(ctx, quest, allQuests, items, ledger) : planUndoQuest(ctx, quest, ledger),
+      );
     },
-    [withTodayLedger],
+    [withTodayLedger, quests.data, inventory.data],
   );
 
   const toggleRitual = useCallback(
@@ -298,6 +338,16 @@ export function useGameBoot(): Boot {
       });
     },
     [play, spent, settings],
+  );
+
+  const buyLocation = useCallback(
+    (location: Location, origin: DOMRect | null) => {
+      const items = inventory.data ?? [];
+      play((ctx) => planBuyLocation(ctx, location, items), () => {
+        spent(location.price, origin);
+      });
+    },
+    [play, spent, inventory.data],
   );
 
   const invalidate = useCallback(
@@ -414,6 +464,28 @@ export function useGameBoot(): Boot {
     [invalidate, fail],
   );
 
+  const setHome = useCallback(
+    (key: string) => {
+      ipc
+        .setHome(key)
+        .then((hero) => {
+          client.setQueryData(keys.character, hero);
+        })
+        .catch(fail);
+    },
+    [client, fail],
+  );
+
+  const saveChronicle = useCallback(
+    async (entry: ChronicleEntry) => {
+      const saved = await ipc.saveChronicle(entry);
+      client.setQueryData<ChronicleEntry[]>(keys.chronicle, (list) =>
+        [saved, ...(list ?? []).filter((e) => e.gameDate !== saved.gameDate)].sort((a, b) => b.gameDate.localeCompare(a.gameDate)),
+      );
+    },
+    [client],
+  );
+
   const saveRates = useCallback(
     (rates: Settings["rates"]) => {
       ipc
@@ -452,7 +524,9 @@ export function useGameBoot(): Boot {
       !rituals.data ||
       !completions.data ||
       !rewards.data ||
-      !inventory.data
+      !inventory.data ||
+      !chronicle.data ||
+      !locations.data
     ) {
       return null;
     }
@@ -466,6 +540,8 @@ export function useGameBoot(): Boot {
       completions: completions.data,
       rewards: rewards.data,
       inventory: inventory.data,
+      chronicle: chronicle.data,
+      locations: locations.data,
       today,
       lastReward,
       error,
@@ -477,6 +553,9 @@ export function useGameBoot(): Boot {
       buyReward,
       buyRest,
       redeem,
+      buyLocation,
+      setHome,
+      saveChronicle,
       createQuest,
       updateQuest,
       archiveQuest,
@@ -501,6 +580,8 @@ export function useGameBoot(): Boot {
     completions.data,
     rewards.data,
     inventory.data,
+    chronicle.data,
+    locations.data,
     lastReward,
     error,
     clearError,
@@ -511,6 +592,9 @@ export function useGameBoot(): Boot {
     buyReward,
     buyRest,
     redeem,
+    buyLocation,
+    setHome,
+    saveChronicle,
     createQuest,
     updateQuest,
     archiveQuest,
@@ -525,7 +609,19 @@ export function useGameBoot(): Boot {
     renameCharacter,
   ]);
 
-  const firstError = [settingsQuery, character, quests, days, restActions, rituals, completions, rewards, inventory].find(
+  const firstError = [
+    settingsQuery,
+    character,
+    quests,
+    days,
+    restActions,
+    rituals,
+    completions,
+    rewards,
+    inventory,
+    chronicle,
+    locations,
+  ].find(
     (q) => q.error,
   )?.error;
   if (firstError) {

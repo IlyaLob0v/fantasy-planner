@@ -8,6 +8,8 @@ import { CheckIcon } from "./icons";
 const WAX: Record<QuestType, string> = {
   main: "from-[#8a2a38] to-[#561520] ring-[#a8434f]/50",
   side: "from-[#2c4e74] to-[#17293f] ring-[#4b729c]/50",
+  boss: "from-[#e6c36a] to-[#9a7a2c] ring-[#c9a24a]/60",
+  stage: "from-[#e6c36a] to-[#9a7a2c] ring-[#c9a24a]/60",
 };
 
 /** Сургучная печать: кнопка выполнения квеста. Сломанная печать = выполнено. */

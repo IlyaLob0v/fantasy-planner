@@ -43,6 +43,10 @@ pub fn run() {
             commands::inventory::redeem_item,
             commands::settings::set_setting,
             commands::outcome::commit_outcome,
+            commands::chronicle::list_chronicle,
+            commands::chronicle::save_chronicle,
+            commands::locations::list_locations,
+            commands::locations::set_home,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|err| {

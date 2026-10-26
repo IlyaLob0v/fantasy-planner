@@ -6,12 +6,12 @@ use crate::db::Db;
 use crate::error::{AppError, AppResult};
 use crate::models::{Character, Outcome};
 
-/// Записывает итог хода одной транзакцией: статус квеста, строки журнала, сутки, кэш персонажа.
+/// Записывает итог хода одной транзакцией: статусы квестов, лут, строки журнала, сутки, кэш персонажа.
 /// Правила игры здесь не считаются: всё посчитано в TS-сервисах.
 pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character> {
     let mut tx = pool.begin().await?;
 
-    if let Some(change) = &outcome.quest {
+    for change in &outcome.quests {
         let affected = sqlx::query("UPDATE quests SET status = ?, completed_at = ? WHERE id = ?")
             .bind(&change.status)
             .bind(&change.completed_at)
@@ -40,10 +40,22 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
         }
     }
 
+    for id in &outcome.remove_inventory {
+        sqlx::query("DELETE FROM inventory WHERE id = ? AND item_type = 'loot'")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+    }
+
     for item in &outcome.inventory {
-        sqlx::query("INSERT INTO inventory (item_type, item_name, source_type, source_id) VALUES (?, ?, ?, ?)")
+        sqlx::query(
+            "INSERT INTO inventory (item_type, item_name, rarity, asset_key, source_type, source_id) \
+             VALUES (?, ?, ?, ?, ?, ?)",
+        )
             .bind(&item.item_type)
             .bind(&item.item_name)
+            .bind(&item.rarity)
+            .bind(&item.asset_key)
             .bind(&item.source_type)
             .bind(item.source_id)
             .execute(&mut *tx)
@@ -129,6 +141,8 @@ mod tests {
             scheduled_date: Some("2026-10-26".into()),
             due_date: None,
             sort_order: 0,
+            parent_id: None,
+            damage: 1,
         }
     }
 
@@ -166,11 +180,12 @@ mod tests {
         let outcome = Outcome {
             ritual: None,
             inventory: vec![],
-            quest: Some(QuestStatusChange {
+            remove_inventory: vec![],
+            quests: vec![QuestStatusChange {
                 id: quest.id,
                 status: "done".into(),
                 completed_at: Some("2026-10-26T10:00:00.000Z".into()),
-            }),
+            }],
             ledger: vec![NewLedgerEntry {
                 game_date: "2026-10-26".into(),
                 source_type: "quest".into(),
@@ -203,7 +218,8 @@ mod tests {
         let outcome = Outcome {
             ritual: None,
             inventory: vec![],
-            quest: None,
+            quests: vec![],
+            remove_inventory: vec![],
             ledger: vec![],
             days: vec![],
             character: state(10, -5),
@@ -235,7 +251,8 @@ mod tests {
         )
         .await?;
         let mark = |done: bool| Outcome {
-            quest: None,
+            quests: vec![],
+            remove_inventory: vec![],
             ritual: Some(RitualMark { ritual_id: ritual.id, game_date: "2026-10-26".into(), done }),
             inventory: vec![],
             ledger: vec![],
@@ -250,11 +267,14 @@ mod tests {
         assert_eq!(count, 0);
 
         let purchase = Outcome {
-            quest: None,
+            quests: vec![],
+            remove_inventory: vec![],
             ritual: None,
             inventory: vec![NewInventoryItem {
                 item_type: "reward".into(),
                 item_name: "Вечер в таверне".into(),
+                rarity: "common".into(),
+                asset_key: None,
                 source_type: Some("purchase".into()),
                 source_id: Some(1),
             }],
@@ -265,6 +285,64 @@ mod tests {
         commit(&pool, purchase).await?;
         let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
         assert_eq!(items, 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn boss_defeat_and_its_undo_move_loot() -> AppResult<()> {
+        let pool = open_memory().await?;
+        let boss = quests::create(&pool, QuestFields { kind: "boss".into(), title: "Дипломная работа".into(), ..fields() }).await?;
+        let stage = quests::create(
+            &pool,
+            QuestFields { kind: "stage".into(), title: "Введение".into(), parent_id: Some(boss.id), damage: 3, ..fields() },
+        )
+        .await?;
+        let done = |id: i64| QuestStatusChange { id, status: "done".into(), completed_at: Some("2026-10-26T10:00:00.000Z".into()) };
+        let victory = Outcome {
+            quests: vec![done(stage.id), done(boss.id)],
+            ritual: None,
+            inventory: vec![NewInventoryItem {
+                item_type: "loot".into(),
+                item_name: "Трофей: Дипломная работа".into(),
+                rarity: "rare".into(),
+                asset_key: None,
+                source_type: Some("boss".into()),
+                source_id: Some(boss.id),
+            }],
+            remove_inventory: vec![],
+            ledger: vec![],
+            days: vec![],
+            character: state(75, 29),
+        };
+        commit(&pool, victory).await?;
+        let (loot_id,): (i64,) = sqlx::query_as("SELECT id FROM inventory WHERE source_type = 'boss'").fetch_one(&pool).await?;
+
+        let active = |id: i64| QuestStatusChange { id, status: "active".into(), completed_at: None };
+        let undo = Outcome {
+            quests: vec![active(stage.id), active(boss.id)],
+            ritual: None,
+            inventory: vec![],
+            remove_inventory: vec![loot_id],
+            ledger: vec![],
+            days: vec![],
+            character: state(0, 0),
+        };
+        commit(&pool, undo).await?;
+        let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
+        assert_eq!(items, 0);
+        let all = quests::list(&pool).await?;
+        assert!(all.iter().all(|q| q.status == "active"));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn stage_needs_a_boss_parent() -> AppResult<()> {
+        let pool = open_memory().await?;
+        let side = quests::create(&pool, fields()).await?;
+        let orphan = QuestFields { kind: "stage".into(), parent_id: Some(side.id), ..fields() };
+        assert!(quests::create(&pool, orphan).await.is_err());
+        let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM locations").fetch_one(&pool).await?;
+        assert_eq!(count, 5);
         Ok(())
     }
 }

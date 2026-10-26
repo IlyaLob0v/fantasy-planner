@@ -1,7 +1,9 @@
 pub mod character;
+pub mod chronicle;
 pub mod days;
 pub mod inventory;
 pub mod ledger;
+pub mod locations;
 pub mod outcome;
 pub mod quests;
 pub mod rest_actions;

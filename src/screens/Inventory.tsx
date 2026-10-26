@@ -1,20 +1,25 @@
 import { useState } from "react";
 
 import { GOLD_ANCHOR_ID } from "@/app/anchors";
+import { RARITY_LABEL } from "@/app/strings";
 import { Coin } from "@/components/kit/icons";
 import { BuyButton } from "@/components/kit/BuyButton";
 import { Hearth } from "@/components/kit/Hearth";
+import { RARITY_FRAME } from "@/components/kit/rarity";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { Chip } from "@/components/kit/pickers";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
+import { trophies } from "@/domain/bosses";
 import { isOnSale, restDaysAhead, unusedRewards, usedRewards } from "@/domain/shop";
 import { addDays, gameDateOfIso, humanDate, humanWeekday } from "@/domain/time";
 import type { RealReward, RealRewardFields } from "@/domain/types";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/services/game";
 
-type Tab = "shop" | "chest";
+import { WorldMap } from "./WorldMap";
+
+export type InventoryTab = "shop" | "chest" | "map";
 
 const label = "flex flex-col gap-1 text-xs text-parchment/60";
 const card = "flex flex-col gap-3 rounded-[var(--radius-panel)] border border-parchment/10 bg-ink-deep/40 p-4";
@@ -125,11 +130,12 @@ function Chest() {
   const unused = unusedRewards(inventory);
   const used = usedRewards(inventory).slice(0, 20);
   const restDays = restDaysAhead(days, today);
+  const loot = trophies(inventory);
   const dateOf = (iso: string) => humanDate(gameDateOfIso(iso, settings.dayStartHour));
 
   return (
     <div className="flex flex-col gap-5">
-      {unused.length === 0 && restDays.length === 0 && (
+      {unused.length === 0 && restDays.length === 0 && loot.length === 0 && (
         <p className="text-sm text-parchment/50">
           {used.length > 0 ? "Всё купленное уже пошло в дело." : "Сундук пока пуст. Всё купленное в лавке ждёт здесь своего часа."}
         </p>
@@ -153,6 +159,21 @@ function Chest() {
             </li>
           ))}
         </ul>
+      )}
+      {loot.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs uppercase tracking-wider text-parchment/40">Трофеи</p>
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {loot.map((item) => (
+              <li key={item.id} className={cn("rounded-[var(--radius-panel)] border-2 bg-ink-deep/40 px-3 py-2", RARITY_FRAME[item.rarity])}>
+                <p className="text-[15px] leading-snug text-parchment">{item.itemName}</p>
+                <p className="text-xs text-parchment/45">
+                  {RARITY_LABEL[item.rarity]} · {dateOf(item.obtainedAt)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {restDays.length > 0 && (
         <div>
@@ -300,9 +321,8 @@ function RewardEditor({ reward, onDone }: { reward: RealReward | null; onDone: (
 }
 
 /** Сокровищница: потратить золото и посмотреть, что заработано. */
-export function Inventory() {
+export function Inventory({ tab, onTab }: { tab: InventoryTab; onTab: (tab: InventoryTab) => void }) {
   const { character, inventory } = useGame();
-  const [tab, setTab] = useState<Tab>("shop");
   const [editing, setEditing] = useState<RealReward | "new" | null>(null);
   const waiting = unusedRewards(inventory).length;
 
@@ -321,7 +341,8 @@ export function Inventory() {
             [
               ["shop", "Лавка"],
               ["chest", waiting > 0 ? `Сундук · ${waiting}` : "Сундук"],
-            ] satisfies ReadonlyArray<[Tab, string]>
+              ["map", "Карта мира"],
+            ] satisfies ReadonlyArray<[InventoryTab, string]>
           ).map(([key, title]) => (
             <Chip
               key={key}
@@ -330,14 +351,16 @@ export function Inventory() {
               active={tab === key}
               className="px-4 text-sm"
               onClick={() => {
-                setTab(key);
+                onTab(key);
               }}
             >
               {title}
             </Chip>
           ))}
         </div>
-        {tab === "shop" ? <Shop onEdit={setEditing} /> : <Chest />}
+        {tab === "shop" && <Shop onEdit={setEditing} />}
+        {tab === "chest" && <Chest />}
+        {tab === "map" && <WorldMap />}
       </Panel>
       <div className="flex-1" aria-hidden />
       {editing !== null && (

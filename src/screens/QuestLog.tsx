@@ -1,36 +1,27 @@
 import { useEffect, useRef, useState, type DragEvent, type SyntheticEvent } from "react";
 
 import { ATTRIBUTE_LABEL, QUEST_TYPE_SHORT } from "@/app/strings";
+import { HpBar } from "@/components/kit/HpBar";
 import { Coin } from "@/components/kit/icons";
 import { AttributePicker, DifficultyPicker, TypePicker } from "@/components/kit/pickers";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { Ribbon } from "@/components/kit/Ribbon";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
-import { completedOn, isOverdue, questColumns } from "@/domain/quests";
+import { bossHp, stagesOf } from "@/domain/bosses";
+import { completedOn, fieldsOf, isOverdue, questColumns } from "@/domain/quests";
 import { questReward } from "@/domain/rewards";
 import { addDays, humanDate } from "@/domain/time";
-import type { GameDate, Quest, QuestFields, QuestType } from "@/domain/types";
+import { BOARD_TYPES, type GameDate, type Quest, type QuestFields, type QuestType } from "@/domain/types";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/services/game";
+
+import { BossStages } from "./BossStages";
 
 type ColumnKey = "today" | "upcoming" | "backlog";
 type Filter = QuestType | "all";
 
 const COLUMN_TITLE: Record<ColumnKey, string> = { today: "Сегодня", upcoming: "Предстоящие", backlog: "Без даты" };
-
-function fieldsOf(q: Quest): QuestFields {
-  return {
-    type: q.type,
-    title: q.title,
-    description: q.description,
-    attribute: q.attribute,
-    difficulty: q.difficulty,
-    scheduledDate: q.scheduledDate,
-    dueDate: q.dueDate,
-    sortOrder: q.sortOrder,
-  };
-}
 
 function scheduleFor(column: ColumnKey, today: GameDate, current: GameDate | null): GameDate | null {
   switch (column) {
@@ -43,10 +34,11 @@ function scheduleFor(column: ColumnKey, today: GameDate, current: GameDate | nul
   }
 }
 
-const SEAL_COLOR: Record<QuestType, string> = { main: "bg-burgundy", side: "bg-ink" };
+const SEAL_COLOR: Record<QuestType, string> = { main: "bg-burgundy", side: "bg-ink", boss: "bg-gold", stage: "bg-gold" };
 
 function BoardCard({ quest, selected, onSelect }: { quest: Quest; selected: boolean; onSelect: () => void }) {
-  const { today } = useGame();
+  const { today, quests } = useGame();
+  const hp = quest.type === "boss" ? bossHp(stagesOf(quests, quest.id)) : null;
   return (
     <li
       draggable
@@ -72,6 +64,14 @@ function BoardCard({ quest, selected, onSelect }: { quest: Quest; selected: bool
         {quest.dueDate &&
           (isOverdue(quest, today) ? <Ribbon>Срок вышел</Ribbon> : <span>до {humanDate(quest.dueDate)}</span>)}
       </div>
+      {hp && (
+        <div className="mt-1.5 flex items-center gap-2 pl-5 text-[11px] text-wood/60">
+          <HpBar hp={hp} size="sm" className="flex-1" />
+          <span className="tabular-nums">
+            {hp.current}/{hp.max}
+          </span>
+        </div>
+      )}
     </li>
   );
 }
@@ -83,8 +83,10 @@ function Column({
   onSelect,
   onDropQuest,
   onAdd,
+  placeholder,
 }: {
   column: ColumnKey;
+  placeholder: string;
   quests: Quest[];
   selectedId: number | null;
   onSelect: (id: number) => void;
@@ -133,7 +135,7 @@ function Column({
           onChange={(e) => {
             setTitle(e.target.value);
           }}
-          placeholder="+ квест"
+          placeholder={placeholder}
           className="h-8 text-sm"
           aria-label={`Новый квест: ${COLUMN_TITLE[column]}`}
         />
@@ -155,7 +157,8 @@ function Column({
 }
 
 function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
-  const { updateQuest, archiveQuest, settings, character } = useGame();
+  const { updateQuest, archiveQuest, settings, character, quests } = useGame();
+  const hasStages = stagesOf(quests, quest.id).length > 0;
   const [draft, setDraft] = useState<QuestFields>(() => fieldsOf(quest));
   const saved = useRef(JSON.stringify(fieldsOf(quest)));
 
@@ -205,7 +208,9 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
       <div className="flex flex-col gap-1 text-xs text-parchment/60">
         Тип
         <TypePicker
+          options={BOARD_TYPES}
           value={draft.type}
+          disabled={hasStages}
           onChange={(t) => {
             set("type", t);
           }}
@@ -232,13 +237,15 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
         </div>
       </div>
       <p className="flex items-center gap-2 text-sm text-parchment/70">
-        Награда: +{reward.xp} XP, <Coin className="h-4 w-4" /> {reward.gold}
+        {draft.type === "boss" ? "За победу" : "Награда"}: +{reward.xp} XP, <Coin className="h-4 w-4" /> {reward.gold}
       </p>
+      {draft.type === "boss" && <BossStages boss={quest} />}
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-xs text-parchment/60">
           День
           <Input
             type="date"
+            className={cn(draft.scheduledDate === null && "opacity-40")}
             value={draft.scheduledDate ?? ""}
             onChange={(e) => {
               set("scheduledDate", e.target.value || null);
@@ -249,6 +256,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
           Дедлайн
           <Input
             type="date"
+            className={cn(draft.dueDate === null && "opacity-40")}
             value={draft.dueDate ?? ""}
             onChange={(e) => {
               set("dueDate", e.target.value || null);
@@ -293,7 +301,7 @@ export function QuestLog() {
 
   const add = (title: string, column: ColumnKey) => {
     void createQuest({
-      type: filter === "main" ? "main" : "side",
+      type: filter === "all" || filter === "stage" ? "side" : filter,
       title,
       description: null,
       attribute: "agility",
@@ -301,6 +309,8 @@ export function QuestLog() {
       scheduledDate: scheduleFor(column, today, null),
       dueDate: null,
       sortOrder: 0,
+      parentId: null,
+      damage: 1,
     }).then((q) => {
       setSelectedId(q.id);
     });
@@ -310,6 +320,7 @@ export function QuestLog() {
     ["all", "Все"],
     ["main", "Main"],
     ["side", "Side"],
+    ["boss", "Boss"],
   ];
 
   return (
@@ -334,7 +345,16 @@ export function QuestLog() {
         </div>
         <div className="grid min-h-0 flex-1 grid-cols-3 gap-2">
           {(["today", "upcoming", "backlog"] as const).map((c) => (
-            <Column key={c} column={c} quests={cols[c]} selectedId={selectedId} onSelect={setSelectedId} onDropQuest={move} onAdd={add} />
+            <Column
+              key={c}
+              column={c}
+              quests={cols[c]}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onDropQuest={move}
+              onAdd={add}
+              placeholder={filter === "boss" ? "+ босс" : "+ квест"}
+            />
           ))}
         </div>
         <div className="mt-2 border-t border-gold/15 px-2 pt-2">

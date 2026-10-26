@@ -1,15 +1,20 @@
 import { useState, type SyntheticEvent } from "react";
 
+import { BossCard } from "@/components/kit/BossCard";
+import { ChronicleForm } from "@/components/kit/ChronicleForm";
 import { HeroPanel } from "@/components/kit/HeroPanel";
 import { AttributePicker, DifficultyPicker, TypePicker } from "@/components/kit/pickers";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { QuestCard } from "@/components/kit/QuestCard";
 import { RitualRow } from "@/components/kit/RitualRow";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { isBlank } from "@/domain/chronicle";
 import { todayBoard } from "@/domain/quests";
 import { humanDate, humanWeekday } from "@/domain/time";
 import type { Attribute, Difficulty, QuestType } from "@/domain/types";
+import { useEvening } from "@/services/clock";
 import { useGame } from "@/services/game";
 
 import { RitualsDrawer } from "./RitualsDrawer";
@@ -34,6 +39,8 @@ function QuickAdd() {
       scheduledDate: today,
       dueDate: null,
       sortOrder: 0,
+      parentId: null,
+      damage: 1,
     }).then(() => {
       setTitle("");
     });
@@ -110,8 +117,41 @@ function TodayPanel({ onOpenBoard, onEditRituals }: { onOpenBoard: () => void; o
         <div className="border-t border-gold/15 pt-4">
           <RitualRow onEdit={onEditRituals} />
         </div>
+        <ChronicleLine />
       </div>
     </Panel>
+  );
+}
+
+/** Вечером под делами дня появляется тонкая строка хроники. Не обязательна и не напоминает повторно. */
+function ChronicleLine() {
+  const { chronicle, today, settings } = useGame();
+  const evening = useEvening(settings.dayStartHour);
+  const [open, setOpen] = useState(false);
+  const entry = chronicle.find((e) => e.gameDate === today);
+  const written = entry !== undefined && !isBlank(entry);
+  if (!evening && !written) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        className="cursor-pointer self-start text-sm text-parchment/50 hover:text-gold-bright"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        {written ? "Хроника дня записана · дополнить" : "Записать в хронику"}
+      </button>
+      <Dialog open={open} onOpenChange={setOpen} title="Хроника дня" description={`${humanWeekday(today)}, ${humanDate(today)}`}>
+        <ChronicleForm
+          date={today}
+          onDone={() => {
+            setOpen(false);
+          }}
+        />
+      </Dialog>
+    </>
   );
 }
 
@@ -126,20 +166,23 @@ export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
         <QuickAdd />
       </div>
       <div className="hidden xl:block" aria-hidden />
-      {ritualsOpen ? (
-        <RitualsDrawer
-          onClose={() => {
-            setRitualsOpen(false);
-          }}
-        />
-      ) : (
-        <TodayPanel
-          onOpenBoard={onOpenBoard}
-          onEditRituals={() => {
-            setRitualsOpen(true);
-          }}
-        />
-      )}
+      <div className="flex min-h-0 flex-col gap-5">
+        {ritualsOpen ? (
+          <RitualsDrawer
+            onClose={() => {
+              setRitualsOpen(false);
+            }}
+          />
+        ) : (
+          <TodayPanel
+            onOpenBoard={onOpenBoard}
+            onEditRituals={() => {
+              setRitualsOpen(true);
+            }}
+          />
+        )}
+        <BossCard onOpenBoard={onOpenBoard} />
+      </div>
     </div>
   );
 }

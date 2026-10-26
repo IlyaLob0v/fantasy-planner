@@ -72,9 +72,12 @@ h3,
 }
 
 /* Зерно пергамента и дерева: шум низкой непрозрачности поверх подложки, без картинок-рамок. */
-.grain {
-  position: relative;
-  isolation: isolate;
+/* В слое components, чтобы утилиты вроде `fixed` у модальных окон перекрывали position. */
+@layer components {
+  .grain {
+    position: relative;
+    isolation: isolate;
+  }
 }
 .grain::before {
   content: "";

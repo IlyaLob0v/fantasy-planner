@@ -86,7 +86,9 @@ describe("лавка", () => {
   it("покупка списывает золото и кладёт награду в сундук", () => {
     const outcome = planBuyReward(ctx({ character: character({ gold: 60 }) }), realReward());
     expect(outcome.character.gold).toBe(10);
-    expect(outcome.inventory).toEqual([{ itemType: "reward", itemName: "Вечер в таверне", sourceType: "purchase", sourceId: 1 }]);
+    expect(outcome.inventory).toEqual([
+      { itemType: "reward", itemName: "Вечер в таверне", rarity: "common", assetKey: null, sourceType: "purchase", sourceId: 1 },
+    ]);
     expect(outcome.ledger[0]).toMatchObject({ sourceType: "purchase", goldDelta: -50, xpDelta: 0 });
   });
 
@@ -124,11 +126,10 @@ describe("день отдыха", () => {
 });
 
 describe("настройки", () => {
-  it("правка ставок сохраняет ставки, которых нет на экране", () => {
-    const raw = { rates: { side: { xp: 1, gold: 1 }, stage: { xp: 15, gold: 4 }, boss_defeat: { xp: 60, gold: 25 } } };
+  it("правка ставок пишет все известные ставки", () => {
+    const raw = { rates: { side: { xp: 1, gold: 1 } } };
     const merged = mergeRates(raw, settings.rates);
     expect(merged["stage"]).toEqual({ xp: 15, gold: 4 });
-    expect(merged["boss_defeat"]).toEqual({ xp: 60, gold: 25 });
     expect(merged["side"]).toEqual(settings.rates.side);
     expect(merged["rest_action"]).toEqual(settings.rates.restAction);
   });

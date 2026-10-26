@@ -1,4 +1,4 @@
-import type { Quest, Reward, Ritual, Settings } from "./types";
+import type { Quest, QuestType, Reward, Ritual, Settings } from "./types";
 
 /** Бонус «Попутный ветер» в процентах для текущей ступени. */
 export function windBonusPct(windStep: number, bonus: Settings["streakBonus"]): number {
@@ -19,13 +19,23 @@ function scaled(rate: Settings["rates"]["side"], deed: Pick<Quest, "difficulty" 
   };
 }
 
-/** Награда = ставка типа × сложность; золото дополнительно × (1 + бонус серии). */
+const RATE_OF: Record<QuestType, keyof Settings["rates"]> = {
+  main: "main",
+  side: "side",
+  stage: "stage",
+  boss: "bossDefeat",
+};
+
+/**
+ * Награда = ставка типа × сложность; золото дополнительно × (1 + бонус серии).
+ * Для босса это награда за победу, она добавляется к награде за последний этап.
+ */
 export function questReward(
   quest: Pick<Quest, "type" | "difficulty" | "attribute">,
   settings: Settings,
   windStep: number,
 ): Reward {
-  return scaled(settings.rates[quest.type], quest, settings, windStep);
+  return scaled(settings.rates[RATE_OF[quest.type]], quest, settings, windStep);
 }
 
 export function ritualReward(ritual: Pick<Ritual, "difficulty" | "attribute">, settings: Settings, windStep: number): Reward {
