@@ -228,15 +228,12 @@ export function SettingsScreen() {
           <RestActions />
         </Section>
 
-        <Section title="Иллюстрации">
+        <Section title="Иллюстрации" hint="Фоны взяты из живописи в общественном достоянии через Wikimedia Commons.">
           <ul className="flex flex-col gap-1 text-sm text-parchment/70">
-            {Object.values(assets).map(({ credit }) => (
-              <li key={credit.title}>
-                <span className="text-parchment">{credit.title}</span>
-                <span className="text-parchment/45">
-                  {" "}
-                  · {credit.author} · {credit.license}
-                </span>
+            {Object.values(assets).map(({ name, credit }) => (
+              <li key={name}>
+                <span className="text-parchment">{name}:</span> «{credit.title}», {credit.author}, {credit.year}
+                <span className="text-parchment/45"> · {credit.license}</span>
               </li>
             ))}
           </ul>
