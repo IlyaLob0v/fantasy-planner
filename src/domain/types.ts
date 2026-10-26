@@ -95,7 +95,7 @@ export interface Day {
   closedAt: string | null;
 }
 
-export type LedgerSource = "quest" | "boss_defeat" | "ritual" | "rest_action" | "purchase" | "rest" | "revert";
+export type LedgerSource = "quest" | "boss_defeat" | "ritual" | "rest_action" | "purchase" | "rest" | "revert" | "achievement";
 
 export interface LedgerEntry {
   id: number;
@@ -127,6 +127,25 @@ export interface Outcome {
   ledger: NewLedgerEntry[];
   days: Day[];
   character: CharacterState;
+  /** Новые достижения; их золото уже лежит в `ledger`. */
+  achievements: NewAchievement[];
+}
+
+export interface NewAchievement {
+  key: string;
+  uid: string;
+}
+
+export interface Achievement {
+  key: string;
+  unlockedAt: string;
+}
+
+/** Сколько записей журнала источника в силе: без отменённых. */
+export interface LedgerTally {
+  sourceType: LedgerSource;
+  sourceId: number | null;
+  count: number;
 }
 
 export interface Rate {
@@ -141,6 +160,10 @@ export interface Settings {
   streakBonus: { stepDays: number; stepPct: number; maxPct: number };
   levelCurve: { base: number; exp: number; round: number };
   motion: "full" | "reduced";
+  /** Присяга гильдии пройдена или пропущена. */
+  oathDone: boolean;
+  /** Подсказки, которые уже показаны и больше не появятся. */
+  hintsSeen: string[];
 }
 
 export interface Reward {

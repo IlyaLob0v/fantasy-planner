@@ -30,6 +30,8 @@ pub fn run() {
             commands::quests::archive_quest,
             commands::days::list_days,
             commands::ledger::list_ledger_for_date,
+            commands::ledger::ledger_tally,
+            commands::achievements::list_achievements,
             commands::rest_actions::list_rest_actions,
             commands::rest_actions::create_rest_action,
             commands::rest_actions::archive_rest_action,

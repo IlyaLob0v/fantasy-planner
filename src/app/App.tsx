@@ -4,7 +4,9 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { isMobile } from "@/app/platform";
 import { assets, locationAsset, type AssetKey } from "@/assets/registry";
 import { BottomNav, MobileHeader } from "@/components/kit/BottomNav";
+import { GloryToast } from "@/components/kit/GloryToast";
 import { LocationVeil } from "@/components/kit/LocationVeil";
+import { Oath } from "@/components/kit/Oath";
 import { RewardLayer } from "@/components/kit/RewardLayer";
 import { SceneBackdrop } from "@/components/kit/SceneBackdrop";
 import { SCREENS, Titlebar, type ScreenKey } from "@/components/kit/Titlebar";
@@ -89,6 +91,8 @@ function Shell() {
             setScreen("inventory");
           }}
         />
+        <GloryToast />
+        <Oath />
         <LocationVeil locationKey={character.locationKey} />
         <ErrorNote />
       </div>

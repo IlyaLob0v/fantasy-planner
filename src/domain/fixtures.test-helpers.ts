@@ -14,6 +14,8 @@ export const settings: Settings = {
   streakBonus: { stepDays: 7, stepPct: 10, maxPct: 30 },
   levelCurve: { base: 50, exp: 1.4, round: 5 },
   motion: "full",
+  oathDone: false,
+  hintsSeen: [],
 };
 
 export function character(overrides: Partial<Character> = {}): Character {
