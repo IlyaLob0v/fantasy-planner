@@ -57,3 +57,9 @@ export function humanDate(date: GameDate): string {
 export function humanWeekday(date: GameDate): string {
   return WEEKDAYS[weekday(date)] ?? "";
 }
+
+const SHORT_WEEKDAYS = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
+
+export function shortWeekday(date: GameDate): string {
+  return SHORT_WEEKDAYS[weekday(date)] ?? "";
+}

@@ -1,5 +1,6 @@
+import { questReward } from "./rewards";
 import { addDays, gameDateOfIso } from "./time";
-import type { GameDate, Quest, QuestFields } from "./types";
+import type { GameDate, Quest, QuestFields, Settings } from "./types";
 
 export function isOverdue(q: Quest, today: GameDate): boolean {
   return q.status === "active" && q.dueDate !== null && q.dueDate < today;
@@ -48,29 +49,60 @@ export function todayBoard(quests: readonly Quest[], today: GameDate, dayStartHo
   };
 }
 
-export interface QuestColumns {
-  today: Quest[];
-  upcoming: Quest[];
+/** Сколько дней видно на карте похода, считая сегодня. */
+export const MAP_DAYS = 7;
+
+export interface DayLane {
+  date: GameDate;
+  quests: Quest[];
+}
+
+export interface QuestMap {
+  /** Без даты. */
   backlog: Quest[];
+  /** Сегодня и следующие дни; в сегодняшний попадает всё, что пора делать, включая просроченное. */
+  days: DayLane[];
+  /** Взятые на день за пределами карты. */
+  later: Quest[];
   archive: Quest[];
 }
 
-export function questColumns(quests: readonly Quest[], today: GameDate, dayStartHour: number): QuestColumns {
+export function questMap(quests: readonly Quest[], today: GameDate, dayStartHour: number): QuestMap {
   const archiveFrom = addDays(today, -30);
+  const horizon = addDays(today, MAP_DAYS - 1);
   const active = quests.filter((q) => q.status === "active" && q.type !== "stage");
   const sort = byPriority(today);
+  const planned = active.filter((q) => !isForToday(q, today));
+  const days = Array.from({ length: MAP_DAYS }, (_, offset): DayLane => {
+    const date = addDays(today, offset);
+    const lane = offset === 0 ? active.filter((q) => isForToday(q, today)) : planned.filter((q) => q.scheduledDate === date);
+    return { date, quests: lane.sort(sort) };
+  });
   return {
-    today: active.filter((q) => isForToday(q, today)).sort(sort),
-    upcoming: active
-      .filter((q) => !isForToday(q, today) && q.scheduledDate !== null)
+    backlog: planned.filter((q) => q.scheduledDate === null).sort(sort),
+    days,
+    later: planned
+      .filter((q) => q.scheduledDate !== null && q.scheduledDate > horizon)
       .sort((a, b) => (a.scheduledDate ?? "").localeCompare(b.scheduledDate ?? "") || sort(a, b)),
-    backlog: active.filter((q) => !isForToday(q, today) && q.scheduledDate === null).sort(sort),
     archive: quests
       .filter((q) => {
         const done = completedOn(q, dayStartHour);
         return done !== null && done >= archiveFrom;
       })
       .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? "")),
+  };
+}
+
+export interface DayLoad {
+  count: number;
+  xp: number;
+}
+
+/** Ориентир нагрузки дня: число квестов и XP за задачи. Победа над боссом в XP дня не входит. */
+export function dayLoad(quests: readonly Quest[], settings: Settings, windStep: number): DayLoad {
+  return {
+    count: quests.length,
+    xp: quests.filter(isTask).reduce((sum, q) => sum + questReward(q, settings, windStep).xp, 0),
   };
 }
 
