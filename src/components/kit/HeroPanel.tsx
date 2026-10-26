@@ -25,9 +25,30 @@ function pick(actions: readonly RestAction[], except: number | null): RestAction
 }
 
 function RestPrompt() {
-  const { restActions, takeRest } = useGame();
+  const { restActions, takeRest, perks } = useGame();
   const [action, setAction] = useState<RestAction | null>(null);
   const doneRef = useRef<HTMLButtonElement>(null);
+
+  if (!action && perks.has("lantern")) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs text-parchment/50">Фонарь путника: выбери привал сам</p>
+        {restActions.map((a) => (
+          <Button
+            key={a.id}
+            variant="outline"
+            size="sm"
+            className="justify-start"
+            onClick={() => {
+              setAction(a);
+            }}
+          >
+            {a.title}
+          </Button>
+        ))}
+      </div>
+    );
+  }
 
   if (!action) {
     return (

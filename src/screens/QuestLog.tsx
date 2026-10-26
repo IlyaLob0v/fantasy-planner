@@ -9,7 +9,7 @@ import { Ribbon } from "@/components/kit/Ribbon";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { bossHp, stagesOf } from "@/domain/bosses";
-import { completedOn, dayLoad, fieldsOf, isOverdue, questMap } from "@/domain/quests";
+import { completedOn, dayLoad, fieldsOf, isOverdue, MAP_DAYS, questMap, SPYGLASS_DAYS } from "@/domain/quests";
 import { plural } from "@/domain/plural";
 import { questReward } from "@/domain/rewards";
 import { addDays, humanDate, humanWeekday, shortWeekday } from "@/domain/time";
@@ -323,13 +323,13 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
 
 /** Доска квестов: квесты по дням недели вперёд, перетаскивание между днями, правка справа. */
 export function QuestLog() {
-  const { quests, today, settings, createQuest, updateQuest } = useGame();
+  const { quests, today, settings, perks, createQuest, updateQuest } = useGame();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [focus, setFocus] = useState<LaneKey>(null);
   const [title, setTitle] = useState("");
 
-  const map = questMap(quests, today, settings.dayStartHour);
+  const map = questMap(quests, today, settings.dayStartHour, perks.has("spyglass") ? SPYGLASS_DAYS : MAP_DAYS);
   const lanes: LaneKey[] = [null, ...map.days.map((d) => d.date)];
   const target: LaneKey = lanes.includes(focus) ? focus : null;
   const selected = quests.find((q) => q.id === selectedId && q.status === "active") ?? null;

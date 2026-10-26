@@ -12,7 +12,7 @@ const today = "2026-10-28"; // среда
 const now = new Date("2026-10-28T12:00:00.000Z");
 
 function ctx(overrides: Partial<TurnContext> = {}): TurnContext {
-  return { character: character(), settings, days: [day(today, 0, false)], today, now, ...overrides };
+  return { character: character(), settings, days: [day(today, 0, false)], today, now, gear: [], perks: new Set(), uid: () => "uid", ...overrides };
 }
 
 function done(ritualId: number, gameDate: string): RitualCompletion {

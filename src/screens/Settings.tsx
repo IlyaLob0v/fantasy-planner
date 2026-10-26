@@ -57,7 +57,66 @@ const GUIDE: ReadonlyArray<readonly [string, string]> = [
   ["Серия и Попутный ветер", "Серия — дни подряд хотя бы с одним делом. Каждые 7 дней серии дают +10 % золота, до +30 %."],
   ["Усталость", "Приходит после дня без дел. Ничего не отнимает; одно любое дело её снимает."],
   ["Зал славы", "Достижения за серии, подвиги, боссов и уровни. Каждое даёт немного золота и не отбирается."],
+  ["Снаряжение", "Находки падают за квесты и ритуалы. Шанс растёт с каждым промахом, на 15-м деле подряд находка гарантирована, дублей нет. Свойство предмета работает, пока он надет."],
+  ["Кузница", "Обычные и редкие вещи можно купить по фиксированной цене. Эпические и легендарные только находят или получают за главные вехи."],
 ];
+
+type LootNumber = "basePct" | "stepPct" | "pity" | "dailyCap";
+
+const LOOT_FIELDS: ReadonlyArray<readonly [LootNumber, string, number]> = [
+  ["basePct", "Шанс находки, %", 1],
+  ["stepPct", "Прибавка за промах, %", 0],
+  ["pity", "Гарантия на деле №", 1],
+  ["dailyCap", "Находок в сутки, не больше", 1],
+];
+
+function lootJson(loot: GameSettings["loot"]) {
+  return {
+    base_pct: loot.basePct,
+    step_pct: loot.stepPct,
+    pity: loot.pity,
+    daily_cap: loot.dailyCap,
+    weights: loot.weights,
+    unlock_level: loot.unlockLevel,
+  };
+}
+
+function LootSettings() {
+  const { settings, setSetting } = useGame();
+  const { loot, forgePrices } = settings;
+  return (
+    <div className="grid gap-2 text-sm text-parchment/70 sm:grid-cols-2">
+      {LOOT_FIELDS.map(([key, title, min]) => (
+        <label key={key} className="flex items-center justify-between gap-2">
+          {title}
+          <NumberField
+            key={loot[key]}
+            label={title}
+            value={loot[key]}
+            min={min}
+            onCommit={(n) => {
+              setSetting("loot", lootJson({ ...loot, [key]: n }));
+            }}
+          />
+        </label>
+      ))}
+      {(["common", "rare"] as const).map((rarity) => (
+        <label key={rarity} className="flex items-center justify-between gap-2">
+          {rarity === "common" ? "Кузнец: обычный предмет" : "Кузнец: редкий предмет"}
+          <NumberField
+            key={forgePrices[rarity]}
+            label={`Цена у кузнеца: ${rarity}`}
+            value={forgePrices[rarity]}
+            min={1}
+            onCommit={(n) => {
+              setSetting("forge_prices", { ...forgePrices, [rarity]: n });
+            }}
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
@@ -216,6 +275,10 @@ export function SettingsScreen() {
             />
             зол.
           </div>
+        </Section>
+
+        <Section title="Находки и кузница" hint="Шанс растёт с каждым делом без находки, на пороге находка гарантирована. Шанс за золото не продаётся.">
+          <LootSettings />
         </Section>
 
         <Section title="Анимации" hint="Сдержанные: без полёта монет, награда видна сразу. Системная настройка «уменьшить движение» тоже учитывается.">

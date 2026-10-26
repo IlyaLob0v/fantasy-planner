@@ -25,6 +25,8 @@ export interface Character {
   streakBest: number;
   windStep: number;
   fatiguedSince: GameDate | null;
+  /** Дела подряд без находки: защита от невезения. */
+  lootMisses: number;
   locationKey: string;
   createdAt: string;
   updatedAt: string;
@@ -43,6 +45,7 @@ export interface CharacterState {
   streakBest: number;
   windStep: number;
   fatiguedSince: GameDate | null;
+  lootMisses: number;
 }
 
 export type QuestStatus = "active" | "done";
@@ -129,6 +132,31 @@ export interface Outcome {
   character: CharacterState;
   /** Новые достижения; их золото уже лежит в `ledger`. */
   achievements: NewAchievement[];
+  /** Новые предметы снаряжения. */
+  gear: NewGear[];
+  /** Находки, которые забирает отмена дела. */
+  removeGear: number[];
+}
+
+export const GEAR_SLOTS = ["weapon", "helm", "armor", "cloak", "talisman"] as const;
+export type GearSlot = (typeof GEAR_SLOTS)[number];
+export type GearSource = "quest" | "ritual" | "boss" | "achievement" | "forge" | "week_chest";
+
+export interface Gear {
+  id: number;
+  itemKey: string;
+  sourceType: GearSource;
+  sourceId: number | null;
+  gameDate: GameDate;
+  missesBefore: number;
+  obtainedAt: string;
+}
+
+export type NewGear = Omit<Gear, "id" | "obtainedAt"> & { uid: string };
+
+export interface EquipmentSlot {
+  slot: GearSlot;
+  gearId: number | null;
 }
 
 export interface NewAchievement {
@@ -164,6 +192,15 @@ export interface Settings {
   oathDone: boolean;
   /** Подсказки, которые уже показаны и больше не появятся. */
   hintsSeen: string[];
+  loot: {
+    basePct: number;
+    stepPct: number;
+    pity: number;
+    dailyCap: number;
+    weights: Record<Rarity, number>;
+    unlockLevel: Record<Rarity, number>;
+  };
+  forgePrices: { common: number; rare: number };
 }
 
 export interface Reward {
