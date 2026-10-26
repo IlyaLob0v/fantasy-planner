@@ -1,11 +1,16 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 
+import { RARITY_LABEL } from "@/app/strings";
 import { titleForLevel } from "@/domain/levels";
+import { unlockedBetween } from "@/domain/locations";
+import { cn } from "@/lib/utils";
 import { useGame, type RewardEvent } from "@/services/game";
 
 import { Coin } from "./icons";
+import { RARITY_FRAME } from "./rarity";
 import { Button } from "../ui/button";
+
 
 interface Flight {
   id: number;
@@ -90,8 +95,8 @@ function CoinFlight({ flight }: { flight: Flight }) {
 }
 
 /** Слой наград поверх экрана: монеты, свечение XP, повышение уровня, отмена. */
-export function RewardLayer() {
-  const { lastReward, quests, undoQuest, settings } = useGame();
+export function RewardLayer({ onOpenMap }: { onOpenMap: () => void }) {
+  const { lastReward, quests, undoQuest, settings, locations } = useGame();
   const calm = useReducedMotion() === true || settings.motion === "reduced";
   /** id последней награды, чьи части уже убраны с экрана. */
   const [flightDone, setFlightDone] = useState(0);
@@ -101,7 +106,13 @@ export function RewardLayer() {
   const id = lastReward?.id ?? 0;
   const flight = lastReward && flightDone < id && !calm ? flightFor(lastReward) : null;
   const levelUp = lastReward && levelDone < id ? lastReward.levelUp : null;
+  const victory = lastReward && levelDone < id ? lastReward.victory : null;
+  const overlay = levelUp !== null || victory !== null;
+  const opened = levelUp === null ? [] : unlockedBetween(locations, levelUp - 1, levelUp);
   const undoFor = lastReward && undoDone < id ? lastReward.questId : null;
+
+  /** Оверлей победы или уровня закрывает тост отмены, поэтому окно отмены отсчитывается после него. */
+  const undoWindow = lastReward && (lastReward.levelUp !== null || lastReward.victory !== null) ? 8000 : 5000;
 
   useEffect(() => {
     if (id === 0) return;
@@ -110,15 +121,15 @@ export function RewardLayer() {
     }, 1400);
     const clearUndo = window.setTimeout(() => {
       setUndoDone(id);
-    }, 5000);
+    }, undoWindow);
     return () => {
       window.clearTimeout(clearFlight);
       window.clearTimeout(clearUndo);
     };
-  }, [id]);
+  }, [id, undoWindow]);
 
   useEffect(() => {
-    if (levelUp === null) return;
+    if (!overlay) return;
     const close = () => {
       setLevelDone(id);
     };
@@ -131,7 +142,7 @@ export function RewardLayer() {
       window.clearTimeout(timer);
       window.removeEventListener("keydown", onKey);
     };
-  }, [levelUp, id]);
+  }, [overlay, id]);
 
   const undoQuestTarget =
     undoFor === null
@@ -166,9 +177,10 @@ export function RewardLayer() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {levelUp !== null && (
-          <motion.button
-            type="button"
+        {overlay && (
+          <motion.div
+            role="dialog"
+            aria-label={victory ? "Босс повержен" : "Новый уровень"}
             className="fixed inset-0 z-50 grid cursor-pointer place-items-center bg-ink-deep/75 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { delay: 0.6, duration: 0.3 } }}
@@ -183,19 +195,51 @@ export function RewardLayer() {
               animate={{ scale: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 180, damping: 16 }}
             >
-              <div className="mx-auto mb-4 grid h-28 w-28 place-items-center rounded-full bg-gradient-to-br from-gold-bright to-gold font-display text-5xl font-bold text-wood shadow-[0_0_60px_rgb(230_195_106/0.6)]">
-                {levelUp}
-              </div>
-              <p className="font-display text-4xl text-gold-bright">
-                Новый уровень
-              </p>
-              <p className="mt-1 text-lg text-parchment/80">
-                {titleForLevel(levelUp) === titleForLevel(levelUp - 1)
-                  ? "Путь продолжается"
-                  : `Отныне ты: ${titleForLevel(levelUp)}`}
-              </p>
+              {victory ? (
+                <>
+                  <p className="font-display text-5xl text-gold-bright drop-shadow-[0_0_24px_rgb(230_195_106/0.5)]">Босс повержен</p>
+                  <p className="mt-1 text-lg text-parchment/80">{victory.boss.title}</p>
+                  <div className={cn("mx-auto mt-5 w-72 rounded-[var(--radius-panel)] border-2 bg-wood/90 px-5 py-4", RARITY_FRAME[victory.loot.rarity])}>
+                    <p className="text-xs uppercase tracking-wider text-parchment/50">Трофей · {RARITY_LABEL[victory.loot.rarity]}</p>
+                    <p className="mt-1 font-display text-xl text-parchment">{victory.loot.itemName}</p>
+                    <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-parchment/70">
+                      +{victory.reward.xp} XP · <Coin className="h-4 w-4" /> {victory.reward.gold}
+                    </p>
+                  </div>
+                  {levelUp !== null && <p className="mt-4 font-display text-2xl text-gold-bright">И новый уровень: {levelUp}</p>}
+                </>
+              ) : (
+                levelUp !== null && (
+                  <>
+                    <div className="mx-auto mb-4 grid h-28 w-28 place-items-center rounded-full bg-gradient-to-br from-gold-bright to-gold font-display text-5xl font-bold text-wood shadow-[0_0_60px_rgb(230_195_106/0.6)]">
+                      {levelUp}
+                    </div>
+                    <p className="font-display text-4xl text-gold-bright">Новый уровень</p>
+                    <p className="mt-1 text-lg text-parchment/80">
+                      {titleForLevel(levelUp) === titleForLevel(levelUp - 1)
+                        ? "Путь продолжается"
+                        : `Отныне ты: ${titleForLevel(levelUp)}`}
+                    </p>
+                  </>
+                )
+              )}
+              {opened.length > 0 && (
+                <div className="mt-5">
+                  <p className="text-parchment/75">Открыт путь: {opened.map((l) => l.name).join(", ")}</p>
+                  <Button
+                    className="mt-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLevelDone(id);
+                      onOpenMap();
+                    }}
+                  >
+                    Взглянуть
+                  </Button>
+                </div>
+              )}
             </motion.div>
-          </motion.button>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

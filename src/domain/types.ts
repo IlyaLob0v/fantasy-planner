@@ -1,8 +1,11 @@
 export const ATTRIBUTES = ["strength", "intellect", "agility"] as const;
 export type Attribute = (typeof ATTRIBUTES)[number];
 
+/** Обычные квесты на день. */
 export const QUEST_TYPES = ["main", "side"] as const;
-export type QuestType = (typeof QUEST_TYPES)[number];
+/** Всё, что можно завести на доске: квесты и боссы. Этапы создаются внутри босса. */
+export const BOARD_TYPES = ["main", "side", "boss"] as const;
+export type QuestType = (typeof BOARD_TYPES)[number] | "stage";
 
 export type Difficulty = 1 | 2 | 3;
 
@@ -44,6 +47,12 @@ export interface CharacterState {
 
 export type QuestStatus = "active" | "done";
 
+export interface QuestStatusChange {
+  id: number;
+  status: QuestStatus;
+  completedAt: string | null;
+}
+
 export interface Quest {
   id: number;
   parentId: number | null;
@@ -71,6 +80,10 @@ export interface QuestFields {
   scheduledDate: GameDate | null;
   dueDate: GameDate | null;
   sortOrder: number;
+  /** Только у этапа: id босса. */
+  parentId: number | null;
+  /** Урон этапа по боссу, 1–10. У остальных квестов 1. */
+  damage: number;
 }
 
 export type DayKind = "normal" | "rest";
@@ -82,7 +95,7 @@ export interface Day {
   closedAt: string | null;
 }
 
-export type LedgerSource = "quest" | "ritual" | "rest_action" | "purchase" | "rest" | "revert";
+export type LedgerSource = "quest" | "boss_defeat" | "ritual" | "rest_action" | "purchase" | "rest" | "revert";
 
 export interface LedgerEntry {
   id: number;
@@ -106,9 +119,11 @@ export interface RestAction {
 }
 
 export interface Outcome {
-  quest: { id: number; status: QuestStatus; completedAt: string | null } | null;
+  quests: QuestStatusChange[];
   ritual: { ritualId: number; gameDate: GameDate; done: boolean } | null;
   inventory: NewInventoryItem[];
+  /** Лут, который забирается при отмене победы над боссом. */
+  removeInventory: number[];
   ledger: NewLedgerEntry[];
   days: Day[];
   character: CharacterState;
@@ -121,7 +136,7 @@ export interface Rate {
 
 export interface Settings {
   dayStartHour: number;
-  rates: { side: Rate; main: Rate; ritual: Rate; restAction: Rate };
+  rates: { side: Rate; main: Rate; stage: Rate; bossDefeat: Rate; ritual: Rate; restAction: Rate };
   restPrice: number;
   streakBonus: { stepDays: number; stepPct: number; maxPct: number };
   levelCurve: { base: number; exp: number; round: number };
@@ -193,9 +208,32 @@ export interface InventoryItem {
   redeemedAt: string | null;
 }
 
+export type Rarity = InventoryItem["rarity"];
+
 export interface NewInventoryItem {
   itemType: InventoryType;
   itemName: string;
+  rarity: Rarity;
+  assetKey: string | null;
   sourceType: InventoryItem["sourceType"];
   sourceId: number | null;
+}
+
+/** Запись хроники за игровые сутки. */
+export interface ChronicleEntry {
+  gameDate: GameDate;
+  happened: string;
+  noticed: string;
+  feeling: string;
+  mood: number | null;
+  updatedAt: string;
+}
+
+export interface Location {
+  key: string;
+  name: string;
+  assetKey: string;
+  unlockLevel: number;
+  price: number;
+  sortOrder: number;
 }

@@ -3,9 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { isRecord } from "@/domain/guards";
 import type {
   Character,
+  ChronicleEntry,
   Day,
   InventoryItem,
   LedgerEntry,
+  Location,
   Outcome,
   Quest,
   QuestFields,
@@ -44,6 +46,10 @@ export const ipc = {
   redeemItem: (id: number) => invoke<null>("redeem_item", { id }),
   setSetting: (key: "day_start_hour" | "rates" | "rest_price" | "motion", value: unknown) => invoke<null>("set_setting", { key, value }),
   commitOutcome: (outcome: Outcome) => invoke<Character>("commit_outcome", { outcome }),
+  listChronicle: () => invoke<ChronicleEntry[]>("list_chronicle"),
+  saveChronicle: (entry: ChronicleEntry) => invoke<ChronicleEntry>("save_chronicle", { entry }),
+  listLocations: () => invoke<Location[]>("list_locations"),
+  setHome: (key: string) => invoke<Character>("set_home", { key }),
 };
 
 /** Человеческое сообщение из ошибки IPC (AppError сериализуется как { kind, message }). */

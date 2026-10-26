@@ -1,13 +1,17 @@
 import { useState } from "react";
 
-import { ATTRIBUTE_HINT, ATTRIBUTE_LABEL, daysWord } from "@/app/strings";
+import { ATTRIBUTE_HINT, ATTRIBUTE_LABEL, daysWord, MOOD_LABEL } from "@/app/strings";
+import { ChronicleForm } from "@/components/kit/ChronicleForm";
 import { ATTRIBUTE_ICON } from "@/components/kit/icons";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/tooltip";
+import { isBlank } from "@/domain/chronicle";
 import { levelProgress, titleForLevel } from "@/domain/levels";
 import { isSuccess } from "@/domain/streak";
-import { addDays, humanDate, weekday } from "@/domain/time";
+import { addDays, calendarStart, humanDate } from "@/domain/time";
 import { ATTRIBUTES, type Day } from "@/domain/types";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/services/game";
@@ -25,7 +29,7 @@ function cellTone(day: Day | undefined, isFuture: boolean): string {
 function StreakCalendar() {
   const { days, today } = useGame();
   const byDate = new Map(days.map((d) => [d.gameDate, d]));
-  const start = addDays(today, -(WEEKS * 7 - 1) - (6 - weekday(today)));
+  const start = calendarStart(today, WEEKS);
   const cells = Array.from({ length: WEEKS * 7 }, (_, i) => addDays(start, i));
 
   return (
@@ -97,6 +101,85 @@ function NameField() {
 }
 
 /** Герой: путь персонажа, атрибуты и серии. Только просмотр, без действий с квестами. */
+const CHRONICLE_PAGE = 30;
+
+/** Летопись: лента записей хроники, клик раскрывает запись. Писать можно только за сегодня. */
+function Chronicle() {
+  const { chronicle, today } = useGame();
+  const [openDate, setOpenDate] = useState<string | null>(null);
+  const [writing, setWriting] = useState(false);
+  const entries = chronicle.filter((e) => !isBlank(e)).slice(0, CHRONICLE_PAGE);
+  const todayWritten = entries.some((e) => e.gameDate === today);
+
+  return (
+    <Panel className="p-6">
+      <div className="mb-3 flex items-baseline justify-between">
+        <PanelTitle className="text-xl">Летопись</PanelTitle>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setWriting(true);
+          }}
+        >
+          {todayWritten ? "Дополнить сегодняшнюю" : "Запись за сегодня"}
+        </Button>
+      </div>
+      {entries.length === 0 ? (
+        <p className="text-sm text-parchment/50">Здесь будут твои вечерние записи: что произошло, что заметил, что чувствуешь.</p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {entries.map((e) => {
+            const open = openDate === e.gameDate;
+            return (
+              <li key={e.gameDate} className="rounded-[var(--radius-panel)] border border-parchment/10 bg-ink-deep/35">
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  className="flex w-full cursor-pointer items-baseline gap-3 px-3 py-2 text-left"
+                  onClick={() => {
+                    setOpenDate(open ? null : e.gameDate);
+                  }}
+                >
+                  <span className="w-28 shrink-0 text-sm text-gold-bright/80">{humanDate(e.gameDate)}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-parchment/80">{e.happened || e.noticed || e.feeling || "—"}</span>
+                  {e.mood !== null && <span className="shrink-0 text-xs text-parchment/45">{MOOD_LABEL[e.mood]}</span>}
+                </button>
+                {open && (
+                  <dl className="flex flex-col gap-2 border-t border-parchment/10 px-3 py-2.5 text-sm">
+                    {(
+                      [
+                        ["Что произошло", e.happened],
+                        ["Что заметил", e.noticed],
+                        ["Что чувствую", e.feeling],
+                      ] as const
+                    )
+                      .filter(([, text]) => text.trim())
+                      .map(([title, text]) => (
+                        <div key={title}>
+                          <dt className="text-xs text-parchment/45">{title}</dt>
+                          <dd className="whitespace-pre-wrap text-parchment/85">{text}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <Dialog open={writing} onOpenChange={setWriting} title="Хроника дня" description={humanDate(today)}>
+        <ChronicleForm
+          date={today}
+          onDone={() => {
+            setWriting(false);
+          }}
+        />
+      </Dialog>
+    </Panel>
+  );
+}
+
 export function CharacterScreen() {
   const { character, settings } = useGame();
   const progress = levelProgress(character.xp, settings.levelCurve);
@@ -149,6 +232,8 @@ export function CharacterScreen() {
           </div>
           <StreakCalendar />
         </Panel>
+
+        <Chronicle />
       </div>
     </div>
   );

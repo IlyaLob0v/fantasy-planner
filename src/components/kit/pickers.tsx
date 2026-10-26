@@ -20,16 +20,27 @@ export function Chip({
   return <button type="button" aria-pressed={active} className={cn(chip, active ? on : off, className)} {...props} />;
 }
 
-export function TypePicker({ value, onChange }: { value: QuestType; onChange: (t: QuestType) => void }) {
+export function TypePicker({
+  value,
+  onChange,
+  options = QUEST_TYPES,
+  disabled = false,
+}: {
+  value: QuestType;
+  onChange: (t: QuestType) => void;
+  options?: readonly QuestType[];
+  disabled?: boolean;
+}) {
   return (
     <div className="flex gap-1" role="radiogroup" aria-label="Тип квеста">
-      {QUEST_TYPES.map((t) => (
+      {options.map((t) => (
         <button
           key={t}
           type="button"
           role="radio"
           aria-checked={value === t}
-          className={cn(chip, value === t ? on : off)}
+          disabled={disabled && value !== t}
+          className={cn(chip, value === t ? on : off, "disabled:cursor-not-allowed disabled:opacity-40")}
           onClick={() => {
             onChange(t);
           }}

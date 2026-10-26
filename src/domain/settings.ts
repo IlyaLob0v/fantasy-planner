@@ -19,6 +19,8 @@ export function parseSettings(raw: unknown): Settings {
     rates: {
       side: rate(rates, "side"),
       main: rate(rates, "main"),
+      stage: rate(rates, "stage"),
+      bossDefeat: rate(rates, "boss_defeat"),
       ritual: rate(rates, "ritual"),
       restAction: rate(rates, "rest_action"),
     },
@@ -37,13 +39,15 @@ export function parseSettings(raw: unknown): Settings {
   };
 }
 
-/** Записывает правленые ставки поверх сырых, не теряя ставок, которые экран не показывает (этапы, боссы). */
+/** Записывает правленые ставки поверх сырых, не теряя ключей, которых экран не знает. */
 export function mergeRates(rawSettings: unknown, rates: Settings["rates"]): JsonRecord {
   const current = isRecord(rawSettings) ? readRecord(rawSettings, "rates") : {};
   return {
     ...current,
     side: { ...rates.side },
     main: { ...rates.main },
+    stage: { ...rates.stage },
+    boss_defeat: { ...rates.bossDefeat },
     ritual: { ...rates.ritual },
     rest_action: { ...rates.restAction },
   };

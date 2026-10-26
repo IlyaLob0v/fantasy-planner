@@ -41,6 +41,11 @@ export function weekday(date: GameDate): number {
   return (parse(date).getUTCDay() + 6) % 7;
 }
 
+/** Первый день сетки календаря: понедельник, с которого `weeks` недель заканчиваются воскресеньем текущей недели. */
+export function calendarStart(today: GameDate, weeks: number): GameDate {
+  return addDays(today, -weekday(today) - (weeks - 1) * 7);
+}
+
 const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 const WEEKDAYS = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"];
 

@@ -1,5 +1,5 @@
 import { plural } from "@/domain/plural";
-import type { Attribute, QuestType, RitualSchedule } from "@/domain/types";
+import type { Attribute, QuestType, Rarity, RitualSchedule } from "@/domain/types";
 
 export { plural };
 
@@ -18,12 +18,25 @@ export const ATTRIBUTE_HINT: Record<Attribute, string> = {
 export const QUEST_TYPE_LABEL: Record<QuestType, string> = {
   main: "Главный квест",
   side: "Побочный квест",
+  boss: "Босс",
+  stage: "Этап босса",
 };
 
 export const QUEST_TYPE_SHORT: Record<QuestType, string> = {
   main: "Main",
   side: "Side",
+  boss: "Boss",
+  stage: "Stage",
 };
+
+export const RARITY_LABEL: Record<Rarity, string> = {
+  common: "обычный",
+  rare: "редкий",
+  epic: "эпический",
+  legendary: "легендарный",
+};
+
+export const MOOD_LABEL = ["", "Тяжёлый день", "Так себе", "Ровно", "Хорошо", "Отлично"] as const;
 
 export const DIFFICULTY_LABEL = ["", "Лёгкий", "Серьёзный", "Тяжёлый"] as const;
 

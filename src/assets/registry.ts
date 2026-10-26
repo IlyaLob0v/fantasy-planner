@@ -106,3 +106,8 @@ export function locationAsset(locationKey: string): AssetKey {
   const key = `location.${locationKey}`;
   return isAssetKey(key) ? key : "location.gatehouse";
 }
+
+/** Запись реестра по ключу из базы (например, asset_key локации); null, если такого арта нет. */
+export function assetByKey(key: string): AssetEntry | null {
+  return isAssetKey(key) ? assets[key] : null;
+}

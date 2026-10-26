@@ -73,6 +73,15 @@ pub struct QuestFields {
     pub scheduled_date: Option<String>,
     pub due_date: Option<String>,
     pub sort_order: i64,
+    /// Только для этапа босса.
+    #[serde(default)]
+    pub parent_id: Option<i64>,
+    #[serde(default = "one")]
+    pub damage: i64,
+}
+
+fn one() -> i64 {
+    1
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -133,11 +142,15 @@ pub struct QuestStatusChange {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Outcome {
-    pub quest: Option<QuestStatusChange>,
+    #[serde(default)]
+    pub quests: Vec<QuestStatusChange>,
     #[serde(default)]
     pub ritual: Option<RitualMark>,
     #[serde(default)]
     pub inventory: Vec<NewInventoryItem>,
+    /// Лут, который забирается обратно при отмене победы над боссом.
+    #[serde(default)]
+    pub remove_inventory: Vec<i64>,
     pub ledger: Vec<NewLedgerEntry>,
     pub days: Vec<Day>,
     pub character: CharacterState,
@@ -234,6 +247,38 @@ pub struct InventoryItem {
 pub struct NewInventoryItem {
     pub item_type: String,
     pub item_name: String,
+    #[serde(default = "common")]
+    pub rarity: String,
+    #[serde(default)]
+    pub asset_key: Option<String>,
     pub source_type: Option<String>,
     pub source_id: Option<i64>,
+}
+
+fn common() -> String {
+    "common".into()
+}
+
+/// Запись хроники за игровые сутки.
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct ChronicleEntry {
+    pub game_date: String,
+    pub happened: String,
+    pub noticed: String,
+    pub feeling: String,
+    pub mood: Option<i64>,
+    #[serde(default)]
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct Location {
+    pub key: String,
+    pub name: String,
+    pub asset_key: String,
+    pub unlock_level: i64,
+    pub price: i64,
+    pub sort_order: i64,
 }

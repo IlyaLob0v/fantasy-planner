@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { isEvening } from "@/domain/chronicle";
 import { gameDate } from "@/domain/time";
 import type { GameDate } from "@/domain/types";
 
@@ -22,4 +23,18 @@ export function useGameDate(dayStartHour: number | null): GameDate | null {
     };
   }, [dayStartHour]);
   return today;
+}
+
+/** Вечер ли сейчас в игровых сутках; пересчитывается раз в минуту. */
+export function useEvening(dayStartHour: number): boolean {
+  const [evening, setEvening] = useState(() => isEvening(new Date(), dayStartHour));
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setEvening(isEvening(new Date(), dayStartHour));
+    }, 60_000);
+    return () => {
+      window.clearInterval(id);
+    };
+  }, [dayStartHour]);
+  return evening || isEvening(new Date(), dayStartHour);
 }

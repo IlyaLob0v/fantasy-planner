@@ -2,12 +2,13 @@ import { MotionConfig } from "motion/react";
 import { useEffect, useState, type CSSProperties } from "react";
 
 import { assets, locationAsset, type AssetKey } from "@/assets/registry";
+import { LocationVeil } from "@/components/kit/LocationVeil";
 import { RewardLayer } from "@/components/kit/RewardLayer";
 import { SceneBackdrop } from "@/components/kit/SceneBackdrop";
 import { SCREENS, Titlebar, type ScreenKey } from "@/components/kit/Titlebar";
 import { CharacterScreen } from "@/screens/Character";
 import { Dashboard } from "@/screens/Dashboard";
-import { Inventory } from "@/screens/Inventory";
+import { Inventory, type InventoryTab } from "@/screens/Inventory";
 import { QuestLog } from "@/screens/QuestLog";
 import { SettingsScreen } from "@/screens/Settings";
 import { GameProvider, useGame, useGameBoot } from "@/services/game";
@@ -33,6 +34,7 @@ function ErrorNote() {
 function Shell() {
   const { character, settings } = useGame();
   const [screen, setScreen] = useState<ScreenKey>("dashboard");
+  const [inventoryTab, setInventoryTab] = useState<InventoryTab>("shop");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -70,10 +72,16 @@ function Shell() {
           )}
           {screen === "questlog" && <QuestLog />}
           {screen === "character" && <CharacterScreen />}
-          {screen === "inventory" && <Inventory />}
+          {screen === "inventory" && <Inventory tab={inventoryTab} onTab={setInventoryTab} />}
           {screen === "settings" && <SettingsScreen />}
         </main>
-        <RewardLayer />
+        <RewardLayer
+          onOpenMap={() => {
+            setInventoryTab("map");
+            setScreen("inventory");
+          }}
+        />
+        <LocationVeil locationKey={character.locationKey} />
         <ErrorNote />
       </div>
     </MotionConfig>

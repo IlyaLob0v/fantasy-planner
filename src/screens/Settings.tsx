@@ -14,6 +14,8 @@ const DAY_START_HOURS = [0, 1, 2, 3, 4, 5, 6] as const;
 const RATE_ROWS: ReadonlyArray<[keyof GameSettings["rates"], string]> = [
   ["side", "Побочный квест"],
   ["main", "Главный квест"],
+  ["stage", "Этап босса"],
+  ["bossDefeat", "Победа над боссом"],
   ["ritual", "Ритуал"],
   ["restAction", "Привал"],
 ];
