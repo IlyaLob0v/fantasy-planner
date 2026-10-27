@@ -7,6 +7,7 @@ import { Equipment } from "@/components/kit/Equipment";
 import { HallOfFame } from "@/components/kit/HallOfFame";
 import { ATTRIBUTE_ICON } from "@/components/kit/icons";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
+import { SagaArchive } from "@/components/kit/Saga";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -279,6 +280,8 @@ export function CharacterScreen() {
         </Panel>
 
         <BookOfDeeds />
+
+        <SagaArchive />
 
         <HallOfFame />
 

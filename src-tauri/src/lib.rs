@@ -61,6 +61,9 @@ pub fn run() {
             commands::chronicle::save_chronicle,
             commands::locations::list_locations,
             commands::locations::set_home,
+            commands::saga::list_saga_chapters,
+            commands::saga::unlock_saga_chapters,
+            commands::saga::read_saga_chapter,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|err| {

@@ -8,6 +8,7 @@ import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { QuestCard } from "@/components/kit/QuestCard";
 import { ReturnCard } from "@/components/kit/ReturnCard";
 import { RitualRow } from "@/components/kit/RitualRow";
+import { SagaSeal } from "@/components/kit/Saga";
 import { WeekPanel } from "@/components/kit/WeekPanel";
 import { WeekRecap } from "@/components/kit/WeekRecap";
 import { Button } from "@/components/ui/button";
@@ -172,6 +173,7 @@ export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
       <div className="hidden xl:block" aria-hidden />
       <div className="order-1 flex shrink-0 flex-col gap-4 md:order-none md:min-h-0 md:shrink md:gap-5">
         <ReturnCard />
+        <SagaSeal />
         <WeekRecap />
         {ritualsOpen ? (
           <RitualsDrawer

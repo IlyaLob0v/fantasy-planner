@@ -30,6 +30,7 @@ export const settings: Settings = {
   journey: { returnAfterDays: 3, staleOffer: 5 },
   returnSeen: "",
   reminder: { enabled: false, hour: 19, quietWeekdays: [] },
+  sagaEveryDays: 5,
   recapSeen: "",
   crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
   crestPrice: 40,

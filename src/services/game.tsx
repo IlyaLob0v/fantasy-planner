@@ -5,9 +5,10 @@ import { GOLD_ANCHOR_ID } from "@/app/anchors";
 import { gloryProgress, gloryStats, newlyEarned, planGlory, type GloryProgress } from "@/domain/achievements";
 import { planBuyCrestPart, resolveCrest, type CrestChoice, type CrestPartDef } from "@/domain/crest";
 import { activePerks, forgePrice, restPrice, type GearDef, type Perk } from "@/domain/gear";
-import { returnAbsence, type Absence } from "@/domain/journey";
+import { journeyDays, returnAbsence, type Absence } from "@/domain/journey";
 import { fieldsOf } from "@/domain/quests";
 import { weekStart } from "@/domain/rituals";
+import { newSagaChapters } from "@/domain/saga";
 import { mergeRates, parseSettings } from "@/domain/settings";
 import { starterPack } from "@/domain/starter";
 import { addDays } from "@/domain/time";
@@ -64,6 +65,7 @@ import type {
   Ritual,
   RitualCompletion,
   RitualFields,
+  SagaProgress,
   Settings,
   WeekGoal,
 } from "@/domain/types";
@@ -94,6 +96,7 @@ const keys = {
   ledgerSince: ["ledger-since"] as const,
   weekGoals: ["week-goals"] as const,
   crestParts: ["crest-parts"] as const,
+  saga: ["saga"] as const,
 };
 
 /** Цели недели, закрытые только что: для тоста. */
@@ -155,6 +158,8 @@ export interface GameState {
   weekOptions: WeekGoalKey[];
   /** Летопись прошлой недели, пока её не закрыли. */
   recap: WeekRecap | null;
+  /** Открытые главы Сказа о герое. */
+  saga: SagaProgress[];
   /** Перерыв перед сегодняшним днём, пока карточку возвращения не закрыли и ничего не сделано. */
   absence: Absence | null;
   crestParts: CrestPart[];
@@ -200,6 +205,8 @@ export interface GameState {
   turnOffWeekGoal: (goal: WeekGoal) => void;
   closeRecap: () => void;
   closeReturn: () => void;
+  /** Глава сказа открыта на чтение: отмечается прочитанной один раз. */
+  readChapter: (key: string) => void;
   /** Снимает дату с квестов, застрявших с прошлых дней: они уходят в «Без даты». */
   clearStale: (stale: readonly Quest[]) => void;
   buyCrestPart: (def: CrestPartDef, origin: DOMRect | null) => void;
@@ -263,6 +270,7 @@ export function useGameBoot(): Boot {
     enabled: thisWeek !== null,
   });
   const crestParts = useQuery({ queryKey: keys.crestParts, queryFn: ipc.listCrestParts });
+  const saga = useQuery({ queryKey: keys.saga, queryFn: ipc.listSagaChapters });
   const fetching = useIsFetching();
   const mutating = useIsMutating();
 
@@ -830,6 +838,37 @@ export function useGameBoot(): Boot {
     [today, settings, days.data],
   );
 
+  /** Новые главы сказа записываются, как только набраны дни в походе. Золота в них нет, поэтому ждать тишины не нужно. */
+  const sagaWriting = useRef(false);
+  useEffect(() => {
+    if (!settings || !days.data || !saga.data || sagaWriting.current) return;
+    const fresh = newSagaChapters(journeyDays(days.data), settings.sagaEveryDays, saga.data.map((c) => c.key));
+    if (fresh.length === 0) return;
+    sagaWriting.current = true;
+    ipc
+      .unlockSagaChapters(fresh.map((c) => ({ key: c.key, uid: uuidv7() })))
+      .then((list) => {
+        client.setQueryData(keys.saga, list);
+      })
+      .catch(fail)
+      .finally(() => {
+        sagaWriting.current = false;
+      });
+  }, [settings, days.data, saga.data, client, fail]);
+
+  const readChapter = useCallback(
+    (key: string) => {
+      if (saga.data?.find((c) => c.key === key)?.readAt !== null) return;
+      ipc
+        .readSagaChapter(key)
+        .then((list) => {
+          client.setQueryData(keys.saga, list);
+        })
+        .catch(fail);
+    },
+    [saga.data, client, fail],
+  );
+
   const closeReturn = useCallback(() => {
     if (absence) setSetting("return_seen", absence.lastActive);
   }, [absence, setSetting]);
@@ -885,7 +924,8 @@ export function useGameBoot(): Boot {
       !gear.data ||
       !equipment.data ||
       !week ||
-      !crestParts.data
+      !crestParts.data ||
+      !saga.data
     ) {
       return null;
     }
@@ -910,6 +950,7 @@ export function useGameBoot(): Boot {
       weekOptions: swapOptions(week.goals, week.available),
       recap,
       absence,
+      saga: saga.data,
       crestParts: crestParts.data,
       crest: resolveCrest(settings.crest, crestParts.data),
       today,
@@ -949,6 +990,7 @@ export function useGameBoot(): Boot {
       turnOffWeekGoal,
       closeRecap,
       closeReturn,
+      readChapter,
       clearStale,
       buyCrestPart,
       setCrest,
@@ -974,6 +1016,7 @@ export function useGameBoot(): Boot {
     week,
     recap,
     absence,
+    saga.data,
     crestParts.data,
     lastReward,
     lastGlory,
@@ -1011,6 +1054,7 @@ export function useGameBoot(): Boot {
     turnOffWeekGoal,
     closeRecap,
     closeReturn,
+    readChapter,
     clearStale,
     buyCrestPart,
     setCrest,
@@ -1035,6 +1079,7 @@ export function useGameBoot(): Boot {
     ledgerSince,
     weekGoals,
     crestParts,
+    saga,
   ].find(
     (q) => q.error,
   )?.error;
