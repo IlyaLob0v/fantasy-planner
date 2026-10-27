@@ -210,7 +210,7 @@ CREATE INDEX idx_inventory_source ON inventory(source_type, source_id);
 | Поле | Что пишет |
 |---|---|
 | `quests` | смены статуса квестов: этап и, при победе, сам босс |
-| `ritual` | отметка ритуала или её снятие |
+| `rituals` | отметки ритуалов или их снятие (V0.7: список вместо одной отметки `ritual`) |
 | `inventory` | новые предметы: награда из лавки, трофей (`rarity`, `asset_key`), локация |
 | `removeInventory` | id трофеев, которые убирает отмена победы (удаляются только `item_type = 'loot'`) |
 | `ledger` | записи журнала, в том числе обратные (`revert`) |
@@ -218,6 +218,7 @@ CREATE INDEX idx_inventory_source ON inventory(source_type, source_id);
 | `character` | новый кэш персонажа |
 | `achievements`, `gear`, `removeGear` | V0.5: открытые достижения, новые предметы, находки, которые забирает отмена |
 | `weekGoalsDone`, `crestParts` | V0.5: выполненные цели недели, купленные части герба |
+| `innStays` | V0.7: новая комната в таверне |
 
 ## Миграция 0004 (V0.5): Зал славы и Присяга гильдии
 
@@ -295,3 +296,9 @@ CREATE INDEX idx_inventory_source ON inventory(source_type, source_id);
 
 - **`saga_chapters`**: `key` (PK, ключ главы из `src/domain/saga.ts`), `uid`, `unlocked_at`, `read_at` (первое прочтение, дальше не меняется), `updated_at`. Глава не отбирается, строка не удаляется.
 - **`settings`**: `saga_every_days` (5). Команды: `list_saga_chapters`, `unlock_saga_chapters` (уже открытая глава не трогается), `read_saga_chapter`.
+
+## Миграция 0011 (V0.7): комната в таверне
+
+- **`inn_stays`**: `id`, `uid`, `start_date`, `end_date` (включительно, `CHECK end_date >= start_date`), `created_at`, `updated_at`, `deleted_at`. Создаётся ходом `commit_outcome` (`innStays`), потому что заселение на сегодня снимает усталость. Команды: `list_inn_stays` (без удалённых), `end_inn_stay(id, end_date | null)`: новая дата конца (не раньше начала) или отмена через `deleted_at`.
+- Итог хода вместо одной отметки `ritual` несёт список `rituals`: карточка «Что было вчера?» отмечает несколько ритуалов вчерашней датой одним ходом.
+- Вчерашние сутки, пока ждёт карточка, остаются с `closed_at = NULL`; их закрывает ход карточки или следующая смена суток.

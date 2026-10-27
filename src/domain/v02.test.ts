@@ -12,7 +12,7 @@ const today = "2026-10-28"; // среда
 const now = new Date("2026-10-28T12:00:00.000Z");
 
 function ctx(overrides: Partial<TurnContext> = {}): TurnContext {
-  return { character: character(), settings, days: [day(today, 0, false)], today, now, gear: [], perks: new Set(), uid: () => "uid", ...overrides };
+  return { character: character(), settings, days: [day(today, 0, false)], today, now, gear: [], perks: new Set(), uid: () => "uid", inn: new Set(), ...overrides };
 }
 
 function done(ritualId: number, gameDate: string): RitualCompletion {
@@ -59,13 +59,13 @@ describe("ритуал как дело", () => {
   it("даёт награду, отметку и снимает усталость; отмена возвращает всё", () => {
     const result = planRitual(ctx({ character: character({ fatiguedSince: "2026-10-27" }) }), ritual({ difficulty: 2 }));
     expect(result.reward).toMatchObject({ xp: 10, gold: 4, attribute: "strength", attributeDelta: 2 });
-    expect(result.outcome.ritual).toEqual({ ritualId: 1, gameDate: today, done: true });
+    expect(result.outcome.rituals).toEqual([{ ritualId: 1, gameDate: today, done: true }]);
     expect(result.outcome.character.fatiguedSince).toBeNull();
 
     const hero = character({ ...result.outcome.character });
     const ledger: LedgerEntry[] = result.outcome.ledger.map((e, i) => ({ ...e, id: i + 1, occurredAt: now.toISOString() }));
     const undo = planUndoRitual(ctx({ character: hero, days: result.outcome.days }), ritual(), ledger);
-    expect(undo.ritual).toEqual({ ritualId: 1, gameDate: today, done: false });
+    expect(undo.rituals).toEqual([{ ritualId: 1, gameDate: today, done: false }]);
     expect(undo.character).toMatchObject({ xp: 0, gold: 0, strength: 0 });
   });
 });

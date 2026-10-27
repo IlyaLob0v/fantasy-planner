@@ -15,7 +15,7 @@ const today = "2026-10-26";
 const now = new Date("2026-10-26T12:00:00.000Z");
 
 function ctx(overrides: Partial<TurnContext> = {}): TurnContext {
-  return { character: character(), settings, days: [day(today, 0, false)], today, now, gear: [], perks: new Set(), uid: () => "uid", ...overrides };
+  return { character: character(), settings, days: [day(today, 0, false)], today, now, gear: [], perks: new Set(), uid: () => "uid", inn: new Set(), ...overrides };
 }
 
 describe("время", () => {

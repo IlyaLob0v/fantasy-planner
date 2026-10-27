@@ -34,15 +34,21 @@ export function reminderMoment(date: GameDate, hour: number, dayStartHour: numbe
 
 /**
  * Напоминания на ближайшую неделю: в выбранный час, не больше одного в сутки. Пропускаются тихие дни недели,
- * дни отдыха, уже прошедшие часы и сегодняшний день, если в нём уже есть дело.
+ * дни отдыха и таверны, уже прошедшие часы и сегодняшний день, если в нём уже есть дело.
  */
-export function reminderPlan(now: Date, today: GameDate, settings: Settings, days: readonly Day[]): Reminder[] {
+export function reminderPlan(
+  now: Date,
+  today: GameDate,
+  settings: Settings,
+  days: readonly Day[],
+  inn: ReadonlySet<GameDate> = new Set(),
+): Reminder[] {
   const { reminder, dayStartHour } = settings;
   if (!reminder.enabled) return [];
   const byDate = new Map(days.map((d) => [d.gameDate, d]));
   return Array.from({ length: REMINDER_DAYS }, (_, offset) => addDays(today, offset)).flatMap((date): Reminder[] => {
     const day = byDate.get(date);
-    if (reminder.quietWeekdays.includes(weekday(date)) || day?.kind === "rest" || (date === today && isSuccess(day))) return [];
+    if (reminder.quietWeekdays.includes(weekday(date)) || day?.kind === "rest" || inn.has(date) || (date === today && isSuccess(day))) return [];
     const at = reminderMoment(date, reminder.hour, dayStartHour);
     return at > now ? [{ gameDate: date, at, body: reminderBody(date) }] : [];
   });
