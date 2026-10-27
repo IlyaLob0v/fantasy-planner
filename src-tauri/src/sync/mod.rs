@@ -364,12 +364,14 @@ mod tests {
         sqlx::query("INSERT INTO ledger (game_date, source_type, gold_delta) VALUES ('2026-10-27', 'quest', 3)").execute(&pool).await?;
         take_remote(&pool, &dir, 3).await?;
         let copies = std::fs::read_dir(&dir)?.filter_map(Result::ok).filter(|e| e.file_name().to_string_lossy().starts_with("guild-backup-")).count();
-        std::fs::remove_dir_all(&dir)?;
         assert_eq!(copies, 1);
         let (quests, ledger): (i64, i64) =
             sqlx::query_as("SELECT (SELECT count(*) FROM quests), (SELECT count(*) FROM ledger)").fetch_one(&pool).await?;
         assert_eq!((quests, ledger), (0, 0));
         assert!(status(&pool).await?.linked);
+        // На Windows открытую базу не удалить: сначала закрыть пул.
+        pool.close().await;
+        std::fs::remove_dir_all(&dir)?;
         Ok(())
     }
 }
