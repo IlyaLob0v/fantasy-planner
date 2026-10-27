@@ -239,6 +239,24 @@ const SPECS: &[Spec] = &[
         local_only: None,
     },
     Spec {
+        table: "saga_chapters",
+        key: "key",
+        key_column: Some("key"),
+        conflict: "key",
+        cols: &[Plain("uid"), Plain("unlocked_at"), Plain("read_at"), Plain("updated_at")],
+        merge: Merge::Latest,
+        local_only: None,
+    },
+    Spec {
+        table: "inn_stays",
+        key: "uid",
+        key_column: Some("uid"),
+        conflict: "uid",
+        cols: &[Plain("start_date"), Plain("end_date"), Plain("created_at"), Plain("updated_at"), Plain("deleted_at")],
+        merge: Merge::Latest,
+        local_only: None,
+    },
+    Spec {
         table: "chronicle",
         key: "game_date",
         key_column: Some("game_date"),
@@ -621,6 +639,8 @@ pub async fn wipe(conn: &mut SqliteConnection) -> AppResult<()> {
         "DELETE FROM achievements",
         "DELETE FROM crest_parts",
         "DELETE FROM week_goals",
+        "DELETE FROM saga_chapters",
+        "DELETE FROM inn_stays",
         "UPDATE character SET name = 'Странник', title = 'Странник', level = 1, xp = 0, gold = 0, strength = 0, \
          intellect = 0, agility = 0, streak_current = 0, streak_best = 0, wind_step = 0, fatigued_since = NULL, \
          location_key = 'gatehouse', loot_misses = 0, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = 1",
@@ -830,6 +850,28 @@ mod tests {
         let (local,): (i64,) =
             sqlx::query_as("SELECT count(*) FROM sync_outbox WHERE tbl = 'settings' AND key IN ('motion', 'sound_enabled', 'reminder')").fetch_one(&mut *conn).await?;
         assert_eq!(local, 0);
+        Ok(())
+    }
+
+    /// Комната в таверне и прочитанная глава Сказа доходят до второго устройства, отмена комнаты тоже.
+    #[tokio::test]
+    async fn inn_and_saga_travel() -> AppResult<()> {
+        let pc = open_memory().await?;
+        exec(&pc, "DELETE FROM sync_outbox").await?;
+        exec(&pc, "INSERT INTO inn_stays (uid, start_date, end_date) VALUES ('inn1', '2026-10-28', '2026-10-30')").await?;
+        exec(&pc, "INSERT INTO saga_chapters (key, uid) VALUES ('ch01', 's1')").await?;
+        exec(&pc, "UPDATE saga_chapters SET read_at = '2026-10-27T10:00:00.000Z'").await?;
+        let phone = fresh().await?;
+        receive(&phone, &outbox(&pc).await?).await?;
+        exec(&pc, "DELETE FROM sync_outbox").await?;
+        exec(&pc, "UPDATE inn_stays SET deleted_at = '2026-10-27T11:00:00.000Z'").await?;
+        receive(&phone, &outbox(&pc).await?).await?;
+        let (stay, read): (Option<String>, Option<String>) = sqlx::query_as(
+            "SELECT (SELECT deleted_at FROM inn_stays WHERE uid = 'inn1'), (SELECT read_at FROM saga_chapters WHERE key = 'ch01')",
+        )
+        .fetch_one(&phone)
+        .await?;
+        assert_eq!((stay.as_deref(), read.as_deref()), (Some("2026-10-27T11:00:00.000Z"), Some("2026-10-27T10:00:00.000Z")));
         Ok(())
     }
 }

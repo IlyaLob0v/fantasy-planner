@@ -33,6 +33,7 @@ function turn(overrides: Partial<TurnContext> = {}): TurnContext {
     gear: [],
     perks: new Set<Perk>(),
     uid: () => `uid-${String((n += 1))}`,
+      inn: new Set(),
     ...overrides,
   };
 }

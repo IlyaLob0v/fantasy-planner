@@ -24,7 +24,7 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
         }
     }
 
-    if let Some(mark) = &outcome.ritual {
+    for mark in &outcome.rituals {
         if mark.done {
             sqlx::query("INSERT INTO ritual_completions (ritual_id, game_date) VALUES (?, ?)")
                 .bind(mark.ritual_id)
@@ -131,6 +131,15 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
             .await?;
     }
 
+    for stay in &outcome.inn_stays {
+        sqlx::query("INSERT INTO inn_stays (uid, start_date, end_date) VALUES (?, ?, ?)")
+            .bind(&stay.uid)
+            .bind(&stay.start_date)
+            .bind(&stay.end_date)
+            .execute(&mut *tx)
+            .await?;
+    }
+
     for day in &outcome.days {
         sqlx::query(
             "INSERT INTO days (game_date, kind, deeds_count, closed_at) VALUES (?, ?, ?, ?) \
@@ -231,7 +240,7 @@ mod tests {
         let pool = open_memory().await?;
         let quest = quests::create(&pool, fields()).await?;
         let outcome = Outcome {
-            ritual: None,
+            rituals: vec![],
             inventory: vec![],
             remove_inventory: vec![],
             quests: vec![QuestStatusChange {
@@ -262,6 +271,7 @@ mod tests {
             remove_gear: vec![],
             week_goals_done: vec![],
             crest_parts: vec![],
+            inn_stays: vec![],
         };
         let hero = commit(&pool, outcome).await?;
         assert_eq!((hero.xp, hero.gold, hero.strength), (20, 6, 2));
@@ -274,7 +284,7 @@ mod tests {
     async fn failed_commit_changes_nothing() -> AppResult<()> {
         let pool = open_memory().await?;
         let outcome = Outcome {
-            ritual: None,
+            rituals: vec![],
             inventory: vec![],
             quests: vec![],
             remove_inventory: vec![],
@@ -286,6 +296,7 @@ mod tests {
             remove_gear: vec![],
             week_goals_done: vec![],
             crest_parts: vec![],
+            inn_stays: vec![],
         };
         assert!(commit(&pool, outcome).await.is_err());
         let hero = character::fetch(&pool).await?;
@@ -316,7 +327,7 @@ mod tests {
         let mark = |done: bool| Outcome {
             quests: vec![],
             remove_inventory: vec![],
-            ritual: Some(RitualMark { ritual_id: ritual.id, game_date: "2026-10-26".into(), done }),
+            rituals: vec![RitualMark { ritual_id: ritual.id, game_date: "2026-10-26".into(), done }],
             inventory: vec![],
             ledger: vec![],
             days: vec![],
@@ -326,6 +337,7 @@ mod tests {
             remove_gear: vec![],
             week_goals_done: vec![],
             crest_parts: vec![],
+            inn_stays: vec![],
         };
         commit(&pool, mark(true)).await?;
         let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM ritual_completions").fetch_one(&pool).await?;
@@ -337,7 +349,7 @@ mod tests {
         let purchase = Outcome {
             quests: vec![],
             remove_inventory: vec![],
-            ritual: None,
+            rituals: vec![],
             inventory: vec![NewInventoryItem {
                 item_type: "reward".into(),
                 item_name: "Вечер в таверне".into(),
@@ -354,6 +366,7 @@ mod tests {
             remove_gear: vec![],
             week_goals_done: vec![],
             crest_parts: vec![],
+            inn_stays: vec![],
         };
         commit(&pool, purchase).await?;
         let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
@@ -373,7 +386,7 @@ mod tests {
         let done = |id: i64| QuestStatusChange { id, status: "done".into(), completed_at: Some("2026-10-26T10:00:00.000Z".into()) };
         let victory = Outcome {
             quests: vec![done(stage.id), done(boss.id)],
-            ritual: None,
+            rituals: vec![],
             inventory: vec![NewInventoryItem {
                 item_type: "loot".into(),
                 item_name: "Трофей: Дипломная работа".into(),
@@ -391,6 +404,7 @@ mod tests {
             remove_gear: vec![],
             week_goals_done: vec![],
             crest_parts: vec![],
+            inn_stays: vec![],
         };
         commit(&pool, victory).await?;
         let (loot_id,): (i64,) = sqlx::query_as("SELECT id FROM inventory WHERE source_type = 'boss'").fetch_one(&pool).await?;
@@ -398,7 +412,7 @@ mod tests {
         let active = |id: i64| QuestStatusChange { id, status: "active".into(), completed_at: None };
         let undo = Outcome {
             quests: vec![active(stage.id), active(boss.id)],
-            ritual: None,
+            rituals: vec![],
             inventory: vec![],
             remove_inventory: vec![loot_id],
             ledger: vec![],
@@ -409,6 +423,7 @@ mod tests {
             remove_gear: vec![],
             week_goals_done: vec![],
             crest_parts: vec![],
+            inn_stays: vec![],
         };
         commit(&pool, undo).await?;
         let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
@@ -446,7 +461,7 @@ mod tests {
     fn empty(ledger: Vec<NewLedgerEntry>, achievements: Vec<NewAchievement>, gold: i64) -> Outcome {
         Outcome {
             quests: vec![],
-            ritual: None,
+            rituals: vec![],
             inventory: vec![],
             remove_inventory: vec![],
             ledger,
@@ -457,6 +472,7 @@ mod tests {
             remove_gear: vec![],
             week_goals_done: vec![],
             crest_parts: vec![],
+            inn_stays: vec![],
         }
     }
 

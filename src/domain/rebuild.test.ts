@@ -18,6 +18,7 @@ function turn(overrides: Partial<TurnContext> = {}): TurnContext {
     now: new Date("2026-10-27T12:00:00.000Z"),
     gear: [],
     perks: new Set<Perk>(),
+    inn: new Set(),
     uid: () => "uid",
     ...overrides,
   };

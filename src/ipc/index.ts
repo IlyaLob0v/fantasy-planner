@@ -10,10 +10,12 @@ import type {
   EquipmentSlot,
   Gear,
   GearSlot,
+  InnStay,
   InventoryItem,
   LedgerEntry,
   LedgerTally,
   Location,
+  NewSagaChapter,
   NewWeekGoal,
   Outcome,
   Quest,
@@ -28,6 +30,7 @@ import type {
   SyncReport,
   SyncSignIn,
   SyncStatus,
+  SagaProgress,
   WeekGoal,
   WeekGoalState,
 } from "@/domain/types";
@@ -69,7 +72,7 @@ export const ipc = {
   listInventory: () => invoke<InventoryItem[]>("list_inventory"),
   redeemItem: (id: number) => invoke<null>("redeem_item", { id }),
   setSetting: (
-    key: "day_start_hour" | "rates" | "rest_price" | "motion" | "oath_done" | "hints_seen" | "loot" | "forge_prices" | "week" | "recap_seen" | "crest" | "crest_price" | "starter_pack" | "journey" | "return_seen" | "reminder",
+    key: "day_start_hour" | "rates" | "rest_price" | "motion" | "oath_done" | "hints_seen" | "loot" | "forge_prices" | "week" | "recap_seen" | "crest" | "crest_price" | "starter_pack" | "journey" | "return_seen" | "reminder" | "saga_every_days",
     value: unknown,
   ) => invoke<null>("set_setting", { key, value }),
   commitOutcome: (outcome: Outcome) => invoke<Character>("commit_outcome", { outcome }),
@@ -83,6 +86,12 @@ export const ipc = {
   syncLink: (keep: SyncKeep) => invoke<SyncReport>("sync_link", { keep }),
   syncNow: () => invoke<SyncReport>("sync_now"),
   syncSignOut: () => invoke<null>("sync_sign_out"),
+  listSagaChapters: () => invoke<SagaProgress[]>("list_saga_chapters"),
+  unlockSagaChapters: (chapters: NewSagaChapter[]) => invoke<SagaProgress[]>("unlock_saga_chapters", { chapters }),
+  readSagaChapter: (key: string) => invoke<SagaProgress[]>("read_saga_chapter", { key }),
+  listInnStays: () => invoke<InnStay[]>("list_inn_stays"),
+  /** Новая дата конца комнаты или null: отменить комнату, которая ещё не началась. */
+  endInnStay: (id: number, endDate: string | null) => invoke<InnStay[]>("end_inn_stay", { id, endDate }),
 };
 
 /** Ошибка IPC с этим видом: `AppError` из src-tauri/src/error.rs. */

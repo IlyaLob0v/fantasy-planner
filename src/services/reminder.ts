@@ -12,9 +12,9 @@ import { useGame } from "./game";
  * так что сделанное дело снимает сегодняшнее. На ПК срабатывает таймером, пока приложение открыто или свёрнуто.
  */
 export function useReminder() {
-  const { settings, today, days, reportError } = useGame();
+  const { settings, today, days, innDates, reportError } = useGame();
   useEffect(() => {
-    const current = reminderPlan(new Date(), today, settings, days);
+    const current = reminderPlan(new Date(), today, settings, days, innDates);
     if (isMobile) {
       notify.replaceScheduled(current).catch(reportError);
       return;
@@ -27,7 +27,7 @@ export function useReminder() {
     return () => {
       window.clearTimeout(id);
     };
-  }, [today, settings, days, reportError]);
+  }, [today, settings, days, innDates, reportError]);
 }
 
 /** Сохраняет напоминание; включение сначала спрашивает разрешение у системы. */

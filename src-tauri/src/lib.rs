@@ -68,6 +68,11 @@ pub fn run() {
             sync::sync_link,
             sync::sync_now,
             sync::sync_sign_out,
+            commands::saga::list_saga_chapters,
+            commands::saga::unlock_saga_chapters,
+            commands::saga::read_saga_chapter,
+            commands::inn::list_inn_stays,
+            commands::inn::end_inn_stay,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|err| {

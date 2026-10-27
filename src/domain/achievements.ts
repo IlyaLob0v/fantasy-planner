@@ -3,7 +3,7 @@ import { newGear, relicFor } from "./gear";
 import { journeyDays } from "./journey";
 import { completedOn } from "./quests";
 import { isSuccess } from "./streak";
-import type { TurnContext } from "./turns";
+import { NOTHING, type TurnContext } from "./turns";
 import type { Achievement, Character, Day, InventoryItem, LedgerTally, NewAchievement, NewGear, NewLedgerEntry, Outcome, Quest } from "./types";
 
 /** Всё, из чего считаются достижения. Собирается из журнала, квестов, суток и персонажа. */
@@ -234,7 +234,7 @@ export function planGlory(ctx: TurnContext, earned: readonly GloryDef[]): Outcom
     .flatMap((d) => relicFor(d.key) ?? [])
     .filter((relic) => !ctx.gear.some((g) => g.itemKey === relic.key))
     .map((relic) => newGear(relic, "achievement", null, ctx.today, ctx.character.lootMisses, ctx.uid()));
-  return { quests: [], ritual: null, inventory: [], removeInventory: [], ledger, days: [], character, achievements, gear, removeGear: [], weekGoalsDone: [], crestParts: [] };
+  return { ...NOTHING, ledger, days: [], character, achievements, gear };
 }
 
 export function gloryByKey(key: string): GloryDef | undefined {

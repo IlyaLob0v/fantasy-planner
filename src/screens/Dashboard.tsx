@@ -8,8 +8,10 @@ import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { QuestCard } from "@/components/kit/QuestCard";
 import { ReturnCard } from "@/components/kit/ReturnCard";
 import { RitualRow } from "@/components/kit/RitualRow";
+import { SagaSeal } from "@/components/kit/Saga";
 import { WeekPanel } from "@/components/kit/WeekPanel";
 import { WeekRecap } from "@/components/kit/WeekRecap";
+import { YesterdayCard } from "@/components/kit/YesterdayCard";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -118,11 +120,26 @@ function TodayPanel({ onOpenBoard, onEditRituals }: { onOpenBoard: () => void; o
           </>
         )}
         <div className="border-t border-gold/15 pt-4">
+          <InnLine />
           <RitualRow onEdit={onEditRituals} />
         </div>
         <ChronicleLine />
       </div>
     </Panel>
+  );
+}
+
+/** В дни таверны над ритуалами тихая строка: ничего не ждёт, но сделать дело можно. */
+function InnLine() {
+  const { stay, innDates, today, checkOutInn } = useGame();
+  if (!stay || !innDates.has(today)) return null;
+  return (
+    <p className="mb-3 text-sm text-parchment/60">
+      Герой в таверне до {humanDate(stay.endDate)}, ритуалы подождут.{" "}
+      <button type="button" className="cursor-pointer text-gold/80 hover:text-gold-bright" onClick={checkOutInn}>
+        Вернуться раньше
+      </button>
+    </p>
   );
 }
 
@@ -171,7 +188,9 @@ export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
       </div>
       <div className="hidden xl:block" aria-hidden />
       <div className="order-1 flex shrink-0 flex-col gap-4 md:order-none md:min-h-0 md:shrink md:gap-5">
+        <YesterdayCard />
         <ReturnCard />
+        <SagaSeal />
         <WeekRecap />
         {ritualsOpen ? (
           <RitualsDrawer

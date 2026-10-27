@@ -1,7 +1,6 @@
 import { levelProgress, titleForLevel } from "./levels";
 import { weekStart } from "./rituals";
 import { closePastDays, currentStreak, isSuccess } from "./streak";
-import { addDays } from "./time";
 import { NOTHING, type TurnContext } from "./turns";
 import type { Day, GameDate, LedgerEntry, Outcome } from "./types";
 
@@ -32,20 +31,9 @@ function repeats(ledger: readonly LedgerEntry[]): Set<number> {
   return extra;
 }
 
-function longestRun(days: readonly Day[]): number {
-  const success = new Set(days.filter(isSuccess).map((d) => d.gameDate));
-  let best = 0;
-  for (const date of success) {
-    if (success.has(addDays(date, -1))) continue;
-    let length = 0;
-    let cursor = date;
-    while (success.has(cursor)) {
-      length += 1;
-      cursor = addDays(cursor, 1);
-    }
-    best = Math.max(best, length);
-  }
-  return best;
+/** Лучшая серия за всю историю: самая длинная из серий, кончающихся успешным днём. Дни в таверне её не рвут. */
+function longestRun(days: readonly Day[], inn: ReadonlySet<GameDate>): number {
+  return days.filter(isSuccess).reduce((best, d) => Math.max(best, currentStreak(days, d.gameDate, inn)), 0);
 }
 
 /**
@@ -90,13 +78,13 @@ export function planRebuild(ctx: TurnContext, ledger: readonly LedgerEntry[], da
     null,
     ctx.settings.streakBonus,
     closedAt,
-    ctx.perks.has("wind_guard"),
+    { guardSingleMiss: ctx.perks.has("wind_guard"), inn: ctx.inn },
   );
   const missed = replay.fatiguedSince;
   const revived =
     missed !== null && rows.some((d) => (d.gameDate > missed && d.deedsCount > 0) || (d.gameDate === ctx.today && d.kind === "rest"));
   const all = [...rows, ...future];
-  const streak = currentStreak(all, ctx.today);
+  const streak = currentStreak(all, ctx.today, ctx.inn);
 
   return {
     ...NOTHING,
@@ -111,7 +99,7 @@ export function planRebuild(ctx: TurnContext, ledger: readonly LedgerEntry[], da
       intellect: attribute("intellect"),
       agility: attribute("agility"),
       streakCurrent: streak,
-      streakBest: Math.max(ctx.character.streakBest, longestRun(all)),
+      streakBest: Math.max(ctx.character.streakBest, longestRun(all, ctx.inn)),
       windStep: replay.windStep,
       fatiguedSince: revived ? null : missed,
       lootMisses: ctx.character.lootMisses,
