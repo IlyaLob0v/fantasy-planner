@@ -61,6 +61,8 @@ const GUIDE: ReadonlyArray<readonly [string, string]> = [
   ["Кузница", "Обычные и редкие вещи можно купить по фиксированной цене. Эпические и легендарные только находят или получают за главные вехи."],
   ["Неделя гильдии", "В начале недели гильдия ставит до трёх целей, чуть выше твоих прошлых недель. Цель можно заменить или убрать. За цель золото, за все сразу сундук с предметом. Невыполненная цель просто уходит."],
   ["Летопись недели", "В новую неделю в зале появляется итог прошлой: дела, лучший день, находки и строки хроники. Закрывается одним кликом."],
+  ["Дни в походе", "Каждый день хотя бы с одним делом. Считаются за всё время, подряд не обязательно, и никогда не сгорают. Весь путь виден в Книге подвигов в окне героя."],
+  ["Возвращение странника", "После перерыва зал встречает итогами пути и одним лёгким делом. Ничего не потеряно: золото, опыт и находки на месте."],
   ["Герб гильдии", "Щит, фигура и поле. По одной части даётся даром, остальные продаёт геральдист по фиксированной цене. Герб стоит в заголовке окна."],
 ];
 
@@ -161,6 +163,35 @@ function WeekSettings() {
           }}
         />
       </label>
+    </div>
+  );
+}
+
+const JOURNEY_FIELDS: ReadonlyArray<readonly [keyof GameSettings["journey"], string, number]> = [
+  ["returnAfterDays", "Встречать после стольких дней без дел", 1],
+  ["staleOffer", "Предлагать разобрать день от стольких квестов", 1],
+];
+
+function JourneySettings() {
+  const { settings, setSetting } = useGame();
+  const { journey } = settings;
+  const json = (next: GameSettings["journey"]) => ({ return_after_days: next.returnAfterDays, stale_offer: next.staleOffer });
+  return (
+    <div className="grid gap-2 text-sm text-parchment/70">
+      {JOURNEY_FIELDS.map(([key, title, min]) => (
+        <label key={key} className="flex items-center justify-between gap-2">
+          {title}
+          <NumberField
+            key={journey[key]}
+            label={title}
+            value={journey[key]}
+            min={min}
+            onCommit={(n) => {
+              setSetting("journey", json({ ...journey, [key]: n }));
+            }}
+          />
+        </label>
+      ))}
     </div>
   );
 }
@@ -330,6 +361,10 @@ export function SettingsScreen() {
 
         <Section title="Неделя гильдии и герб" hint="Цели подбираются по последним четырём неделям. Сундук открывается, когда выполнены все цели недели.">
           <WeekSettings />
+        </Section>
+
+        <Section title="Возвращение странника" hint="После перерыва зал встречает карточкой с итогами пути и одним лёгким делом. Квесты, застрявшие с прошлых дней, можно одним нажатием убрать в «Без даты».">
+          <JourneySettings />
         </Section>
 
         <Section title="Анимации" hint="Сдержанные: без полёта монет, награда видна сразу. Системная настройка «уменьшить движение» тоже учитывается.">

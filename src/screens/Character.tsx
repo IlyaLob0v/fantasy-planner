@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { ATTRIBUTE_HINT, ATTRIBUTE_LABEL, daysWord, MOOD_LABEL } from "@/app/strings";
+import { ATTRIBUTE_HINT, ATTRIBUTE_LABEL, daysWord, MOOD_LABEL, plural } from "@/app/strings";
 import { ChronicleForm } from "@/components/kit/ChronicleForm";
 import { CrestEditor } from "@/components/kit/CrestEditor";
 import { Equipment } from "@/components/kit/Equipment";
@@ -12,14 +12,16 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/tooltip";
 import { isBlank } from "@/domain/chronicle";
+import { bestMonth, deedsTotal, favoriteAttribute, journeyDays } from "@/domain/journey";
 import { levelProgress, titleForLevel } from "@/domain/levels";
 import { isSuccess } from "@/domain/streak";
-import { addDays, calendarStart, humanDate } from "@/domain/time";
-import { ATTRIBUTES, type Day } from "@/domain/types";
+import { addDays, calendarStart, humanDate, humanMonth } from "@/domain/time";
+import { ATTRIBUTES, type Day, type Quest } from "@/domain/types";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/services/game";
 
-const WEEKS = 8;
+/** Календарь Книги подвигов: год неделями, текущая неделя справа. */
+const WEEKS = 53;
 const WEEKDAY_SHORT = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
 
 function cellTone(day: Day | undefined, isFuture: boolean): string {
@@ -29,34 +31,83 @@ function cellTone(day: Day | undefined, isFuture: boolean): string {
   return "bg-ink-deep/40 border-parchment/10";
 }
 
-function StreakCalendar() {
+/** Год пути: закрашены дни с делами, отдых камином, пустые клетки нейтральные, без красного. */
+function JourneyCalendar() {
   const { days, today } = useGame();
   const byDate = new Map(days.map((d) => [d.gameDate, d]));
   const start = calendarStart(today, WEEKS);
   const cells = Array.from({ length: WEEKS * 7 }, (_, i) => addDays(start, i));
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scroller.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, []);
 
   return (
     <div className="flex gap-2">
-      <div className="grid grid-rows-7 gap-1 text-[10px] text-parchment/40">
+      <div className="grid grid-rows-7 gap-[3px] text-[10px] text-parchment/40">
         {WEEKDAY_SHORT.map((d) => (
-          <span key={d} className="h-4 leading-4">
+          <span key={d} className="h-3 leading-3">
             {d}
           </span>
         ))}
       </div>
-      <div className="grid grid-flow-col grid-rows-7 gap-1">
-        {cells.map((date) => {
-          const day = byDate.get(date);
-          const future = date > today;
-          const label = future ? "" : day?.kind === "rest" ? "день отдыха" : isSuccess(day) ? `подвигов: ${day?.deedsCount ?? 0}` : "без дел";
-          return (
-            <Tooltip key={date} content={`${humanDate(date)}${label ? ` · ${label}` : ""}`}>
-              <span className={cn("block h-4 w-4 rounded-sm border", cellTone(day, future), date === today && "ring-1 ring-parchment/70")} />
-            </Tooltip>
-          );
-        })}
+      <div ref={scroller} className="min-w-0 overflow-x-auto pb-1 scrollbar-quiet">
+        <div className="grid w-max grid-flow-col grid-rows-7 gap-[3px]">
+          {cells.map((date) => {
+            const day = byDate.get(date);
+            const future = date > today;
+            const label = future ? "" : day?.kind === "rest" ? "день отдыха" : isSuccess(day) ? `подвигов: ${String(day?.deedsCount ?? 0)}` : "без дел";
+            return (
+              <Tooltip key={date} content={`${humanDate(date)}${label ? ` · ${label}` : ""}`}>
+                <span className={cn("block h-3 w-3 rounded-[2px] border", cellTone(day, future), date === today && "ring-1 ring-parchment/70")} />
+              </Tooltip>
+            );
+          })}
+        </div>
       </div>
     </div>
+  );
+}
+
+function Fact({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <p className="font-display text-xl leading-none text-gold-bright tabular-nums">{value}</p>
+      <p className="mt-1 text-xs text-parchment/55">{label}</p>
+    </div>
+  );
+}
+
+/** Книга подвигов: весь пройденный путь. Главная цифра здесь дни в походе, серия идёт второй строкой. */
+function BookOfDeeds() {
+  const { character, days, quests } = useGame();
+  const total = journeyDays(days);
+  const month = bestMonth(days);
+  const favorite = favoriteAttribute(character);
+  const done = (type: Quest["type"]) => quests.filter((q) => q.type === type && q.status === "done").length;
+
+  return (
+    <Panel className="p-6">
+      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3">
+        <PanelTitle className="text-xl">Книга подвигов</PanelTitle>
+        <span className="text-sm text-parchment/70">
+          <span className="font-display text-lg text-gold-bright">{total}</span> {plural(total, "день", "дня", "дней")} в походе
+        </span>
+      </div>
+      <p className="mb-4 text-sm text-parchment/55">
+        Серия сейчас {character.streakCurrent} {daysWord(character.streakCurrent)}, лучшая {character.streakBest}. В поход засчитывается каждый день с делом, подряд не обязательно.
+      </p>
+      <JourneyCalendar />
+      <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <Fact value={String(deedsTotal(days))} label="дел за всё время" />
+        <Fact value={String(done("main"))} label="главных квестов" />
+        <Fact value={String(done("side"))} label="побочных квестов" />
+        <Fact value={String(done("boss"))} label={plural(done("boss"), "босс повержен", "босса повержено", "боссов повержено")} />
+        {month && <Fact value={String(month.days)} label={`лучший месяц: ${humanMonth(month.month)}`} />}
+        {favorite && <Fact value={String(character[favorite])} label={`любимый атрибут: ${ATTRIBUTE_LABEL[favorite].toLowerCase()}`} />}
+      </div>
+    </Panel>
   );
 }
 
@@ -227,16 +278,7 @@ export function CharacterScreen() {
           </ul>
         </Panel>
 
-        <Panel className="p-6">
-          <div className="mb-4 flex items-baseline justify-between">
-            <PanelTitle className="text-xl">Серия</PanelTitle>
-            <span className="text-sm text-parchment/70">
-              сейчас <span className="font-display text-lg text-gold-bright">{character.streakCurrent}</span> {daysWord(character.streakCurrent)} · лучшая{" "}
-              {character.streakBest}
-            </span>
-          </div>
-          <StreakCalendar />
-        </Panel>
+        <BookOfDeeds />
 
         <HallOfFame />
 

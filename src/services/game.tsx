@@ -5,6 +5,8 @@ import { GOLD_ANCHOR_ID } from "@/app/anchors";
 import { gloryProgress, gloryStats, newlyEarned, planGlory, type GloryProgress } from "@/domain/achievements";
 import { planBuyCrestPart, resolveCrest, type CrestChoice, type CrestPartDef } from "@/domain/crest";
 import { activePerks, forgePrice, restPrice, type GearDef, type Perk } from "@/domain/gear";
+import { returnAbsence, type Absence } from "@/domain/journey";
+import { fieldsOf } from "@/domain/quests";
 import { weekStart } from "@/domain/rituals";
 import { mergeRates, parseSettings } from "@/domain/settings";
 import { starterPack } from "@/domain/starter";
@@ -70,7 +72,8 @@ import { uuidv7 } from "@/lib/uid";
 
 import { useGameDate } from "./clock";
 
-const DAYS_WINDOW = 400;
+/** Сутки грузятся за всё время: дни в походе и вехи считаются по всему пути. Строка на сутки, это немного. */
+const ALL_DAYS = "0000-01-01";
 
 const keys = {
   character: ["character"] as const,
@@ -152,6 +155,8 @@ export interface GameState {
   weekOptions: WeekGoalKey[];
   /** Летопись прошлой недели, пока её не закрыли. */
   recap: WeekRecap | null;
+  /** Перерыв перед сегодняшним днём, пока карточку возвращения не закрыли и ничего не сделано. */
+  absence: Absence | null;
   crestParts: CrestPart[];
   /** Герб, который рисуется: выбор, сверенный с купленным. */
   crest: CrestChoice;
@@ -192,6 +197,9 @@ export interface GameState {
   swapWeekGoal: (goal: WeekGoal, key: WeekGoalKey) => void;
   turnOffWeekGoal: (goal: WeekGoal) => void;
   closeRecap: () => void;
+  closeReturn: () => void;
+  /** Снимает дату с квестов, застрявших с прошлых дней: они уходят в «Без даты». */
+  clearStale: (stale: readonly Quest[]) => void;
   buyCrestPart: (def: CrestPartDef, origin: DOMRect | null) => void;
   setCrest: (choice: CrestChoice) => void;
 }
@@ -223,7 +231,7 @@ export function useGameBoot(): Boot {
   const quests = useQuery({ queryKey: keys.quests, queryFn: ipc.listQuests });
   const days = useQuery({
     queryKey: [...keys.days, today],
-    queryFn: () => ipc.listDays(addDays(today ?? "2000-01-01", -DAYS_WINDOW)),
+    queryFn: () => ipc.listDays(ALL_DAYS),
     enabled: today !== null,
   });
   const restActions = useQuery({ queryKey: keys.restActions, queryFn: ipc.listRestActions });
@@ -815,6 +823,24 @@ export function useGameBoot(): Boot {
     if (recap) setSetting("recap_seen", recap.weekStart);
   }, [recap, setSetting]);
 
+  const absence = useMemo(
+    () => (today && settings && days.data ? returnAbsence(days.data, today, settings) : null),
+    [today, settings, days.data],
+  );
+
+  const closeReturn = useCallback(() => {
+    if (absence) setSetting("return_seen", absence.lastActive);
+  }, [absence, setSetting]);
+
+  const clearStale = useCallback(
+    (stale: readonly Quest[]) => {
+      Promise.all(stale.map((q) => ipc.updateQuest(q.id, { ...fieldsOf(q), scheduledDate: null })))
+        .then(() => invalidate(keys.quests))
+        .catch(fail);
+    },
+    [invalidate, fail],
+  );
+
   const buyCrestPart = useCallback(
     (def: CrestPartDef, origin: DOMRect | null) => {
       const bought = crestParts.data ?? [];
@@ -881,6 +907,7 @@ export function useGameBoot(): Boot {
       weekFacts: week.facts,
       weekOptions: swapOptions(week.goals, week.available),
       recap,
+      absence,
       crestParts: crestParts.data,
       crest: resolveCrest(settings.crest, crestParts.data),
       today,
@@ -918,6 +945,8 @@ export function useGameBoot(): Boot {
       swapWeekGoal,
       turnOffWeekGoal,
       closeRecap,
+      closeReturn,
+      clearStale,
       buyCrestPart,
       setCrest,
     };
@@ -941,6 +970,7 @@ export function useGameBoot(): Boot {
     perks,
     week,
     recap,
+    absence,
     crestParts.data,
     lastReward,
     lastGlory,
@@ -976,6 +1006,8 @@ export function useGameBoot(): Boot {
     swapWeekGoal,
     turnOffWeekGoal,
     closeRecap,
+    closeReturn,
+    clearStale,
     buyCrestPart,
     setCrest,
   ]);

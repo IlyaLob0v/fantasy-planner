@@ -24,6 +24,7 @@ const zero: GloryStats = {
   purchases: 0,
   restDays: 0,
   comebacks: 0,
+  journeyDays: 0,
 };
 
 describe("Зал славы: каталог", () => {

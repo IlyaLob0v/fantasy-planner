@@ -194,6 +194,8 @@ describe("настройки", () => {
       forge_prices: { common: 60, rare: 150 },
       week: { goal_gold: 20, chest_gold: 60, stretch_pct: 10 },
       recap_seen: "",
+      journey: { return_after_days: 3, stale_offer: 5 },
+      return_seen: "",
       crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
       crest_price: 40,
     };
