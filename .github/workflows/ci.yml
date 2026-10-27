@@ -64,6 +64,38 @@ jobs:
         working-directory: src-tauri
         run: cargo test
 
+  server:
+    name: Сервер синхронизации
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - name: Docker-образ собирается
+        run: docker build -t guild-sync:ci .
+
   windows:
     name: Установщик (Windows)
     runs-on: windows-2025

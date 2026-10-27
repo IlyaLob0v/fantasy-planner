@@ -214,6 +214,7 @@ fantasy-planner/
 │   ├── ipc/                  # обёртки над Rust-командами
 │   ├── theme/                # токены палитры и шрифты
 │   └── assets/               # реестр и иллюстрации (WebP 2560 px)
+├── server/                   # сервер синхронизации (axum + Postgres, Docker), см. server/README.md
 └── src-tauri/
     ├── migrations/           # 0001_core, 0002_rituals_shop, 0003_chronicle_locations
     └── src/commands/         # тонкие команды по таблицам
