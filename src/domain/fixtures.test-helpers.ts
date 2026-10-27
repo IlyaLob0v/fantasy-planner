@@ -29,6 +29,7 @@ export const settings: Settings = {
   week: { goalGold: 20, chestGold: 60, stretchPct: 10 },
   journey: { returnAfterDays: 3, staleOffer: 5 },
   returnSeen: "",
+  reminder: { enabled: false, hour: 19, quietWeekdays: [] },
   recapSeen: "",
   crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
   crestPrice: 40,

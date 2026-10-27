@@ -196,6 +196,7 @@ describe("настройки", () => {
       recap_seen: "",
       journey: { return_after_days: 3, stale_offer: 5 },
       return_seen: "",
+      reminder: { enabled: false, hour: 19, quiet_weekdays: [] },
       crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
       crest_price: 40,
     };

@@ -246,6 +246,8 @@ export interface Settings {
   journey: { returnAfterDays: number; staleOffer: number };
   /** Последний день перед перерывом, карточку которого уже закрыли. */
   returnSeen: GameDate;
+  /** Мягкое напоминание: выключено по умолчанию; час по местному времени, тихие дни недели (0 = понедельник). */
+  reminder: { enabled: boolean; hour: number; quietWeekdays: number[] };
 }
 
 export interface Reward {

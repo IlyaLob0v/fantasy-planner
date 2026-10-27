@@ -7,7 +7,9 @@ import { Chip } from "@/components/kit/pickers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Rate, Settings as GameSettings } from "@/domain/types";
+import { isMobile } from "@/app/platform";
 import { useGame } from "@/services/game";
+import { useSaveReminder } from "@/services/reminder";
 
 const DAY_START_HOURS = [0, 1, 2, 3, 4, 5, 6] as const;
 
@@ -196,6 +198,73 @@ function JourneySettings() {
   );
 }
 
+const WEEKDAY_SHORT = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"] as const;
+
+function ReminderSettings() {
+  const { settings } = useGame();
+  const save = useSaveReminder();
+  const { reminder } = settings;
+  const toggleDay = (day: number) => {
+    const quiet = reminder.quietWeekdays.includes(day) ? reminder.quietWeekdays.filter((d) => d !== day) : [...reminder.quietWeekdays, day].sort();
+    save({ ...reminder, quietWeekdays: quiet });
+  };
+  return (
+    <div className="flex flex-col gap-3 text-sm text-parchment/70">
+      <div className="flex flex-wrap gap-2">
+        <Chip
+          active={!reminder.enabled}
+          onClick={() => {
+            save({ ...reminder, enabled: false });
+          }}
+        >
+          Выключено
+        </Chip>
+        <Chip
+          active={reminder.enabled}
+          onClick={() => {
+            save({ ...reminder, enabled: true });
+          }}
+        >
+          Включено
+        </Chip>
+      </div>
+      {reminder.enabled && (
+        <>
+          <label className="flex items-center justify-between gap-2">
+            Час напоминания
+            <NumberField
+              key={reminder.hour}
+              label="Час напоминания"
+              value={reminder.hour}
+              min={0}
+              onCommit={(n) => {
+                save({ ...reminder, hour: Math.min(23, n) });
+              }}
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1">Тихие дни:</span>
+            {WEEKDAY_SHORT.map((label, day) => {
+              const quiet = reminder.quietWeekdays.includes(day);
+              return (
+                <Chip
+                  key={label}
+                  active={quiet}
+                  onClick={() => {
+                    toggleDay(day);
+                  }}
+                >
+                  {label}
+                </Chip>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2.5">
@@ -365,6 +434,17 @@ export function SettingsScreen() {
 
         <Section title="Возвращение странника" hint="После перерыва зал встречает карточкой с итогами пути и одним лёгким делом. Квесты, застрявшие с прошлых дней, можно одним нажатием убрать в «Без даты».">
           <JourneySettings />
+        </Section>
+
+        <Section
+          title="Напоминание"
+          hint={
+            isMobile
+              ? "Одно уведомление в выбранный час, только если за день ещё ничего не сделано. Приходит, даже если приложение закрыто."
+              : "Одно уведомление в выбранный час, только если за день ещё ничего не сделано. На ПК приходит, пока приложение открыто или свёрнуто."
+          }
+        >
+          <ReminderSettings />
         </Section>
 
         <Section title="Анимации" hint="Сдержанные: без полёта монет, награда видна сразу. Системная настройка «уменьшить движение» тоже учитывается.">

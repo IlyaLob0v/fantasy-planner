@@ -34,6 +34,8 @@ export function parseSettings(raw: unknown): Settings {
   const week = readRecord(raw, "week");
   const crest = readRecord(raw, "crest");
   const journey = readRecord(raw, "journey");
+  const reminder = readRecord(raw, "reminder");
+  const quiet = reminder["quiet_weekdays"];
   return {
     dayStartHour: readNumber(raw, "day_start_hour"),
     rates: {
@@ -73,6 +75,11 @@ export function parseSettings(raw: unknown): Settings {
     crestPrice: readNumber(raw, "crest_price"),
     journey: { returnAfterDays: readNumber(journey, "return_after_days"), staleOffer: readNumber(journey, "stale_offer") },
     returnSeen: typeof raw["return_seen"] === "string" ? raw["return_seen"] : "",
+    reminder: {
+      enabled: reminder["enabled"] === true,
+      hour: readNumber(reminder, "hour"),
+      quietWeekdays: Array.isArray(quiet) ? quiet.filter((d): d is number => typeof d === "number") : [],
+    },
     hintsSeen: Array.isArray(raw["hints_seen"]) ? raw["hints_seen"].filter((k): k is string => typeof k === "string") : [],
   };
 }

@@ -166,6 +166,8 @@ export interface GameState {
   lastWeek: WeekEvent | null;
   error: string | null;
   clearError: () => void;
+  /** Показывает спокойное сообщение об ошибке. */
+  reportError: (e: unknown) => void;
   completeQuest: (quest: Quest, origin: DOMRect | null) => void;
   undoQuest: (quest: Quest) => void;
   toggleRitual: (ritual: Ritual, done: boolean, origin: DOMRect | null) => void;
@@ -916,6 +918,7 @@ export function useGameBoot(): Boot {
       lastWeek,
       error,
       clearError,
+      reportError: fail,
       completeQuest,
       undoQuest,
       toggleRitual,
@@ -977,6 +980,7 @@ export function useGameBoot(): Boot {
     lastWeek,
     error,
     clearError,
+    fail,
     completeQuest,
     undoQuest,
     toggleRitual,

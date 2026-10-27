@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import type { Attribute, RitualFields } from "@/domain/types";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/services/game";
+import { useSaveReminder } from "@/services/reminder";
+
+import { Chip } from "./pickers";
 
 interface Preset {
   title: string;
@@ -25,19 +28,23 @@ const PRESETS: readonly Preset[] = [
 
 const MAX_PRESETS = 3;
 
-type Step = "name" | "rituals" | "quest";
-const STEPS: readonly Step[] = ["name", "rituals", "quest"];
+type Step = "name" | "rituals" | "quest" | "reminder";
+const STEPS: readonly Step[] = ["name", "rituals", "quest", "reminder"];
+
+const REMINDER_HOURS = [9, 13, 19, 21] as const;
 
 const STEP_TITLE: Record<Step, string> = {
   name: "Как зовут героя?",
   rituals: "Какие обеты взять?",
   quest: "Первый приказ",
+  reminder: "Позвать тебя, если день пройдёт без дел?",
 };
 
 const STEP_HINT: Record<Step, string> = {
   name: "Имя будет на панели героя и в летописи.",
   rituals: `Ритуалы — ежедневные привычки. Выбери до ${String(MAX_PRESETS)}, свои добавишь потом.`,
   quest: "Что сделать сегодня? За выполненный квест дают опыт и золото.",
+  reminder: "Одно тихое уведомление в выбранный час и только в день без дел. Выключается в «Уставе».",
 };
 
 /** Присяга гильдии: три шага при первом запуске, каждый можно пропустить. Без слайдов обучения. */
@@ -47,6 +54,8 @@ export function Oath() {
   const [name, setName] = useState(character.name);
   const [chosen, setChosen] = useState<string[]>([]);
   const [quest, setQuest] = useState("");
+  const [hour, setHour] = useState<number>(settings.reminder.hour);
+  const saveReminder = useSaveReminder();
   const [closed, setClosed] = useState(false);
 
   if (settings.oathDone || closed) return null;
@@ -97,6 +106,9 @@ export function Oath() {
         parentId: null,
         damage: 1,
       });
+    }
+    if (step === "reminder") {
+      saveReminder({ ...settings.reminder, enabled: true, hour });
     }
     next();
   };
@@ -170,12 +182,28 @@ export function Oath() {
             aria-label="Первый квест"
           />
         )}
+        {step === "reminder" && (
+          <div className="flex flex-wrap gap-2">
+            {REMINDER_HOURS.map((h) => (
+              <Chip
+                key={h}
+                active={hour === h}
+                className="tabular-nums"
+                onClick={() => {
+                  setHour(h);
+                }}
+              >
+                {String(h)}:00
+              </Chip>
+            ))}
+          </div>
+        )}
         <div className="flex justify-between gap-2">
           <Button type="button" variant="ghost" size="sm" onClick={next}>
-            Пропустить
+            {step === "reminder" ? "Не звать" : "Пропустить"}
           </Button>
           <Button type="submit" size="sm">
-            {index === STEPS.length - 1 ? "Принести присягу" : "Дальше"}
+            {step === "reminder" ? "Звать и принести присягу" : "Дальше"}
           </Button>
         </div>
       </form>

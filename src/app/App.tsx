@@ -18,6 +18,7 @@ import { Inventory, type InventoryTab } from "@/screens/Inventory";
 import { QuestLog } from "@/screens/QuestLog";
 import { SettingsScreen } from "@/screens/Settings";
 import { GameProvider, useGame, useGameBoot } from "@/services/game";
+import { useReminder } from "@/services/reminder";
 
 function isTyping(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
@@ -39,6 +40,7 @@ function ErrorNote() {
 
 function Shell() {
   const { character, settings, perks } = useGame();
+  useReminder();
   const [screen, setScreen] = useState<ScreenKey>("dashboard");
   const [inventoryTab, setInventoryTab] = useState<InventoryTab>("shop");
 
