@@ -219,6 +219,21 @@ pub struct Achievement {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NewSagaChapter {
+    pub key: String,
+    pub uid: String,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct SagaChapter {
+    pub key: String,
+    pub unlocked_at: String,
+    pub read_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NewWeekGoal {
     pub uid: String,
     pub week_start: String,

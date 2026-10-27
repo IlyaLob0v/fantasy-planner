@@ -80,6 +80,7 @@ export function parseSettings(raw: unknown): Settings {
       hour: readNumber(reminder, "hour"),
       quietWeekdays: Array.isArray(quiet) ? quiet.filter((d): d is number => typeof d === "number") : [],
     },
+    sagaEveryDays: readNumber(raw, "saga_every_days"),
     hintsSeen: Array.isArray(raw["hints_seen"]) ? raw["hints_seen"].filter((k): k is string => typeof k === "string") : [],
   };
 }

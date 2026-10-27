@@ -290,3 +290,8 @@ CREATE INDEX idx_inventory_source ON inventory(source_type, source_id);
 
 - **`settings`**: `reminder` (`enabled` false, `hour` 19 по местному времени, `quiet_weekdays` [] где 0 = понедельник). Меняется через `set_setting`; включение сначала спрашивает разрешение ОС.
 - Таблиц нет. План напоминаний (`src/domain/reminder.ts`) выводится из `days` и настроек: не больше одного в сутки, только в день без дел, не в тихие дни и не в дни отдыха.
+
+## Миграция 0010 (V0.6): Сказ о герое
+
+- **`saga_chapters`**: `key` (PK, ключ главы из `src/domain/saga.ts`), `uid`, `unlocked_at`, `read_at` (первое прочтение, дальше не меняется), `updated_at`. Глава не отбирается, строка не удаляется.
+- **`settings`**: `saga_every_days` (5). Команды: `list_saga_chapters`, `unlock_saga_chapters` (уже открытая глава не трогается), `read_saga_chapter`.

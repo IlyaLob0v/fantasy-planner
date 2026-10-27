@@ -160,6 +160,18 @@ export interface NewWeekGoal {
   target: number;
 }
 
+/** Открытая глава сказа: текст в каталоге src/domain/saga.ts, здесь только даты. */
+export interface SagaProgress {
+  key: string;
+  unlockedAt: string;
+  readAt: string | null;
+}
+
+export interface NewSagaChapter {
+  key: string;
+  uid: string;
+}
+
 export interface CrestPart {
   key: string;
   boughtAt: string;
@@ -248,6 +260,8 @@ export interface Settings {
   returnSeen: GameDate;
   /** Мягкое напоминание: выключено по умолчанию; час по местному времени, тихие дни недели (0 = понедельник). */
   reminder: { enabled: boolean; hour: number; quietWeekdays: number[] };
+  /** Сказ о герое: глава каждые столько дней в походе. */
+  sagaEveryDays: number;
 }
 
 export interface Reward {

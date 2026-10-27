@@ -14,6 +14,7 @@ import type {
   LedgerEntry,
   LedgerTally,
   Location,
+  NewSagaChapter,
   NewWeekGoal,
   Outcome,
   Quest,
@@ -24,6 +25,7 @@ import type {
   Ritual,
   RitualCompletion,
   RitualFields,
+  SagaProgress,
   WeekGoal,
   WeekGoalState,
 } from "@/domain/types";
@@ -65,7 +67,7 @@ export const ipc = {
   listInventory: () => invoke<InventoryItem[]>("list_inventory"),
   redeemItem: (id: number) => invoke<null>("redeem_item", { id }),
   setSetting: (
-    key: "day_start_hour" | "rates" | "rest_price" | "motion" | "oath_done" | "hints_seen" | "loot" | "forge_prices" | "week" | "recap_seen" | "crest" | "crest_price" | "starter_pack" | "journey" | "return_seen" | "reminder",
+    key: "day_start_hour" | "rates" | "rest_price" | "motion" | "oath_done" | "hints_seen" | "loot" | "forge_prices" | "week" | "recap_seen" | "crest" | "crest_price" | "starter_pack" | "journey" | "return_seen" | "reminder" | "saga_every_days",
     value: unknown,
   ) => invoke<null>("set_setting", { key, value }),
   commitOutcome: (outcome: Outcome) => invoke<Character>("commit_outcome", { outcome }),
@@ -73,6 +75,9 @@ export const ipc = {
   saveChronicle: (entry: ChronicleEntry) => invoke<ChronicleEntry>("save_chronicle", { entry }),
   listLocations: () => invoke<Location[]>("list_locations"),
   setHome: (key: string) => invoke<Character>("set_home", { key }),
+  listSagaChapters: () => invoke<SagaProgress[]>("list_saga_chapters"),
+  unlockSagaChapters: (chapters: NewSagaChapter[]) => invoke<SagaProgress[]>("unlock_saga_chapters", { chapters }),
+  readSagaChapter: (key: string) => invoke<SagaProgress[]>("read_saga_chapter", { key }),
 };
 
 /** Человеческое сообщение из ошибки IPC (AppError сериализуется как { kind, message }). */

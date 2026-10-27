@@ -197,6 +197,7 @@ describe("настройки", () => {
       journey: { return_after_days: 3, stale_offer: 5 },
       return_seen: "",
       reminder: { enabled: false, hour: 19, quiet_weekdays: [] },
+      saga_every_days: 5,
       crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
       crest_price: 40,
     };
