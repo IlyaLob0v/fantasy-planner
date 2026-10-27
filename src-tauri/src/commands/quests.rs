@@ -9,7 +9,7 @@ macro_rules! select_quests {
     ($tail:literal) => {
         concat!(
             "SELECT id, parent_id, type, title, description, attribute, difficulty, status, ",
-            "scheduled_date, due_date, damage, sort_order, created_at, completed_at, archived_at ",
+            "scheduled_date, due_date, damage, sort_order, created_at, completed_at, archived_at, label ",
             "FROM quests ",
             $tail
         )
@@ -30,6 +30,9 @@ async fn validate(pool: &SqlitePool, fields: &QuestFields) -> AppResult<()> {
     }
     if fields.title.trim().is_empty() {
         return Err(AppError::Invalid("у квеста должно быть название".into()));
+    }
+    if fields.label.as_deref().is_some_and(|l| l.trim().is_empty() || l.chars().count() > 40) {
+        return Err(AppError::Invalid("метка: от 1 до 40 знаков".into()));
     }
     if !(1..=10).contains(&fields.damage) {
         return Err(AppError::Invalid("урон этапа: от 1 до 10".into()));
@@ -62,7 +65,7 @@ pub async fn create(pool: &SqlitePool, fields: QuestFields) -> AppResult<Quest> 
     validate(pool, &fields).await?;
     let id = sqlx::query(
         "INSERT INTO quests (parent_id, type, title, description, attribute, difficulty, scheduled_date, due_date, \
-         damage, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+         damage, sort_order, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(fields.parent_id)
     .bind(&fields.kind)
@@ -74,6 +77,7 @@ pub async fn create(pool: &SqlitePool, fields: QuestFields) -> AppResult<Quest> 
     .bind(&fields.due_date)
     .bind(fields.damage)
     .bind(fields.sort_order)
+    .bind(fields.label.as_deref().map(str::trim))
     .execute(pool)
     .await?
     .last_insert_rowid();
@@ -95,7 +99,7 @@ pub async fn update_quest(db: State<'_, Db>, id: i64, fields: QuestFields) -> Ap
     validate(&db.0, &fields).await?;
     let affected = sqlx::query(
         "UPDATE quests SET type = ?, title = ?, description = ?, attribute = ?, difficulty = ?, \
-         scheduled_date = ?, due_date = ?, damage = ?, sort_order = ? \
+         scheduled_date = ?, due_date = ?, damage = ?, sort_order = ?, label = ? \
          WHERE id = ? AND archived_at IS NULL AND parent_id IS ? \
          AND (type <> 'boss' OR ? = 'boss' OR NOT EXISTS \
               (SELECT 1 FROM quests c WHERE c.parent_id = quests.id AND c.archived_at IS NULL))",
@@ -109,6 +113,7 @@ pub async fn update_quest(db: State<'_, Db>, id: i64, fields: QuestFields) -> Ap
     .bind(&fields.due_date)
     .bind(fields.damage)
     .bind(fields.sort_order)
+    .bind(fields.label.as_deref().map(str::trim))
     .bind(id)
     .bind(fields.parent_id)
     .bind(&fields.kind)

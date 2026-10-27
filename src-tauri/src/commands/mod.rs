@@ -14,4 +14,5 @@ pub mod rewards;
 pub mod rituals;
 pub mod saga;
 pub mod settings;
+pub mod steps;
 pub mod week;

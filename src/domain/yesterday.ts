@@ -50,7 +50,13 @@ export function yesterdayOffer(
  * Награда как обычно, записи журнала и отметки ритуалов вчерашней датой. Находок за прошлое нет.
  * Пустой выбор просто закрывает сутки: «нечего отмечать».
  */
-export function planYesterday(ctx: TurnContext, offer: YesterdayOffer, rituals: readonly Ritual[], quests: readonly Quest[]): Outcome {
+export function planYesterday(
+  ctx: TurnContext,
+  offer: YesterdayOffer,
+  rituals: readonly Ritual[],
+  quests: readonly Quest[],
+  stepsDone: ReadonlyMap<number, number> = new Map(),
+): Outcome {
   const back: TurnContext = { ...ctx, today: offer.date };
   let state = stateOf(ctx.character);
   const ledger: NewLedgerEntry[] = [];
@@ -60,7 +66,7 @@ export function planYesterday(ctx: TurnContext, offer: YesterdayOffer, rituals: 
     ledger.push(ledgerFor(back, "ritual", ritual.id, reward));
   }
   for (const quest of quests) {
-    const reward = questReward(quest, ctx.settings, ctx.character.windStep);
+    const reward = questReward(quest, ctx.settings, ctx.character.windStep, stepsDone.get(quest.id) ?? 0);
     state = applyReward(state, reward, 1, ctx.settings.levelCurve);
     ledger.push(ledgerFor(back, "quest", quest.id, reward));
   }

@@ -5,11 +5,13 @@ import { HpBar } from "@/components/kit/HpBar";
 import { Coin } from "@/components/kit/icons";
 import { AttributePicker, DifficultyPicker, TypePicker } from "@/components/kit/pickers";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
+import { Chip } from "@/components/kit/pickers";
+import { QuestSteps } from "@/components/kit/QuestSteps";
 import { Ribbon } from "@/components/kit/Ribbon";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { bossHp, stagesOf } from "@/domain/bosses";
-import { completedOn, dayLoad, fieldsOf, isOverdue, MAP_DAYS, questMap, SPYGLASS_DAYS } from "@/domain/quests";
+import { cleanLabel, completedOn, dayLoad, fieldsOf, isOverdue, labelsOf, MAP_DAYS, questMap, SPYGLASS_DAYS, stepsOf } from "@/domain/quests";
 import { plural } from "@/domain/plural";
 import { questReward } from "@/domain/rewards";
 import { addDays, humanDate, humanWeekday, shortWeekday } from "@/domain/time";
@@ -71,6 +73,7 @@ function BoardCard({
         <span>{QUEST_TYPE_SHORT[quest.type]}</span>
         <span>{ATTRIBUTE_LABEL[quest.attribute]}</span>
         <span>{"✦".repeat(quest.difficulty)}</span>
+        {quest.label && <span className="rounded-full bg-wood/10 px-1.5">{quest.label}</span>}
         {showDate && quest.scheduledDate && quest.scheduledDate > today && <span>на {humanDate(quest.scheduledDate)}</span>}
         {quest.dueDate &&
           (isOverdue(quest, today) ? <Ribbon>Срок вышел</Ribbon> : <span>до {humanDate(quest.dueDate)}</span>)}
@@ -184,7 +187,7 @@ function Lane({
 }
 
 function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
-  const { updateQuest, archiveQuest, settings, character, quests, today } = useGame();
+  const { updateQuest, archiveQuest, settings, character, quests, today, steps } = useGame();
   const hasStages = stagesOf(quests, quest.id).length > 0;
   const [draft, setDraft] = useState<QuestFields>(() => fieldsOf(quest));
   const saved = useRef(JSON.stringify(fieldsOf(quest)));
@@ -204,7 +207,9 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
   const set = <K extends keyof QuestFields>(key: K, value: QuestFields[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
   };
-  const reward = questReward(draft, settings, character.windStep);
+  const stepsDone = stepsOf(steps, quest.id).filter((s) => s.doneAt !== null).length;
+  const reward = questReward(draft, settings, character.windStep, draft.type === "boss" ? 0 : stepsDone);
+  const [labelText, setLabelText] = useState(quest.label ?? "");
 
   return (
     <Panel className="mobile-sheet flex shrink-0 flex-col gap-4 overflow-y-auto p-5 scrollbar-quiet md:w-80">
@@ -231,6 +236,24 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
             set("description", e.target.value || null);
           }}
         />
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-parchment/60">
+        Метка
+        <Input
+          value={labelText}
+          list="quest-labels"
+          placeholder="Работа, Дом, Учёба…"
+          maxLength={40}
+          onChange={(e) => {
+            setLabelText(e.target.value);
+            set("label", cleanLabel(e.target.value));
+          }}
+        />
+        <datalist id="quest-labels">
+          {labelsOf(quests).map((l) => (
+            <option key={l} value={l} />
+          ))}
+        </datalist>
       </label>
       <div className="flex flex-col gap-1 text-xs text-parchment/60">
         Тип
@@ -266,7 +289,16 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
       <p className="flex items-center gap-2 text-sm text-parchment/70">
         {draft.type === "boss" ? "За победу" : "Награда"}: {xpText(reward.xp)}, <Coin className="h-4 w-4" /> {reward.gold}
       </p>
-      {draft.type === "boss" && <BossStages boss={quest} />}
+      {draft.type === "boss" ? (
+        <BossStages boss={quest} />
+      ) : (
+        quest.type !== "boss" && (
+          <div className="flex flex-col gap-1 text-xs text-parchment/60">
+            Чек-лист
+            <QuestSteps quest={quest} editable />
+          </div>
+        )
+      )}
       <div className="flex flex-wrap gap-2 md:hidden" aria-label="Перенести">
         {(
           [
@@ -333,8 +365,12 @@ export function QuestLog() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [focus, setFocus] = useState<LaneKey>(null);
   const [title, setTitle] = useState("");
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
+  const labels = labelsOf(quests);
+  const filter = labelFilter !== null && labels.includes(labelFilter) ? labelFilter : null;
+  const shown = filter === null ? quests : quests.filter((q) => q.label === filter || q.type === "stage");
 
-  const map = questMap(quests, today, settings.dayStartHour, perks.has("spyglass") ? SPYGLASS_DAYS : MAP_DAYS);
+  const map = questMap(shown, today, settings.dayStartHour, perks.has("spyglass") ? SPYGLASS_DAYS : MAP_DAYS);
   const lanes: LaneKey[] = [null, ...map.days.map((d) => d.date)];
   const target: LaneKey = lanes.includes(focus) ? focus : null;
   const selected = quests.find((q) => q.id === selectedId && q.status === "active") ?? null;
@@ -363,6 +399,7 @@ export function QuestLog() {
       sortOrder: 0,
       parentId: null,
       damage: 1,
+      label: filter,
     }).then((q) => {
       setTitle("");
       setSelectedId(q.id);
@@ -386,6 +423,29 @@ export function QuestLog() {
             />
           </form>
         </div>
+        {labels.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1.5 px-2" aria-label="Метки">
+            <Chip
+              active={filter === null}
+              onClick={() => {
+                setLabelFilter(null);
+              }}
+            >
+              Все
+            </Chip>
+            {labels.map((l) => (
+              <Chip
+                key={l}
+                active={filter === l}
+                onClick={() => {
+                  setLabelFilter(filter === l ? null : l);
+                }}
+              >
+                {l}
+              </Chip>
+            ))}
+          </div>
+        )}
         <div className="mb-2 flex gap-1 overflow-x-auto px-1 scrollbar-quiet md:hidden" role="tablist">
           {lanes.map((lane) => (
             <Button

@@ -1,6 +1,6 @@
 import { questReward } from "./rewards";
 import { addDays, gameDateOfIso } from "./time";
-import type { GameDate, Quest, QuestFields, Settings } from "./types";
+import type { GameDate, Quest, QuestFields, QuestStep, Settings } from "./types";
 
 export function isOverdue(q: Quest, today: GameDate): boolean {
   return q.status === "active" && q.dueDate !== null && q.dueDate < today;
@@ -122,6 +122,7 @@ export function fieldsOf(q: Quest): QuestFields {
     sortOrder: q.sortOrder,
     parentId: q.parentId,
     damage: q.damage,
+    label: q.label,
   };
 }
 
@@ -132,4 +133,33 @@ export function reorder<T extends { id: number }>(items: readonly T[], movedId: 
   const rest = items.filter((i) => i.id !== movedId);
   const at = rest.findIndex((i) => i.id === targetId);
   return at < 0 ? [...rest, moved] : [...rest.slice(0, at), moved, ...rest.slice(at)];
+}
+
+/** Пункты чек-листа одного квеста по порядку. */
+export function stepsOf(steps: readonly QuestStep[], questId: number): QuestStep[] {
+  return steps.filter((s) => s.questId === questId).sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+}
+
+/** Сколько пунктов отмечено у каждого квеста. */
+export function stepsDoneByQuest(steps: readonly QuestStep[]): Map<number, number> {
+  const done = new Map<number, number>();
+  for (const s of steps) {
+    if (s.doneAt !== null) done.set(s.questId, (done.get(s.questId) ?? 0) + 1);
+  }
+  return done;
+}
+
+/** Метки открытых квестов для фильтра и подсказок, по алфавиту. */
+export function labelsOf(quests: readonly Quest[]): string[] {
+  const labels = new Set<string>();
+  for (const q of quests) {
+    if (q.label !== null && q.archivedAt === null) labels.add(q.label);
+  }
+  return [...labels].sort((a, b) => a.localeCompare(b, "ru"));
+}
+
+/** Чистая метка из поля ввода: пустая строка значит «без метки», длина до 40 знаков. */
+export function cleanLabel(raw: string): string | null {
+  const label = raw.trim().slice(0, 40).trim();
+  return label === "" ? null : label;
 }

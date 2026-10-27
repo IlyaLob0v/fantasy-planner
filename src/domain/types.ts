@@ -72,6 +72,17 @@ export interface Quest {
   createdAt: string;
   completedAt: string | null;
   archivedAt: string | null;
+  /** Метка для фильтра на доске: «Работа», «Дом». */
+  label: string | null;
+}
+
+/** Пункт чек-листа главного или побочного квеста. */
+export interface QuestStep {
+  id: number;
+  questId: number;
+  title: string;
+  doneAt: string | null;
+  sortOrder: number;
 }
 
 export interface QuestFields {
@@ -87,6 +98,7 @@ export interface QuestFields {
   parentId: number | null;
   /** Урон этапа по боссу, 1–10. У остальных квестов 1. */
   damage: number;
+  label: string | null;
 }
 
 export type DayKind = "normal" | "rest";

@@ -105,6 +105,7 @@ export function Oath() {
         sortOrder: 0,
         parentId: null,
         damage: 1,
+        label: null,
       });
     }
     if (step === "reminder") {
