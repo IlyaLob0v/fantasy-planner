@@ -1,5 +1,6 @@
 import { useRef } from "react";
 
+import { xpText } from "@/app/strings";
 import { ritualsForToday, type RitualToday } from "@/domain/rituals";
 import { ritualReward } from "@/domain/rewards";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ function RitualSeal({ item }: { item: RitualToday }) {
 
   return (
     <li>
-      <Tooltip content={done ? "Отметить как несделанное" : `+${reward.xp} XP · ${reward.gold} зол.`}>
+      <Tooltip content={done ? "Отметить как несделанное" : `${xpText(reward.xp)} · ${String(reward.gold)} зол.`}>
         <button
           ref={ref}
           type="button"
@@ -76,7 +77,7 @@ export function RitualRow({ onEdit }: { onEdit: () => void }) {
         <p className="text-sm text-parchment/45">
           {rituals.length === 0 ? (
             <>
-              Обеты, которые повторяются: зарядка, чтение, прогулка. Каждый приносит {settings.rates.ritual.xp} XP и{" "}
+              Обеты, которые повторяются: зарядка, чтение, прогулка. Каждый приносит {settings.rates.ritual.xp} опыта и{" "}
               <Coin className="inline h-3.5 w-3.5 align-[-2px]" /> {settings.rates.ritual.gold}.
             </>
           ) : (

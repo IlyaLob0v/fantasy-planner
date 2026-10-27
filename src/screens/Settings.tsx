@@ -50,7 +50,7 @@ function NumberField({ value, min, label, onCommit }: { value: number; min: numb
 }
 
 const GUIDE: ReadonlyArray<readonly [string, string]> = [
-  ["Квесты", "Main — важное, можно поставить срок. Side — рутина. Boss — большой проект из этапов, у него полоса HP."],
+  ["Квесты", "Главный — важное, можно поставить срок. Побочный — рутина. Босс — большой проект из этапов, у него есть запас сил, который тает с каждым этапом."],
   ["Опыт и уровень", "Каждое дело даёт опыт. Уровень открывает титулы и путь к новым локациям."],
   ["Золото", "Падает за дела. Тратится в лавке: свои награды, день отдыха, локации. За бездействие не отнимается никогда."],
   ["Атрибуты", "Сила, Интеллект, Ловкость растут от дел своей категории и отражают, чем ты занимаешься."],
@@ -187,7 +187,7 @@ function Rates() {
       <thead>
         <tr className="text-left text-xs text-parchment/45">
           <th className="pb-1 font-normal">Дело</th>
-          <th className="pb-1 font-normal">XP</th>
+          <th className="pb-1 font-normal">Опыт</th>
           <th className="pb-1 font-normal">Золото</th>
         </tr>
       </thead>
@@ -200,7 +200,7 @@ function Rates() {
               <td className="py-1 pr-3">
                 <NumberField
                   key={rate.xp}
-                  label={`${title}: XP`}
+                  label={`${title}: опыт`}
                   value={rate.xp}
                   min={0}
                   onCommit={(xp) => {

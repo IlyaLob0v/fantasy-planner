@@ -98,7 +98,7 @@ export const GLORY: readonly GloryDef[] = [
 
   def("bosses", "bosses_5", "Гроза чудищ", "Победить 5 боссов", 2, 5, (s) => s.bossesDefeated),
   def("bosses", "bosses_15", "Охотник на великанов", "Победить 15 боссов", 3, 15, (s) => s.bossesDefeated),
-  def("bosses", "boss_legendary", "Драконья кровь", "Победить босса с запасом HP больше 25", 3, 1, (s) => s.legendaryBosses),
+  def("bosses", "boss_legendary", "Драконья кровь", "Победить босса с запасом сил больше 25", 3, 1, (s) => s.legendaryBosses),
 
   def("levels", "level_5", "Страж ворот", "Достичь 5 уровня", 1, 5, level),
   def("levels", "level_10", "Испытанный клинок", "Достичь 10 уровня", 2, 10, level),

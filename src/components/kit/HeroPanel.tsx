@@ -111,7 +111,7 @@ export function HeroPanel() {
           {progress.level}
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-display text-3xl leading-tight text-parchment">{character.name}</h1>
+          <h1 className="line-clamp-2 break-words font-display text-2xl leading-tight text-parchment">{character.name}</h1>
           <p className="text-sm text-gold-bright/90">{character.title}</p>
           {fatigued && (
             <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-ember/50 bg-ember/15 px-2 py-0.5 text-xs text-ember">

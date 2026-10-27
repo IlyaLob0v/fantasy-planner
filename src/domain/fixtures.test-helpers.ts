@@ -15,6 +15,7 @@ export const settings: Settings = {
   levelCurve: { base: 50, exp: 1.4, round: 5 },
   motion: "full",
   oathDone: false,
+  starterPack: false,
   hintsSeen: [],
   loot: {
     basePct: 12,

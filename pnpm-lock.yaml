@@ -8,10 +8,10 @@ importers:
 
   .:
     dependencies:
-      '@fontsource/cormorant-garamond':
+      '@fontsource/kurale':
         specifier: 5.3.0
         version: 5.3.0
-      '@fontsource/inter':
+      '@fontsource/yeseva-one':
         specifier: 5.3.0
         version: 5.3.0
       '@radix-ui/react-dialog':
@@ -223,11 +223,11 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
-  '@fontsource/cormorant-garamond@5.3.0':
-    resolution: {integrity: sha512-weuGsCirGVWBWqpt6YUp0yLThTe4G8YO45noq8wxeJCRvEpq5lFrxNMFSTxcyOyV5k5otzJ8guDzYegdYlcLMQ==}
+  '@fontsource/kurale@5.3.0':
+    resolution: {integrity: sha512-11AwW3mcsqnof17CVGcYc3VMphUsPkl+kl07v2LB726hd/KYiv6pXafNPO8Knhtr/I5g8nwIRnaOIUjZlxg8pA==}
 
-  '@fontsource/inter@5.3.0':
-    resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
+  '@fontsource/yeseva-one@5.3.0':
+    resolution: {integrity: sha512-9R6Rk4nInFQnnoghsjsGN+3EqE9Pb4OjfV9rUy20uqFGjs7r1Z/miSVvM0HMYK21y1RVIzALCtuHifCfzN/gSw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1854,9 +1854,9 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@fontsource/cormorant-garamond@5.3.0': {}
+  '@fontsource/kurale@5.3.0': {}
 
-  '@fontsource/inter@5.3.0': {}
+  '@fontsource/yeseva-one@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

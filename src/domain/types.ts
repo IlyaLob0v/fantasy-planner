@@ -222,6 +222,8 @@ export interface Settings {
   motion: "full" | "reduced";
   /** Присяга гильдии пройдена или пропущена. */
   oathDone: boolean;
+  /** Стартовый набор квестов, ритуалов и наград уже выдан. */
+  starterPack: boolean;
   /** Подсказки, которые уже показаны и больше не появятся. */
   hintsSeen: string[];
   loot: {

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-import { ATTRIBUTE_LABEL, QUEST_TYPE_LABEL } from "@/app/strings";
+import { ATTRIBUTE_LABEL, QUEST_TYPE_LABEL, xpText } from "@/app/strings";
 import { isOverdue } from "@/domain/quests";
 import { questReward } from "@/domain/rewards";
 import { humanDate } from "@/domain/time";
@@ -55,7 +55,7 @@ export function QuestCard({ quest }: { quest: Quest }) {
       </div>
       {!done && (
         <div className="flex shrink-0 flex-col items-end gap-0.5 text-xs text-parchment/60 md:flex-row md:items-center md:gap-2">
-          <span>+{reward.xp} XP</span>
+          <span>{xpText(reward.xp)}</span>
           <span className="flex items-center gap-1">
             <Coin className="h-3.5 w-3.5" />
             {reward.gold}

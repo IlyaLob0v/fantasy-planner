@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type SyntheticEvent } from "react";
 
-import { ATTRIBUTE_LABEL, QUEST_TYPE_SHORT } from "@/app/strings";
+import { ATTRIBUTE_LABEL, QUEST_TYPE_SHORT, xpText } from "@/app/strings";
 import { HpBar } from "@/components/kit/HpBar";
 import { Coin } from "@/components/kit/icons";
 import { AttributePicker, DifficultyPicker, TypePicker } from "@/components/kit/pickers";
@@ -161,7 +161,7 @@ function Lane({
         </span>
         {lane !== null && <span className="text-xs text-parchment/45">{humanDate(lane)}</span>}
         <span className="text-xs text-parchment/45">
-          {load.count > 0 ? `${load.count} ${plural(load.count, "квест", "квеста", "квестов")}${load.xp > 0 ? ` · ${load.xp} XP` : ""}` : "свободно"}
+          {load.count > 0 ? `${load.count} ${plural(load.count, "квест", "квеста", "квестов")}${load.xp > 0 ? ` · ${String(load.xp)} опыта` : ""}` : "свободно"}
         </span>
       </button>
       {lane === today && quests.length > 0 && (
@@ -169,6 +169,11 @@ function Lane({
       )}
       <ul className="flex flex-col gap-2 overflow-y-auto pb-2 scrollbar-quiet">
         {cards(quests, false)}
+        {quests.length === 0 && later.length === 0 && (
+          <li className="grid min-h-28 place-items-center rounded-lg border border-dashed border-parchment/15 bg-wood/30 px-3 py-6 text-center text-xs leading-relaxed text-parchment/40">
+            {lane === null ? "Здесь ждут квесты без даты" : "День свободен. Перетащи сюда свиток или возьми квест в поле сверху"}
+          </li>
+        )}
         {later.length > 0 && (
           <li className="mt-2 px-1 text-xs uppercase tracking-wider text-parchment/40">Позже</li>
         )}
@@ -259,7 +264,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
         </div>
       </div>
       <p className="flex items-center gap-2 text-sm text-parchment/70">
-        {draft.type === "boss" ? "За победу" : "Награда"}: +{reward.xp} XP, <Coin className="h-4 w-4" /> {reward.gold}
+        {draft.type === "boss" ? "За победу" : "Награда"}: {xpText(reward.xp)}, <Coin className="h-4 w-4" /> {reward.gold}
       </p>
       {draft.type === "boss" && <BossStages boss={quest} />}
       <div className="flex flex-wrap gap-2 md:hidden" aria-label="Перенести">
