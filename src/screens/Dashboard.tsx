@@ -46,6 +46,7 @@ function QuickAdd() {
       sortOrder: 0,
       parentId: null,
       damage: 1,
+      label: null,
     }).then(() => {
       setTitle("");
     });

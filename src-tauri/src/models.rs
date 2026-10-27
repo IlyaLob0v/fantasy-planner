@@ -60,6 +60,7 @@ pub struct Quest {
     pub created_at: String,
     pub completed_at: Option<String>,
     pub archived_at: Option<String>,
+    pub label: Option<String>,
 }
 
 /// Редактируемые поля квеста. Передаются целиком: так нет неоднозначности «не менять» и «очистить».
@@ -80,6 +81,20 @@ pub struct QuestFields {
     pub parent_id: Option<i64>,
     #[serde(default = "one")]
     pub damage: i64,
+    /// Метка для фильтра на доске.
+    #[serde(default)]
+    pub label: Option<String>,
+}
+
+/// Пункт чек-листа квеста.
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct QuestStep {
+    pub id: i64,
+    pub quest_id: i64,
+    pub title: String,
+    pub done_at: Option<String>,
+    pub sort_order: i64,
 }
 
 fn one() -> i64 {

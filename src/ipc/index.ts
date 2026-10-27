@@ -20,6 +20,7 @@ import type {
   Outcome,
   Quest,
   QuestFields,
+  QuestStep,
   RealReward,
   RealRewardFields,
   RestAction,
@@ -79,6 +80,10 @@ export const ipc = {
   listSagaChapters: () => invoke<SagaProgress[]>("list_saga_chapters"),
   unlockSagaChapters: (chapters: NewSagaChapter[]) => invoke<SagaProgress[]>("unlock_saga_chapters", { chapters }),
   readSagaChapter: (key: string) => invoke<SagaProgress[]>("read_saga_chapter", { key }),
+  listQuestSteps: () => invoke<QuestStep[]>("list_quest_steps"),
+  createQuestStep: (uid: string, questId: number, title: string) => invoke<QuestStep[]>("create_quest_step", { uid, questId, title }),
+  setQuestStepDone: (id: number, done: boolean) => invoke<QuestStep[]>("set_quest_step_done", { id, done }),
+  deleteQuestStep: (id: number) => invoke<QuestStep[]>("delete_quest_step", { id }),
   listInnStays: () => invoke<InnStay[]>("list_inn_stays"),
   /** Новая дата конца комнаты или null: отменить комнату, которая ещё не началась. */
   endInnStay: (id: number, endDate: string | null) => invoke<InnStay[]>("end_inn_stay", { id, endDate }),

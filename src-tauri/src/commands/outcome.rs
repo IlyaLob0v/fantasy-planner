@@ -204,6 +204,7 @@ mod tests {
             sort_order: 0,
             parent_id: None,
             damage: 1,
+            label: None,
         }
     }
 
