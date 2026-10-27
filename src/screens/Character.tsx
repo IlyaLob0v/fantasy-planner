@@ -2,6 +2,9 @@ import { useState } from "react";
 
 import { ATTRIBUTE_HINT, ATTRIBUTE_LABEL, daysWord, MOOD_LABEL } from "@/app/strings";
 import { ChronicleForm } from "@/components/kit/ChronicleForm";
+import { CrestEditor } from "@/components/kit/CrestEditor";
+import { Equipment } from "@/components/kit/Equipment";
+import { HallOfFame } from "@/components/kit/HallOfFame";
 import { ATTRIBUTE_ICON } from "@/components/kit/icons";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { Button } from "@/components/ui/button";
@@ -200,6 +203,8 @@ export function CharacterScreen() {
           </p>
         </Panel>
 
+        <Equipment />
+
         <Panel className="p-6">
           <PanelTitle className="mb-4 text-xl">Атрибуты</PanelTitle>
           <ul className="flex flex-col gap-4">
@@ -232,6 +237,10 @@ export function CharacterScreen() {
           </div>
           <StreakCalendar />
         </Panel>
+
+        <HallOfFame />
+
+        <CrestEditor />
 
         <Chronicle />
       </div>

@@ -4,7 +4,7 @@ import { activeBosses, bossHp, lootRarity, nextStage, stagesOf, trophies } from 
 import { isBlank, isEvening } from "./chronicle";
 import { character, day, quest, settings } from "./fixtures.test-helpers";
 import { locationState, unlockedBetween } from "./locations";
-import { questColumns, reorder, todayBoard } from "./quests";
+import { questMap, reorder, todayBoard } from "./quests";
 import { mergeRates } from "./settings";
 import { addDays, calendarStart } from "./time";
 import { planBuyLocation, planCompleteQuest, planCompleteStage, planUndoStage, type TurnContext } from "./turns";
@@ -14,7 +14,7 @@ const today = "2026-10-26";
 const now = new Date("2026-10-26T12:00:00.000Z");
 
 function ctx(overrides: Partial<TurnContext> = {}): TurnContext {
-  return { character: character(), settings, days: [day(today, 0, false)], today, now, ...overrides };
+  return { character: character(), settings, days: [day(today, 0, false)], today, now, gear: [], perks: new Set(), uid: () => "uid", ...overrides };
 }
 
 const boss = quest({ id: 10, type: "boss", title: "Дипломная работа", difficulty: 2, scheduledDate: null });
@@ -150,9 +150,9 @@ describe("доска и день с боссами", () => {
   it("босс и этапы не попадают в приказы дня, этапы не лежат на доске", () => {
     const quests = [quest({ id: 1 }), { ...boss, scheduledDate: today }, stage(2, 1)];
     expect(todayBoard(quests, today, 4).active.map((q) => q.id)).toEqual([1]);
-    const cols = questColumns(quests, today, 4);
-    expect(cols.today.map((q) => q.id)).toEqual([10, 1]);
-    expect([...cols.upcoming, ...cols.backlog].some((q) => q.type === "stage")).toBe(false);
+    const map = questMap(quests, today, 4);
+    expect(map.days[0]?.quests.map((q) => q.id)).toEqual([10, 1]);
+    expect([...map.days.flatMap((d) => d.quests), ...map.backlog, ...map.later].some((q) => q.type === "stage")).toBe(false);
   });
 });
 

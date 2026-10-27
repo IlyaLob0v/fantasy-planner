@@ -25,6 +25,8 @@ export interface Character {
   streakBest: number;
   windStep: number;
   fatiguedSince: GameDate | null;
+  /** Дела подряд без находки: защита от невезения. */
+  lootMisses: number;
   locationKey: string;
   createdAt: string;
   updatedAt: string;
@@ -43,6 +45,7 @@ export interface CharacterState {
   streakBest: number;
   windStep: number;
   fatiguedSince: GameDate | null;
+  lootMisses: number;
 }
 
 export type QuestStatus = "active" | "done";
@@ -95,7 +98,7 @@ export interface Day {
   closedAt: string | null;
 }
 
-export type LedgerSource = "quest" | "boss_defeat" | "ritual" | "rest_action" | "purchase" | "rest" | "revert";
+export type LedgerSource = "quest" | "boss_defeat" | "ritual" | "rest_action" | "purchase" | "rest" | "revert" | "achievement" | "week_chest";
 
 export interface LedgerEntry {
   id: number;
@@ -127,6 +130,82 @@ export interface Outcome {
   ledger: NewLedgerEntry[];
   days: Day[];
   character: CharacterState;
+  /** Новые достижения; их золото уже лежит в `ledger`. */
+  achievements: NewAchievement[];
+  /** Новые предметы снаряжения. */
+  gear: NewGear[];
+  /** Находки, которые забирает отмена дела. */
+  removeGear: number[];
+  /** Цели недели, выполненные этим ходом; их золото уже лежит в `ledger`. */
+  weekGoalsDone: number[];
+  /** Купленные части герба. */
+  crestParts: NewCrestPart[];
+}
+
+export type WeekGoalState = "active" | "done" | "off";
+
+export interface WeekGoal {
+  id: number;
+  weekStart: GameDate;
+  goalKey: string;
+  target: number;
+  state: WeekGoalState;
+  completedAt: string | null;
+}
+
+export interface NewWeekGoal {
+  uid: string;
+  weekStart: GameDate;
+  goalKey: string;
+  target: number;
+}
+
+export interface CrestPart {
+  key: string;
+  boughtAt: string;
+}
+
+export interface NewCrestPart {
+  key: string;
+  uid: string;
+}
+
+export const GEAR_SLOTS = ["weapon", "helm", "armor", "cloak", "talisman"] as const;
+export type GearSlot = (typeof GEAR_SLOTS)[number];
+export type GearSource = "quest" | "ritual" | "boss" | "achievement" | "forge" | "week_chest";
+
+export interface Gear {
+  id: number;
+  itemKey: string;
+  sourceType: GearSource;
+  sourceId: number | null;
+  gameDate: GameDate;
+  missesBefore: number;
+  obtainedAt: string;
+}
+
+export type NewGear = Omit<Gear, "id" | "obtainedAt"> & { uid: string };
+
+export interface EquipmentSlot {
+  slot: GearSlot;
+  gearId: number | null;
+}
+
+export interface NewAchievement {
+  key: string;
+  uid: string;
+}
+
+export interface Achievement {
+  key: string;
+  unlockedAt: string;
+}
+
+/** Сколько записей журнала источника в силе: без отменённых. */
+export interface LedgerTally {
+  sourceType: LedgerSource;
+  sourceId: number | null;
+  count: number;
 }
 
 export interface Rate {
@@ -141,6 +220,26 @@ export interface Settings {
   streakBonus: { stepDays: number; stepPct: number; maxPct: number };
   levelCurve: { base: number; exp: number; round: number };
   motion: "full" | "reduced";
+  /** Присяга гильдии пройдена или пропущена. */
+  oathDone: boolean;
+  /** Подсказки, которые уже показаны и больше не появятся. */
+  hintsSeen: string[];
+  loot: {
+    basePct: number;
+    stepPct: number;
+    pity: number;
+    dailyCap: number;
+    weights: Record<Rarity, number>;
+    unlockLevel: Record<Rarity, number>;
+  };
+  forgePrices: { common: number; rare: number };
+  /** Неделя гильдии: золото за цель и за сундук, насколько цель выше средней прошлых недель. */
+  week: { goalGold: number; chestGold: number; stretchPct: number };
+  /** Начало недели, летопись которой уже закрыта. */
+  recapSeen: GameDate;
+  /** Выбранный герб: ключи частей из каталога src/domain/crest.ts. */
+  crest: { shield: string; charge: string; tincture: string };
+  crestPrice: number;
 }
 
 export interface Reward {

@@ -80,6 +80,57 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
         .await?;
     }
 
+    for id in &outcome.remove_gear {
+        sqlx::query("DELETE FROM gear WHERE id = ? AND source_type IN ('quest','ritual','boss')")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+    }
+
+    for item in &outcome.gear {
+        sqlx::query(
+            "INSERT INTO gear (uid, item_key, source_type, source_id, game_date, misses_before) VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&item.uid)
+        .bind(&item.item_key)
+        .bind(&item.source_type)
+        .bind(item.source_id)
+        .bind(&item.game_date)
+        .bind(item.misses_before)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    for achievement in &outcome.achievements {
+        sqlx::query("INSERT INTO achievements (key, uid) VALUES (?, ?)")
+            .bind(&achievement.key)
+            .bind(&achievement.uid)
+            .execute(&mut *tx)
+            .await?;
+    }
+
+    for id in &outcome.week_goals_done {
+        let affected = sqlx::query(
+            "UPDATE week_goals SET state = 'done', completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), \
+             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND state = 'active'",
+        )
+        .bind(id)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if affected == 0 {
+            return Err(AppError::Invalid(format!("цель недели {id} уже не в работе")));
+        }
+    }
+
+    for part in &outcome.crest_parts {
+        sqlx::query("INSERT INTO crest_parts (key, uid) VALUES (?, ?)")
+            .bind(&part.key)
+            .bind(&part.uid)
+            .execute(&mut *tx)
+            .await?;
+    }
+
     for day in &outcome.days {
         sqlx::query(
             "INSERT INTO days (game_date, kind, deeds_count, closed_at) VALUES (?, ?, ?, ?) \
@@ -97,7 +148,7 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
     let c = &outcome.character;
     sqlx::query(
         "UPDATE character SET title = ?, level = ?, xp = ?, gold = ?, strength = ?, intellect = ?, \
-         agility = ?, streak_current = ?, streak_best = ?, wind_step = ?, fatigued_since = ?, \
+         agility = ?, streak_current = ?, streak_best = ?, wind_step = ?, fatigued_since = ?, loot_misses = ?, \
          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = 1",
     )
     .bind(&c.title)
@@ -111,6 +162,7 @@ pub async fn commit(pool: &SqlitePool, outcome: Outcome) -> AppResult<Character>
     .bind(c.streak_best)
     .bind(c.wind_step)
     .bind(&c.fatigued_since)
+    .bind(c.loot_misses)
     .execute(&mut *tx)
     .await?;
 
@@ -126,10 +178,10 @@ pub async fn commit_outcome(db: State<'_, Db>, outcome: Outcome) -> AppResult<Ch
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::quests;
+    use crate::commands::{achievements, ledger, quests};
     use crate::db::open_memory;
     use crate::commands::rituals;
-    use crate::models::{CharacterState, Day, NewInventoryItem, NewLedgerEntry, QuestFields, QuestStatusChange, RitualFields, RitualMark};
+    use crate::models::{CharacterState, Day, NewAchievement, NewInventoryItem, NewLedgerEntry, QuestFields, QuestStatusChange, RitualFields, RitualMark};
 
     fn fields() -> QuestFields {
         QuestFields {
@@ -159,6 +211,7 @@ mod tests {
             streak_best: 1,
             wind_step: 0,
             fatigued_since: None,
+            loot_misses: 0,
         }
     }
 
@@ -204,6 +257,11 @@ mod tests {
                 closed_at: None,
             }],
             character: state(20, 6),
+            achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         let hero = commit(&pool, outcome).await?;
         assert_eq!((hero.xp, hero.gold, hero.strength), (20, 6, 2));
@@ -223,6 +281,11 @@ mod tests {
             ledger: vec![],
             days: vec![],
             character: state(10, -5),
+            achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         assert!(commit(&pool, outcome).await.is_err());
         let hero = character::fetch(&pool).await?;
@@ -258,6 +321,11 @@ mod tests {
             ledger: vec![],
             days: vec![],
             character: state(5, 2),
+            achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         commit(&pool, mark(true)).await?;
         let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM ritual_completions").fetch_one(&pool).await?;
@@ -281,6 +349,11 @@ mod tests {
             ledger: vec![],
             days: vec![],
             character: state(0, 0),
+            achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         commit(&pool, purchase).await?;
         let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
@@ -313,6 +386,11 @@ mod tests {
             ledger: vec![],
             days: vec![],
             character: state(75, 29),
+            achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         commit(&pool, victory).await?;
         let (loot_id,): (i64,) = sqlx::query_as("SELECT id FROM inventory WHERE source_type = 'boss'").fetch_one(&pool).await?;
@@ -326,6 +404,11 @@ mod tests {
             ledger: vec![],
             days: vec![],
             character: state(0, 0),
+            achievements: vec![],
+            gear: vec![],
+            remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
         };
         commit(&pool, undo).await?;
         let (items,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM inventory").fetch_one(&pool).await?;
@@ -343,6 +426,70 @@ mod tests {
         assert!(quests::create(&pool, orphan).await.is_err());
         let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM locations").fetch_one(&pool).await?;
         assert_eq!(count, 5);
+        Ok(())
+    }
+
+    fn gold_entry(source_type: &str, gold: i64, reverts_id: Option<i64>, note: Option<&str>) -> NewLedgerEntry {
+        NewLedgerEntry {
+            game_date: "2026-10-26".into(),
+            source_type: source_type.into(),
+            source_id: None,
+            xp_delta: 0,
+            gold_delta: gold,
+            attribute: None,
+            attribute_delta: 0,
+            reverts_id,
+            note: note.map(Into::into),
+        }
+    }
+
+    fn empty(ledger: Vec<NewLedgerEntry>, achievements: Vec<NewAchievement>, gold: i64) -> Outcome {
+        Outcome {
+            quests: vec![],
+            ritual: None,
+            inventory: vec![],
+            remove_inventory: vec![],
+            ledger,
+            days: vec![],
+            character: state(0, gold),
+            achievements,
+            gear: vec![],
+            remove_gear: vec![],
+            week_goals_done: vec![],
+            crest_parts: vec![],
+        }
+    }
+
+    #[tokio::test]
+    async fn achievement_is_written_once_with_its_gold() -> AppResult<()> {
+        let pool = open_memory().await?;
+        let first = NewAchievement { key: "first_quest".into(), uid: "0192f0a0-0000-7000-8000-000000000001".into() };
+        commit(&pool, empty(vec![gold_entry("achievement", 25, None, Some("first_quest"))], vec![first.clone()], 25)).await?;
+        let again = NewAchievement { uid: "0192f0a0-0000-7000-8000-000000000002".into(), ..first };
+        assert!(commit(&pool, empty(vec![gold_entry("achievement", 25, None, Some("first_quest"))], vec![again], 50)).await.is_err());
+        let list = achievements::list(&pool).await?;
+        assert_eq!(list.iter().map(|a| a.key.as_str()).collect::<Vec<_>>(), vec!["first_quest"]);
+        assert_eq!(character::fetch(&pool).await?.gold, 25);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn tally_skips_reverted_entries() -> AppResult<()> {
+        let pool = open_memory().await?;
+        commit(&pool, empty(vec![gold_entry("quest", 3, None, None), gold_entry("quest", 3, None, None)], vec![], 6)).await?;
+        let (first,): (i64,) = sqlx::query_as("SELECT MIN(id) FROM ledger").fetch_one(&pool).await?;
+        commit(&pool, empty(vec![gold_entry("revert", -3, Some(first), None)], vec![], 3)).await?;
+        let counts = ledger::tally(&pool).await?;
+        assert_eq!(counts.len(), 1);
+        assert_eq!(counts.first().map(|t| (t.source_type.as_str(), t.count)), Some(("quest", 1)));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn new_hero_takes_the_oath() -> AppResult<()> {
+        let pool = open_memory().await?;
+        let (oath,): (String,) = sqlx::query_as("SELECT value FROM settings WHERE key = 'oath_done'").fetch_one(&pool).await?;
+        assert_eq!(oath, "false");
         Ok(())
     }
 }

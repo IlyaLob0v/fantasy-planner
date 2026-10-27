@@ -14,6 +14,7 @@ export function stateOf(c: Character): CharacterState {
     streakBest: c.streakBest,
     windStep: c.windStep,
     fatiguedSince: c.fatiguedSince,
+    lootMisses: c.lootMisses,
   };
 }
 

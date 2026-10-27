@@ -111,3 +111,17 @@ export function locationAsset(locationKey: string): AssetKey {
 export function assetByKey(key: string): AssetEntry | null {
   return isAssetKey(key) ? assets[key] : null;
 }
+
+/**
+ * Портрет героя меняется каждые 10 уровней. Новый арт добавляется сюда записью со своим уровнем;
+ * пока следующего портрета нет, остаётся последний доступный.
+ */
+export const HERO_PORTRAITS: ReadonlyArray<{ fromLevel: number; key: AssetKey }> = [{ fromLevel: 1, key: "hero" }];
+
+export function heroPortrait(level: number): AssetKey {
+  let key: AssetKey = "hero";
+  for (const p of HERO_PORTRAITS) {
+    if (level >= p.fromLevel) key = p.key;
+  }
+  return key;
+}

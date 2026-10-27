@@ -49,6 +49,122 @@ function NumberField({ value, min, label, onCommit }: { value: number; min: numb
   );
 }
 
+const GUIDE: ReadonlyArray<readonly [string, string]> = [
+  ["Квесты", "Main — важное, можно поставить срок. Side — рутина. Boss — большой проект из этапов, у него полоса HP."],
+  ["Опыт и уровень", "Каждое дело даёт опыт. Уровень открывает титулы и путь к новым локациям."],
+  ["Золото", "Падает за дела. Тратится в лавке: свои награды, день отдыха, локации. За бездействие не отнимается никогда."],
+  ["Атрибуты", "Сила, Интеллект, Ловкость растут от дел своей категории и отражают, чем ты занимаешься."],
+  ["Серия и Попутный ветер", "Серия — дни подряд хотя бы с одним делом. Каждые 7 дней серии дают +10 % золота, до +30 %."],
+  ["Усталость", "Приходит после дня без дел. Ничего не отнимает; одно любое дело её снимает."],
+  ["Зал славы", "Достижения за серии, подвиги, боссов и уровни. Каждое даёт немного золота и не отбирается."],
+  ["Снаряжение", "Находки падают за квесты и ритуалы. Шанс растёт с каждым промахом, на 15-м деле подряд находка гарантирована, дублей нет. Свойство предмета работает, пока он надет."],
+  ["Кузница", "Обычные и редкие вещи можно купить по фиксированной цене. Эпические и легендарные только находят или получают за главные вехи."],
+  ["Неделя гильдии", "В начале недели гильдия ставит до трёх целей, чуть выше твоих прошлых недель. Цель можно заменить или убрать. За цель золото, за все сразу сундук с предметом. Невыполненная цель просто уходит."],
+  ["Летопись недели", "В новую неделю в зале появляется итог прошлой: дела, лучший день, находки и строки хроники. Закрывается одним кликом."],
+  ["Герб гильдии", "Щит, фигура и поле. По одной части даётся даром, остальные продаёт геральдист по фиксированной цене. Герб стоит в заголовке окна."],
+];
+
+type LootNumber = "basePct" | "stepPct" | "pity" | "dailyCap";
+
+const LOOT_FIELDS: ReadonlyArray<readonly [LootNumber, string, number]> = [
+  ["basePct", "Шанс находки, %", 1],
+  ["stepPct", "Прибавка за промах, %", 0],
+  ["pity", "Гарантия на деле №", 1],
+  ["dailyCap", "Находок в сутки, не больше", 1],
+];
+
+function lootJson(loot: GameSettings["loot"]) {
+  return {
+    base_pct: loot.basePct,
+    step_pct: loot.stepPct,
+    pity: loot.pity,
+    daily_cap: loot.dailyCap,
+    weights: loot.weights,
+    unlock_level: loot.unlockLevel,
+  };
+}
+
+function LootSettings() {
+  const { settings, setSetting } = useGame();
+  const { loot, forgePrices } = settings;
+  return (
+    <div className="grid gap-2 text-sm text-parchment/70 sm:grid-cols-2">
+      {LOOT_FIELDS.map(([key, title, min]) => (
+        <label key={key} className="flex items-center justify-between gap-2">
+          {title}
+          <NumberField
+            key={loot[key]}
+            label={title}
+            value={loot[key]}
+            min={min}
+            onCommit={(n) => {
+              setSetting("loot", lootJson({ ...loot, [key]: n }));
+            }}
+          />
+        </label>
+      ))}
+      {(["common", "rare"] as const).map((rarity) => (
+        <label key={rarity} className="flex items-center justify-between gap-2">
+          {rarity === "common" ? "Кузнец: обычный предмет" : "Кузнец: редкий предмет"}
+          <NumberField
+            key={forgePrices[rarity]}
+            label={`Цена у кузнеца: ${rarity}`}
+            value={forgePrices[rarity]}
+            min={1}
+            onCommit={(n) => {
+              setSetting("forge_prices", { ...forgePrices, [rarity]: n });
+            }}
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
+
+type WeekNumber = "goalGold" | "chestGold" | "stretchPct";
+
+const WEEK_FIELDS: ReadonlyArray<readonly [WeekNumber, string, number]> = [
+  ["goalGold", "Золото за цель недели", 0],
+  ["chestGold", "Золото в сундуке недели", 0],
+  ["stretchPct", "Цель выше средней, %", 0],
+];
+
+function WeekSettings() {
+  const { settings, setSetting } = useGame();
+  const { week } = settings;
+  const json = (next: GameSettings["week"]) => ({ goal_gold: next.goalGold, chest_gold: next.chestGold, stretch_pct: next.stretchPct });
+  return (
+    <div className="grid gap-2 text-sm text-parchment/70 sm:grid-cols-2">
+      {WEEK_FIELDS.map(([key, title, min]) => (
+        <label key={key} className="flex items-center justify-between gap-2">
+          {title}
+          <NumberField
+            key={week[key]}
+            label={title}
+            value={week[key]}
+            min={min}
+            onCommit={(n) => {
+              setSetting("week", json({ ...week, [key]: n }));
+            }}
+          />
+        </label>
+      ))}
+      <label className="flex items-center justify-between gap-2">
+        Часть герба
+        <NumberField
+          key={settings.crestPrice}
+          label="Цена части герба"
+          value={settings.crestPrice}
+          min={1}
+          onCommit={(n) => {
+            setSetting("crest_price", n);
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
 function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2.5">
@@ -208,6 +324,14 @@ export function SettingsScreen() {
           </div>
         </Section>
 
+        <Section title="Находки и кузница" hint="Шанс растёт с каждым делом без находки, на пороге находка гарантирована. Шанс за золото не продаётся.">
+          <LootSettings />
+        </Section>
+
+        <Section title="Неделя гильдии и герб" hint="Цели подбираются по последним четырём неделям. Сундук открывается, когда выполнены все цели недели.">
+          <WeekSettings />
+        </Section>
+
         <Section title="Анимации" hint="Сдержанные: без полёта монет, награда видна сразу. Системная настройка «уменьшить движение» тоже учитывается.">
           <div className="flex gap-1">
             <Chip
@@ -231,6 +355,26 @@ export function SettingsScreen() {
 
         <Section title="Привалы" hint="Короткие дела, которые герой предлагает, когда устал.">
           <RestActions />
+        </Section>
+
+        <Section title="Справочник гильдии" hint="Как устроен мир, коротко.">
+          <dl className="flex flex-col gap-2 text-sm text-parchment/75">
+            {GUIDE.map(([term, text]) => (
+              <div key={term}>
+                <dt className="text-parchment">{term}</dt>
+                <dd>{text}</dd>
+              </div>
+            ))}
+          </dl>
+          <button
+            type="button"
+            className="cursor-pointer self-start text-xs text-parchment/50 hover:text-gold-bright"
+            onClick={() => {
+              setSetting("hints_seen", []);
+            }}
+          >
+            Показать подсказки заново
+          </button>
         </Section>
 
         <Section title="Иллюстрации" hint="Откуда взялись сцены, которые висят на стенах гильдии.">

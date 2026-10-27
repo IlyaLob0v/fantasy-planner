@@ -1,6 +1,8 @@
+pub mod achievements;
 pub mod character;
 pub mod chronicle;
 pub mod days;
+pub mod gear;
 pub mod inventory;
 pub mod ledger;
 pub mod locations;
@@ -10,3 +12,4 @@ pub mod rest_actions;
 pub mod rewards;
 pub mod rituals;
 pub mod settings;
+pub mod week;

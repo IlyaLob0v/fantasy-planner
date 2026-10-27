@@ -16,6 +16,7 @@ pub struct Character {
     pub streak_best: i64,
     pub wind_step: i64,
     pub fatigued_since: Option<String>,
+    pub loot_misses: i64,
     pub location_key: String,
     pub created_at: String,
     pub updated_at: String,
@@ -36,6 +37,7 @@ pub struct CharacterState {
     pub streak_best: i64,
     pub wind_step: i64,
     pub fatigued_since: Option<String>,
+    pub loot_misses: i64,
 }
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -154,6 +156,108 @@ pub struct Outcome {
     pub ledger: Vec<NewLedgerEntry>,
     pub days: Vec<Day>,
     pub character: CharacterState,
+    /// Новые достижения; их золото уже лежит в `ledger`.
+    #[serde(default)]
+    pub achievements: Vec<NewAchievement>,
+    /// Новые предметы снаряжения: находки, трофеи, реликвии, покупки у кузнеца.
+    #[serde(default)]
+    pub gear: Vec<NewGear>,
+    /// Находки, которые забирает отмена дела.
+    #[serde(default)]
+    pub remove_gear: Vec<i64>,
+    /// Цели недели, выполненные этим ходом; их золото уже лежит в `ledger`.
+    #[serde(default)]
+    pub week_goals_done: Vec<i64>,
+    /// Купленные части герба.
+    #[serde(default)]
+    pub crest_parts: Vec<NewCrestPart>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewGear {
+    pub uid: String,
+    pub item_key: String,
+    pub source_type: String,
+    pub source_id: Option<i64>,
+    pub game_date: String,
+    pub misses_before: i64,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct Gear {
+    pub id: i64,
+    pub item_key: String,
+    pub source_type: String,
+    pub source_id: Option<i64>,
+    pub game_date: String,
+    pub misses_before: i64,
+    pub obtained_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct EquipmentSlot {
+    pub slot: String,
+    pub gear_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewAchievement {
+    pub key: String,
+    pub uid: String,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct Achievement {
+    pub key: String,
+    pub unlocked_at: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewWeekGoal {
+    pub uid: String,
+    pub week_start: String,
+    pub goal_key: String,
+    pub target: i64,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct WeekGoal {
+    pub id: i64,
+    pub week_start: String,
+    pub goal_key: String,
+    pub target: i64,
+    pub state: String,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewCrestPart {
+    pub key: String,
+    pub uid: String,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct CrestPart {
+    pub key: String,
+    pub bought_at: String,
+}
+
+/// Сколько записей журнала каждого источника осталось в силе (без отменённых).
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct LedgerTally {
+    pub source_type: String,
+    pub source_id: Option<i64>,
+    pub count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, FromRow)]

@@ -99,6 +99,27 @@ export const CloseIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const ArmorIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M8 3h8l4 3-2 4v10H6V10L4 6Z" />
+    <path d="M9 3c0 2 1.3 3 3 3s3-1 3-3M9 13h6" />
+  </Icon>
+);
+
+export const CloakIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 3h6l1 3c2 4 3 9 4 15H4c1-6 2-11 4-15Z" />
+    <path d="M12 6v15" />
+  </Icon>
+);
+
+export const TalismanIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 3c0 4 2 6 5 6s5-2 5-6" />
+    <path d="M12 9v2M12 11l4 4-4 6-4-6Z" />
+  </Icon>
+);
+
 export const ATTRIBUTE_ICON: Record<Attribute, (p: IconProps) => React.JSX.Element> = {
   strength: SwordIcon,
   intellect: BookIcon,

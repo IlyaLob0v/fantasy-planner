@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
+import { useGame } from "@/services/game";
 
+import { Crest } from "./Crest";
 import { GearIcon } from "./icons";
 import { SCREENS, type ScreenKey } from "./Titlebar";
 
@@ -41,8 +43,10 @@ export function BottomNav({ screen, onNavigate }: { screen: ScreenKey; onNavigat
 
 /** Верхняя полоса на телефоне: только где герой сейчас, под вырезом экрана. */
 export function MobileHeader({ location }: { location: string }) {
+  const { crest } = useGame();
   return (
-    <header className="relative z-30 flex shrink-0 items-baseline gap-2 border-b border-gold/25 bg-wood/85 px-4 pb-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] backdrop-blur">
+    <header className="relative z-30 flex shrink-0 items-center gap-2 border-b border-gold/25 bg-wood/85 px-4 pb-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] backdrop-blur">
+      <Crest choice={crest} className="h-5 w-4" />
       <span className="font-display text-base text-gold-bright">Штаб гильдии</span>
       <span className="text-sm text-parchment/50">· {location}</span>
     </header>

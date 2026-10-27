@@ -2,12 +2,16 @@ import { MotionConfig } from "motion/react";
 import { useEffect, useState, type CSSProperties } from "react";
 
 import { isMobile } from "@/app/platform";
-import { assets, locationAsset, type AssetKey } from "@/assets/registry";
+import { assets, heroPortrait, locationAsset, type AssetKey } from "@/assets/registry";
 import { BottomNav, MobileHeader } from "@/components/kit/BottomNav";
+import { FindToast } from "@/components/kit/FindToast";
+import { GloryToast } from "@/components/kit/GloryToast";
 import { LocationVeil } from "@/components/kit/LocationVeil";
+import { Oath } from "@/components/kit/Oath";
 import { RewardLayer } from "@/components/kit/RewardLayer";
 import { SceneBackdrop } from "@/components/kit/SceneBackdrop";
 import { SCREENS, Titlebar, type ScreenKey } from "@/components/kit/Titlebar";
+import { WeekToast } from "@/components/kit/WeekToast";
 import { CharacterScreen } from "@/screens/Character";
 import { Dashboard } from "@/screens/Dashboard";
 import { Inventory, type InventoryTab } from "@/screens/Inventory";
@@ -34,7 +38,7 @@ function ErrorNote() {
 }
 
 function Shell() {
-  const { character, settings } = useGame();
+  const { character, settings, perks } = useGame();
   const [screen, setScreen] = useState<ScreenKey>("dashboard");
   const [inventoryTab, setInventoryTab] = useState<InventoryTab>("shop");
 
@@ -51,7 +55,7 @@ function Shell() {
   }, []);
 
   const location = locationAsset(character.locationKey);
-  const backdrop: AssetKey = screen === "character" ? "hero" : screen === "inventory" ? "treasury" : location;
+  const backdrop: AssetKey = screen === "character" ? heroPortrait(character.level) : screen === "inventory" ? "treasury" : location;
   const theme = assets[backdrop].theme;
   const vars: CSSProperties & Record<`--${string}`, string> = {
     "--panel-wood": theme.panelWood,
@@ -63,7 +67,7 @@ function Shell() {
   return (
     <MotionConfig reducedMotion={settings.motion === "reduced" ? "always" : "user"}>
       <div className="relative flex h-full flex-col" style={vars}>
-        <SceneBackdrop asset={backdrop} dim={screen === "questlog" ? 0.4 : screen === "settings" ? 0.55 : 0} dusk={character.fatiguedSince !== null} />
+        <SceneBackdrop asset={backdrop} dim={screen === "questlog" ? 0.4 : screen === "settings" ? 0.55 : 0} dusk={character.fatiguedSince !== null && !perks.has("clear_mind")} />
         {isMobile ? (
           <MobileHeader location={assets[location].name} />
         ) : (
@@ -89,6 +93,10 @@ function Shell() {
             setScreen("inventory");
           }}
         />
+        <FindToast />
+        <GloryToast />
+        <WeekToast />
+        <Oath />
         <LocationVeil locationKey={character.locationKey} />
         <ErrorNote />
       </div>

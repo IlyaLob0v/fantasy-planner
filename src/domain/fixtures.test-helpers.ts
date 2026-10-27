@@ -14,6 +14,21 @@ export const settings: Settings = {
   streakBonus: { stepDays: 7, stepPct: 10, maxPct: 30 },
   levelCurve: { base: 50, exp: 1.4, round: 5 },
   motion: "full",
+  oathDone: false,
+  hintsSeen: [],
+  loot: {
+    basePct: 12,
+    stepPct: 4,
+    pity: 15,
+    dailyCap: 2,
+    weights: { common: 60, rare: 28, epic: 10, legendary: 2 },
+    unlockLevel: { common: 1, rare: 5, epic: 10, legendary: 15 },
+  },
+  forgePrices: { common: 60, rare: 150 },
+  week: { goalGold: 20, chestGold: 60, stretchPct: 10 },
+  recapSeen: "",
+  crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
+  crestPrice: 40,
 };
 
 export function character(overrides: Partial<Character> = {}): Character {
@@ -30,6 +45,7 @@ export function character(overrides: Partial<Character> = {}): Character {
     streakBest: 0,
     windStep: 0,
     fatiguedSince: null,
+    lootMisses: 0,
     locationKey: "gatehouse",
     createdAt: "2026-10-01T00:00:00.000Z",
     updatedAt: "2026-10-01T00:00:00.000Z",

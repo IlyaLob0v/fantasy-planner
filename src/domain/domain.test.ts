@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { applyReward, stateOf } from "./character";
 import { character, day, quest, settings } from "./fixtures.test-helpers";
 import { levelProgress, titleForLevel, xpToNext } from "./levels";
-import { questColumns, todayBoard } from "./quests";
+import { dayLoad, MAP_DAYS, questMap, todayBoard } from "./quests";
 import { questReward, windBonusPct } from "./rewards";
 import { parseSettings } from "./settings";
 import { closePastDays, currentStreak } from "./streak";
@@ -15,7 +15,7 @@ const today = "2026-10-26";
 const now = new Date("2026-10-26T12:00:00.000Z");
 
 function ctx(overrides: Partial<TurnContext> = {}): TurnContext {
-  return { character: character(), settings, days: [day(today, 0, false)], today, now, ...overrides };
+  return { character: character(), settings, days: [day(today, 0, false)], today, now, gear: [], perks: new Set(), uid: () => "uid", ...overrides };
 }
 
 describe("время", () => {
@@ -146,11 +146,24 @@ describe("доска квестов", () => {
     expect(board.active.map((q) => q.id)).toEqual([2, 1]);
     expect(board.done.map((q) => q.id)).toEqual([5]);
   });
-  it("колонки планирования", () => {
-    const cols = questColumns(list, today, 4);
-    expect(cols.upcoming.map((q) => q.id)).toEqual([3]);
-    expect(cols.backlog.map((q) => q.id)).toEqual([4]);
-    expect(cols.archive.map((q) => q.id)).toEqual([5]);
+  it("карта похода: сегодня с просроченным, дни недели, без даты, позже", () => {
+    const map = questMap([...list, quest({ id: 6, scheduledDate: "2026-11-10" })], today, 4);
+    expect(map.days).toHaveLength(MAP_DAYS);
+    expect(map.days[0]?.quests.map((q) => q.id)).toEqual([2, 1]);
+    expect(map.days[4]).toEqual({ date: "2026-10-30", quests: [expect.objectContaining({ id: 3 })] });
+    expect(map.backlog.map((q) => q.id)).toEqual([4]);
+    expect(map.later.map((q) => q.id)).toEqual([6]);
+    expect(map.archive.map((q) => q.id)).toEqual([5]);
+  });
+  it("последний день карты ещё на карте, следующий уже позже", () => {
+    const map = questMap([quest({ id: 7, scheduledDate: "2026-11-01" }), quest({ id: 8, scheduledDate: "2026-11-02" })], today, 4);
+    expect(map.days[6]?.quests.map((q) => q.id)).toEqual([7]);
+    expect(map.later.map((q) => q.id)).toEqual([8]);
+  });
+  it("нагрузка дня: XP только за задачи", () => {
+    const boss = quest({ id: 9, type: "boss" });
+    const load = dayLoad([quest({ id: 1, type: "side" }), quest({ id: 2, type: "main", difficulty: 2 }), boss], settings, 0);
+    expect(load).toEqual({ count: 3, xp: 10 + 60 });
   });
 });
 
@@ -170,6 +183,19 @@ describe("настройки", () => {
       streak_bonus: { step_days: 7, step_pct: 10, max_pct: 30 },
       level_curve: { base: 50, exp: 1.4, round: 5 },
       motion: "full",
+      loot: {
+        base_pct: 12,
+        step_pct: 4,
+        pity: 15,
+        daily_cap: 2,
+        weights: { common: 60, rare: 28, epic: 10, legendary: 2 },
+        unlock_level: { common: 1, rare: 5, epic: 10, legendary: 15 },
+      },
+      forge_prices: { common: 60, rare: 150 },
+      week: { goal_gold: 20, chest_gold: 60, stretch_pct: 10 },
+      recap_seen: "",
+      crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
+      crest_price: 40,
     };
     expect(parseSettings(raw)).toEqual(settings);
     expect(() => parseSettings({ ...raw, rates: null })).toThrow();

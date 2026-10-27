@@ -6,7 +6,7 @@ use crate::error::{AppError, AppResult};
 use crate::models::Character;
 
 const SELECT: &str = "SELECT name, title, level, xp, gold, strength, intellect, agility, \
-    streak_current, streak_best, wind_step, fatigued_since, location_key, created_at, updated_at \
+    streak_current, streak_best, wind_step, fatigued_since, loot_misses, location_key, created_at, updated_at \
     FROM character WHERE id = 1";
 
 pub async fn fetch(pool: &SqlitePool) -> AppResult<Character> {

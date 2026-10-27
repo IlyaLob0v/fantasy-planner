@@ -1,5 +1,20 @@
 import { isRecord, readNumber, readRecord, type JsonRecord } from "./guards";
-import type { Rate, Settings } from "./types";
+import type { Rarity, Rate, Settings } from "./types";
+
+function rarities(source: JsonRecord, key: string): Record<Rarity, number> {
+  const raw = readRecord(source, key);
+  return {
+    common: readNumber(raw, "common"),
+    rare: readNumber(raw, "rare"),
+    epic: readNumber(raw, "epic"),
+    legendary: readNumber(raw, "legendary"),
+  };
+}
+
+function readText(source: JsonRecord, key: string): string {
+  const value = source[key];
+  return typeof value === "string" ? value : "";
+}
 
 function rate(source: JsonRecord, key: string): Rate {
   const raw = readRecord(source, key);
@@ -14,6 +29,10 @@ export function parseSettings(raw: unknown): Settings {
   const rates = readRecord(raw, "rates");
   const streak = readRecord(raw, "streak_bonus");
   const curve = readRecord(raw, "level_curve");
+  const loot = readRecord(raw, "loot");
+  const forge = readRecord(raw, "forge_prices");
+  const week = readRecord(raw, "week");
+  const crest = readRecord(raw, "crest");
   return {
     dayStartHour: readNumber(raw, "day_start_hour"),
     rates: {
@@ -36,6 +55,21 @@ export function parseSettings(raw: unknown): Settings {
       round: readNumber(curve, "round"),
     },
     motion: raw["motion"] === "reduced" ? "reduced" : "full",
+    oathDone: raw["oath_done"] === true,
+    loot: {
+      basePct: readNumber(loot, "base_pct"),
+      stepPct: readNumber(loot, "step_pct"),
+      pity: readNumber(loot, "pity"),
+      dailyCap: readNumber(loot, "daily_cap"),
+      weights: rarities(loot, "weights"),
+      unlockLevel: rarities(loot, "unlock_level"),
+    },
+    forgePrices: { common: readNumber(forge, "common"), rare: readNumber(forge, "rare") },
+    week: { goalGold: readNumber(week, "goal_gold"), chestGold: readNumber(week, "chest_gold"), stretchPct: readNumber(week, "stretch_pct") },
+    recapSeen: typeof raw["recap_seen"] === "string" ? raw["recap_seen"] : "",
+    crest: { shield: readText(crest, "shield"), charge: readText(crest, "charge"), tincture: readText(crest, "tincture") },
+    crestPrice: readNumber(raw, "crest_price"),
+    hintsSeen: Array.isArray(raw["hints_seen"]) ? raw["hints_seen"].filter((k): k is string => typeof k === "string") : [],
   };
 }
 

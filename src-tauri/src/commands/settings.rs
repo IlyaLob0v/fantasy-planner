@@ -19,7 +19,7 @@ pub async fn get_settings(db: State<'_, Db>) -> AppResult<HashMap<String, serde_
         .collect()
 }
 
-const EDITABLE: &[&str] = &["day_start_hour", "rates", "rest_price", "motion"];
+const EDITABLE: &[&str] = &["day_start_hour", "rates", "rest_price", "motion", "oath_done", "hints_seen", "loot", "forge_prices", "week", "recap_seen", "crest", "crest_price"];
 
 #[tauri::command]
 pub async fn set_setting(db: State<'_, Db>, key: String, value: serde_json::Value) -> AppResult<()> {

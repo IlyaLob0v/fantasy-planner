@@ -2,12 +2,19 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { isRecord } from "@/domain/guards";
 import type {
+  Achievement,
   Character,
   ChronicleEntry,
+  CrestPart,
   Day,
+  EquipmentSlot,
+  Gear,
+  GearSlot,
   InventoryItem,
   LedgerEntry,
+  LedgerTally,
   Location,
+  NewWeekGoal,
   Outcome,
   Quest,
   QuestFields,
@@ -17,6 +24,8 @@ import type {
   Ritual,
   RitualCompletion,
   RitualFields,
+  WeekGoal,
+  WeekGoalState,
 } from "@/domain/types";
 
 /** Типизированные обёртки над Rust-командами, один к одному с src-tauri/src/commands. */
@@ -30,6 +39,17 @@ export const ipc = {
   archiveQuest: (id: number) => invoke<null>("archive_quest", { id }),
   listDays: (since: string) => invoke<Day[]>("list_days", { since }),
   listLedgerForDate: (gameDate: string) => invoke<LedgerEntry[]>("list_ledger_for_date", { gameDate }),
+  listLedgerSince: (since: string) => invoke<LedgerEntry[]>("list_ledger_since", { since }),
+  ledgerTally: () => invoke<LedgerTally[]>("ledger_tally"),
+  listAchievements: () => invoke<Achievement[]>("list_achievements"),
+  listGear: () => invoke<Gear[]>("list_gear"),
+  listEquipment: () => invoke<EquipmentSlot[]>("list_equipment"),
+  setEquipment: (slot: GearSlot, gearId: number | null) => invoke<EquipmentSlot[]>("set_equipment", { slot, gearId }),
+  listWeekGoals: (since: string) => invoke<WeekGoal[]>("list_week_goals", { since }),
+  createWeekGoals: (goals: NewWeekGoal[]) => invoke<WeekGoal[]>("create_week_goals", { goals }),
+  updateWeekGoal: (id: number, goalKey: string, target: number, state: Exclude<WeekGoalState, "done">) =>
+    invoke<WeekGoal>("update_week_goal", { id, goalKey, target, state }),
+  listCrestParts: () => invoke<CrestPart[]>("list_crest_parts"),
   listRestActions: () => invoke<RestAction[]>("list_rest_actions"),
   createRestAction: (title: string) => invoke<RestAction>("create_rest_action", { title }),
   archiveRestAction: (id: number) => invoke<null>("archive_rest_action", { id }),
@@ -44,7 +64,10 @@ export const ipc = {
   archiveReward: (id: number) => invoke<null>("archive_reward", { id }),
   listInventory: () => invoke<InventoryItem[]>("list_inventory"),
   redeemItem: (id: number) => invoke<null>("redeem_item", { id }),
-  setSetting: (key: "day_start_hour" | "rates" | "rest_price" | "motion", value: unknown) => invoke<null>("set_setting", { key, value }),
+  setSetting: (
+    key: "day_start_hour" | "rates" | "rest_price" | "motion" | "oath_done" | "hints_seen" | "loot" | "forge_prices" | "week" | "recap_seen" | "crest" | "crest_price",
+    value: unknown,
+  ) => invoke<null>("set_setting", { key, value }),
   commitOutcome: (outcome: Outcome) => invoke<Character>("commit_outcome", { outcome }),
   listChronicle: () => invoke<ChronicleEntry[]>("list_chronicle"),
   saveChronicle: (entry: ChronicleEntry) => invoke<ChronicleEntry>("save_chronicle", { entry }),
