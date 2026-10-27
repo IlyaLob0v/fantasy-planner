@@ -5,6 +5,7 @@ import { GOLD_ANCHOR_ID } from "@/app/anchors";
 import { gloryProgress, gloryStats, newlyEarned, planGlory, type GloryProgress } from "@/domain/achievements";
 import { planBuyCrestPart, resolveCrest, type CrestChoice, type CrestPartDef } from "@/domain/crest";
 import { activePerks, forgePrice, restPrice, type GearDef, type Perk } from "@/domain/gear";
+import { checkOut, currentStay, innDates, planCheckIn } from "@/domain/inn";
 import { journeyDays, returnAbsence, type Absence } from "@/domain/journey";
 import { fieldsOf } from "@/domain/quests";
 import { weekStart } from "@/domain/rituals";
@@ -28,6 +29,7 @@ import {
   type WeekGoalKey,
   type WeekRecap,
 } from "@/domain/week";
+import { planYesterday, yesterdayOffer, type YesterdayOffer } from "@/domain/yesterday";
 import {
   planBuyGear,
   planBuyLocation,
@@ -53,6 +55,7 @@ import type {
   GameDate,
   Gear,
   GearSlot,
+  InnStay,
   InventoryItem,
   Location,
   Outcome,
@@ -97,6 +100,7 @@ const keys = {
   weekGoals: ["week-goals"] as const,
   crestParts: ["crest-parts"] as const,
   saga: ["saga"] as const,
+  inn: ["inn-stays"] as const,
 };
 
 /** Цели недели, закрытые только что: для тоста. */
@@ -163,6 +167,13 @@ export interface GameState {
   /** Перерыв перед сегодняшним днём, пока карточку возвращения не закрыли и ничего не сделано. */
   absence: Absence | null;
   crestParts: CrestPart[];
+  /** Комнаты в таверне и все их даты. */
+  innStays: InnStay[];
+  innDates: ReadonlySet<GameDate>;
+  /** Комната, которая идёт сейчас или начнётся завтра. */
+  stay: InnStay | null;
+  /** Карточка «Что было вчера?», пока вчерашние сутки открыты. */
+  yesterday: YesterdayOffer | null;
   /** Герб, который рисуется: выбор, сверенный с купленным. */
   crest: CrestChoice;
   today: GameDate;
@@ -211,6 +222,10 @@ export interface GameState {
   clearStale: (stale: readonly Quest[]) => void;
   buyCrestPart: (def: CrestPartDef, origin: DOMRect | null) => void;
   setCrest: (choice: CrestChoice) => void;
+  /** Записывает отмеченное за вчера и закрывает вчерашние сутки; пустой выбор просто закрывает их. */
+  recordYesterday: (rituals: readonly Ritual[], quests: readonly Quest[]) => void;
+  checkIn: (startDate: GameDate, nights: number) => void;
+  checkOutInn: () => void;
 }
 
 const GameContext = createContext<GameState | null>(null);
@@ -247,7 +262,7 @@ export function useGameBoot(): Boot {
   const rituals = useQuery({ queryKey: keys.rituals, queryFn: ipc.listRituals });
   const completions = useQuery({
     queryKey: [...keys.completions, today],
-    queryFn: () => ipc.listRitualCompletions(weekStart(today ?? "2000-01-03")),
+    queryFn: () => ipc.listRitualCompletions(weekStart(addDays(today ?? "2000-01-04", -1))),
     enabled: today !== null,
   });
   const rewards = useQuery({ queryKey: keys.rewards, queryFn: ipc.listRewards });
@@ -271,6 +286,7 @@ export function useGameBoot(): Boot {
   });
   const crestParts = useQuery({ queryKey: keys.crestParts, queryFn: ipc.listCrestParts });
   const saga = useQuery({ queryKey: keys.saga, queryFn: ipc.listSagaChapters });
+  const innStays = useQuery({ queryKey: keys.inn, queryFn: ipc.listInnStays });
   const fetching = useIsFetching();
   const mutating = useIsMutating();
 
@@ -285,14 +301,25 @@ export function useGameBoot(): Boot {
   const closedFor = useRef<GameDate | null>(null);
 
   const perks = useMemo(() => activePerks(gear.data ?? [], equipment.data ?? []), [gear.data, equipment.data]);
+  const inn = useMemo(() => (innStays.data ? innDates(innStays.data) : null), [innStays.data]);
 
   const context = useCallback(
     (): TurnContext | null =>
-      settings && today && character.data && days.data && gear.data
-        ? { character: character.data, settings, days: days.data, today, now: new Date(), gear: gear.data, perks, uid: uuidv7 }
+      settings && today && character.data && days.data && gear.data && inn
+        ? { character: character.data, settings, days: days.data, today, now: new Date(), gear: gear.data, perks, uid: uuidv7, inn }
         : null,
-    [settings, today, character.data, days.data, gear.data, perks],
+    [settings, today, character.data, days.data, gear.data, perks, inn],
   );
+
+  const yesterday = useMemo(
+    () =>
+      settings && today && days.data && inn && rituals.data && completions.data && quests.data
+        ? yesterdayOffer(days.data, today, inn, rituals.data, completions.data, quests.data, settings)
+        : null,
+    [settings, today, days.data, inn, rituals.data, completions.data, quests.data],
+  );
+  /** Карточку можно считать, только когда загружено всё, из чего она складывается. */
+  const yesterdayKnown = rituals.data !== undefined && completions.data !== undefined && quests.data !== undefined;
 
   const fail = useCallback((e: unknown) => {
     setError(describeError(e));
@@ -313,6 +340,7 @@ export function useGameBoot(): Boot {
         keys.ledgerSince,
         keys.weekGoals,
         keys.crestParts,
+        keys.inn,
       ].map((queryKey) =>
         client.invalidateQueries({ queryKey }),
       ),
@@ -330,15 +358,15 @@ export function useGameBoot(): Boot {
 
   useEffect(() => {
     const ctx = context();
-    if (!ctx || closedFor.current === ctx.today) {
+    if (!ctx || !yesterdayKnown || closedFor.current === ctx.today) {
       return;
     }
     closedFor.current = ctx.today;
-    const plan = planDayClose(ctx);
+    const plan = planDayClose(ctx, yesterday !== null);
     if (plan) {
       commitOutcome(plan.outcome);
     }
-  }, [context, commitOutcome]);
+  }, [context, commitOutcome, yesterday, yesterdayKnown]);
 
   const stats = useMemo(
     () =>
@@ -901,6 +929,51 @@ export function useGameBoot(): Boot {
     [setSetting],
   );
 
+  const recordYesterday = useCallback(
+    (marked: readonly Ritual[], done: readonly Quest[]) => {
+      if (!yesterday) return;
+      const deeds = marked.length + done.length;
+      let reward: Reward = { xp: 0, gold: 0, attribute: null, attributeDelta: 0 };
+      play(
+        (ctx) => {
+          const outcome = planYesterday(ctx, yesterday, marked, done);
+          reward = outcome.ledger.reduce<Reward>(
+            (sum, e) => ({ xp: sum.xp + e.xpDelta, gold: sum.gold + e.goldDelta, attribute: sum.attribute ?? e.attribute, attributeDelta: sum.attributeDelta + e.attributeDelta }),
+            reward,
+          );
+          return outcome;
+        },
+        () => {
+          if (deeds > 0) {
+            announce({ direction: "in", reward, levelUp: null, revived: false, victory: null, find: null, origin: null, questId: null });
+          }
+        },
+      );
+    },
+    [yesterday, play, announce],
+  );
+
+  const stay = useMemo(() => (innStays.data && today ? currentStay(innStays.data, today) : null), [innStays.data, today]);
+
+  const checkIn = useCallback(
+    (startDate: GameDate, nights: number) => {
+      const stays = innStays.data ?? [];
+      play((ctx) => planCheckIn(ctx, stays, startDate, nights));
+    },
+    [play, innStays.data],
+  );
+
+  const checkOutInn = useCallback(() => {
+    if (!stay || !today) return;
+    const result = checkOut(stay, today);
+    ipc
+      .endInnStay(stay.id, result === "cancel" ? null : result.endDate)
+      .then((list) => {
+        client.setQueryData(keys.inn, list);
+      })
+      .catch(fail);
+  }, [stay, today, client, fail]);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -925,7 +998,9 @@ export function useGameBoot(): Boot {
       !equipment.data ||
       !week ||
       !crestParts.data ||
-      !saga.data
+      !saga.data ||
+      !innStays.data ||
+      !inn
     ) {
       return null;
     }
@@ -953,6 +1028,10 @@ export function useGameBoot(): Boot {
       saga: saga.data,
       crestParts: crestParts.data,
       crest: resolveCrest(settings.crest, crestParts.data),
+      innStays: innStays.data,
+      innDates: inn,
+      stay,
+      yesterday,
       today,
       lastReward,
       lastGlory,
@@ -994,6 +1073,9 @@ export function useGameBoot(): Boot {
       clearStale,
       buyCrestPart,
       setCrest,
+      recordYesterday,
+      checkIn,
+      checkOutInn,
     };
   }, [
     settings,
@@ -1058,6 +1140,13 @@ export function useGameBoot(): Boot {
     clearStale,
     buyCrestPart,
     setCrest,
+    innStays.data,
+    inn,
+    stay,
+    yesterday,
+    recordYesterday,
+    checkIn,
+    checkOutInn,
   ]);
 
   const firstError = [
@@ -1080,6 +1169,7 @@ export function useGameBoot(): Boot {
     weekGoals,
     crestParts,
     saga,
+    innStays,
   ].find(
     (q) => q.error,
   )?.error;

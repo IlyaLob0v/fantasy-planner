@@ -121,9 +121,16 @@ export interface RestAction {
   title: string;
 }
 
+export interface RitualMark {
+  ritualId: number;
+  gameDate: GameDate;
+  done: boolean;
+}
+
 export interface Outcome {
   quests: QuestStatusChange[];
-  ritual: { ritualId: number; gameDate: GameDate; done: boolean } | null;
+  /** Отметки ритуалов: обычно одна, у «Что было вчера?» несколько за вчерашние сутки. */
+  rituals: RitualMark[];
   inventory: NewInventoryItem[];
   /** Лут, который забирается при отмене победы над боссом. */
   removeInventory: number[];
@@ -140,6 +147,22 @@ export interface Outcome {
   weekGoalsDone: number[];
   /** Купленные части герба. */
   crestParts: NewCrestPart[];
+  /** Новая комната в таверне. */
+  innStays: NewInnStay[];
+}
+
+/** Комната в таверне: дни с `startDate` по `endDate` включительно нейтральны для серии. */
+export interface InnStay {
+  id: number;
+  startDate: GameDate;
+  endDate: GameDate;
+  createdAt: string;
+}
+
+export interface NewInnStay {
+  uid: string;
+  startDate: GameDate;
+  endDate: GameDate;
 }
 
 export type WeekGoalState = "active" | "done" | "off";

@@ -10,6 +10,7 @@ import type {
   EquipmentSlot,
   Gear,
   GearSlot,
+  InnStay,
   InventoryItem,
   LedgerEntry,
   LedgerTally,
@@ -78,6 +79,9 @@ export const ipc = {
   listSagaChapters: () => invoke<SagaProgress[]>("list_saga_chapters"),
   unlockSagaChapters: (chapters: NewSagaChapter[]) => invoke<SagaProgress[]>("unlock_saga_chapters", { chapters }),
   readSagaChapter: (key: string) => invoke<SagaProgress[]>("read_saga_chapter", { key }),
+  listInnStays: () => invoke<InnStay[]>("list_inn_stays"),
+  /** Новая дата конца комнаты или null: отменить комнату, которая ещё не началась. */
+  endInnStay: (id: number, endDate: string | null) => invoke<InnStay[]>("end_inn_stay", { id, endDate }),
 };
 
 /** Человеческое сообщение из ошибки IPC (AppError сериализуется как { kind, message }). */

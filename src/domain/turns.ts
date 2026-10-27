@@ -4,6 +4,7 @@ import { applyReward, stateOf } from "./character";
 import { ownsLocation } from "./locations";
 import { questReward, restActionReward, ritualReward } from "./rewards";
 import { closePastDays, currentStreak } from "./streak";
+import { addDays } from "./time";
 import type {
   Character,
   CharacterState,
@@ -38,6 +39,8 @@ export interface TurnContext {
   perks: ReadonlySet<Perk>;
   /** Генератор uid новых записей (UUID v7). */
   uid: () => string;
+  /** Даты комнаты в таверне: нейтральные дни для серии. */
+  inn: ReadonlySet<GameDate>;
 }
 
 export interface DeedResult {
@@ -58,10 +61,10 @@ type FindSource = { source: "quest" | "ritual"; id: number } | null;
 
 export const NOTHING: Pick<
   Outcome,
-  "quests" | "ritual" | "inventory" | "removeInventory" | "achievements" | "gear" | "removeGear" | "weekGoalsDone" | "crestParts"
+  "quests" | "rituals" | "inventory" | "removeInventory" | "achievements" | "gear" | "removeGear" | "weekGoalsDone" | "crestParts" | "innStays"
 > = {
   quests: [],
-  ritual: null,
+  rituals: [],
   inventory: [],
   removeInventory: [],
   achievements: [],
@@ -69,6 +72,7 @@ export const NOTHING: Pick<
   removeGear: [],
   weekGoalsDone: [],
   crestParts: [],
+  innStays: [],
 };
 
 function todayRow(days: readonly Day[], today: GameDate): Day {
@@ -82,12 +86,12 @@ function withDeeds(ctx: TurnContext, delta: number): { row: Day; days: Day[] } {
   return { row, days };
 }
 
-function withStreak(state: CharacterState, days: readonly Day[], today: GameDate): CharacterState {
-  const streak = currentStreak(days, today);
+export function withStreak(state: CharacterState, days: readonly Day[], today: GameDate, inn: ReadonlySet<GameDate>): CharacterState {
+  const streak = currentStreak(days, today, inn);
   return { ...state, streakCurrent: streak, streakBest: Math.max(state.streakBest, streak) };
 }
 
-function ledgerFor(ctx: TurnContext, source: NewLedgerEntry["sourceType"], sourceId: number, reward: Reward): NewLedgerEntry {
+export function ledgerFor(ctx: TurnContext, source: NewLedgerEntry["sourceType"], sourceId: number, reward: Reward): NewLedgerEntry {
   return {
     gameDate: ctx.today,
     sourceType: source,
@@ -131,7 +135,7 @@ function findFor(ctx: TurnContext, level: number, misses: number, source: FindSo
 function deed(
   ctx: TurnContext,
   gains: readonly Gain[],
-  change: Partial<Pick<Outcome, "quests" | "ritual" | "inventory">>,
+  change: Partial<Pick<Outcome, "quests" | "rituals" | "inventory">>,
   source: FindSource,
   victory: DeedResult["victory"] = null,
 ): DeedResult {
@@ -139,7 +143,7 @@ function deed(
   const { row, days } = withDeeds(ctx, 1);
   const rewarded = gains.reduce((state, g) => applyReward(state, g.reward, 1, ctx.settings.levelCurve), before);
   const found = findFor(ctx, rewarded.level, before.lootMisses, source, victory);
-  const character = withStreak({ ...rewarded, fatiguedSince: null, lootMisses: found.misses }, days, ctx.today);
+  const character = withStreak({ ...rewarded, fatiguedSince: null, lootMisses: found.misses }, days, ctx.today, ctx.inn);
   const reward = gains.reduce<Reward>(
     (sum, g) => ({
       xp: sum.xp + g.reward.xp,
@@ -280,7 +284,7 @@ function revert(
     state = { ...state, lootMisses: undoFind(ctx, source, id, state.lootMisses, removeGear) };
   }
   const { row, days } = withDeeds(ctx, -deeds);
-  return { character: withStreak(state, days, ctx.today), ledger, days: [row], removeGear };
+  return { character: withStreak(state, days, ctx.today, ctx.inn), ledger, days: [row], removeGear };
 }
 
 /**
@@ -325,14 +329,14 @@ export function planRitual(ctx: TurnContext, ritual: Ritual): DeedResult {
   return deed(
     ctx,
     [{ reward, entry: ledgerFor(ctx, "ritual", ritual.id, reward) }],
-    { ritual: { ritualId: ritual.id, gameDate: ctx.today, done: true } },
+    { rituals: [{ ritualId: ritual.id, gameDate: ctx.today, done: true }] },
     { source: "ritual", id: ritual.id },
   );
 }
 
 export function planUndoRitual(ctx: TurnContext, ritual: Ritual, todayLedger: readonly LedgerEntry[]): Outcome {
   const undone = revert(ctx, [{ source: "ritual", id: ritual.id }], todayLedger);
-  return { ...NOTHING, ritual: { ritualId: ritual.id, gameDate: ctx.today, done: false }, ...undone };
+  return { ...NOTHING, rituals: [{ ritualId: ritual.id, gameDate: ctx.today, done: false }], ...undone };
 }
 
 export function spend(ctx: TurnContext, price: number, source: "purchase" | "rest", sourceId: number | null, note: string) {
@@ -399,21 +403,20 @@ export function planBuyRest(ctx: TurnContext, date: GameDate): Outcome {
   const row: Day = existing ? { ...existing, kind: "rest" } : { gameDate: date, kind: "rest", deedsCount: 0, closedAt: null };
   const days = [...ctx.days.filter((d) => d.gameDate !== date), row];
   const rested = date === ctx.today ? { ...character, fatiguedSince: null } : character;
-  return { ...NOTHING, ledger: [entry], days: [row], character: withStreak(rested, days, ctx.today) };
+  return { ...NOTHING, ledger: [entry], days: [row], character: withStreak(rested, days, ctx.today, ctx.inn) };
 }
 
-/** Итоги прошедших суток при запуске или смене дня. null, если записывать нечего. */
-export function planDayClose(ctx: TurnContext): { outcome: Outcome; days: Day[] } | null {
+/**
+ * Итоги прошедших суток при запуске или смене дня. null, если записывать нечего.
+ * `keepYesterday`: вчерашние сутки остаются открытыми, пока ждёт карточка «Что было вчера?».
+ */
+export function planDayClose(ctx: TurnContext, keepYesterday = false): { outcome: Outcome; days: Day[] } | null {
   const c = ctx.character;
-  const closing = closePastDays(
-    ctx.days,
-    ctx.today,
-    c.windStep,
-    c.fatiguedSince,
-    ctx.settings.streakBonus,
-    ctx.now.toISOString(),
-    ctx.perks.has("wind_guard"),
-  );
+  const closing = closePastDays(ctx.days, ctx.today, c.windStep, c.fatiguedSince, ctx.settings.streakBonus, ctx.now.toISOString(), {
+    guardSingleMiss: ctx.perks.has("wind_guard"),
+    inn: ctx.inn,
+    until: keepYesterday ? addDays(ctx.today, -1) : ctx.today,
+  });
   if (closing.changed.length === 0) {
     return null;
   }
@@ -421,6 +424,7 @@ export function planDayClose(ctx: TurnContext): { outcome: Outcome; days: Day[] 
     { ...stateOf(c), windStep: closing.windStep, fatiguedSince: closing.fatiguedSince },
     closing.days,
     ctx.today,
+    ctx.inn,
   );
   return {
     outcome: { ...NOTHING, ledger: [], days: closing.changed, character },

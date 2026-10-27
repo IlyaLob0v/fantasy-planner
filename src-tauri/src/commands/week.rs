@@ -102,7 +102,7 @@ mod tests {
     fn turn(week_goals_done: Vec<i64>, crest: Vec<NewCrestPart>, gold: i64) -> Outcome {
         Outcome {
             quests: vec![],
-            ritual: None,
+            rituals: vec![],
             inventory: vec![],
             remove_inventory: vec![],
             ledger: vec![],
@@ -126,6 +126,7 @@ mod tests {
             remove_gear: vec![],
             week_goals_done,
             crest_parts: crest,
+            inn_stays: vec![],
         }
     }
 

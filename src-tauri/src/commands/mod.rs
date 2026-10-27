@@ -3,6 +3,7 @@ pub mod character;
 pub mod chronicle;
 pub mod days;
 pub mod gear;
+pub mod inn;
 pub mod inventory;
 pub mod ledger;
 pub mod locations;

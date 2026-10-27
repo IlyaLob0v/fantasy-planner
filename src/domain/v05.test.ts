@@ -92,6 +92,7 @@ describe("Зал славы: открытие", () => {
       gear: [],
       perks: new Set<Perk>(),
       uid: () => `uid-${String((n += 1))}`,
+      inn: new Set<string>(),
     };
     const earned = newlyEarned({ ...zero, questsDone: 10 }, []);
     const outcome = planGlory(ctx, earned);
@@ -115,6 +116,7 @@ function turn(overrides: Partial<TurnContext> = {}): TurnContext {
     gear: [],
     perks: new Set<Perk>(),
     uid: () => `uid-${String((n += 1))}`,
+      inn: new Set(),
     ...overrides,
   };
 }
@@ -250,9 +252,9 @@ describe("Снаряжение: ход", () => {
   it("способности: дешёвый отдых и Плащ странника на одиночный пропуск", () => {
     expect(restPrice(40, new Set<Perk>(["rest_discount"]))).toBe(30);
     const days = [day("2026-10-23", 1), day("2026-10-24", 1), day("2026-10-25", 0, false)];
-    expect(closePastDays(days, today, 2, null, settings.streakBonus, now.toISOString(), true).windStep).toBe(2);
-    expect(closePastDays(days, today, 2, null, settings.streakBonus, now.toISOString(), false).windStep).toBe(1);
+    expect(closePastDays(days, today, 2, null, settings.streakBonus, now.toISOString(), { guardSingleMiss: true }).windStep).toBe(2);
+    expect(closePastDays(days, today, 2, null, settings.streakBonus, now.toISOString(), { guardSingleMiss: false }).windStep).toBe(1);
     const twice = [day("2026-10-23", 1), day("2026-10-24", 0, false), day("2026-10-25", 0, false)];
-    expect(closePastDays(twice, today, 2, null, settings.streakBonus, now.toISOString(), true).windStep).toBe(1);
+    expect(closePastDays(twice, today, 2, null, settings.streakBonus, now.toISOString(), { guardSingleMiss: true }).windStep).toBe(1);
   });
 });

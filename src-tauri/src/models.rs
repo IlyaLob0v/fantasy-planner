@@ -146,8 +146,9 @@ pub struct QuestStatusChange {
 pub struct Outcome {
     #[serde(default)]
     pub quests: Vec<QuestStatusChange>,
+    /// Отметки ритуалов: обычно одна, у «Вчера ты успел…» несколько за вчерашние сутки.
     #[serde(default)]
-    pub ritual: Option<RitualMark>,
+    pub rituals: Vec<RitualMark>,
     #[serde(default)]
     pub inventory: Vec<NewInventoryItem>,
     /// Лут, который забирается обратно при отмене победы над боссом.
@@ -171,6 +172,27 @@ pub struct Outcome {
     /// Купленные части герба.
     #[serde(default)]
     pub crest_parts: Vec<NewCrestPart>,
+    /// Новая комната в таверне.
+    #[serde(default)]
+    pub inn_stays: Vec<NewInnStay>,
+}
+
+/// Комната в таверне: сутки с `start_date` по `end_date` включительно нейтральны для серии.
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct InnStay {
+    pub id: i64,
+    pub start_date: String,
+    pub end_date: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewInnStay {
+    pub uid: String,
+    pub start_date: String,
+    pub end_date: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]

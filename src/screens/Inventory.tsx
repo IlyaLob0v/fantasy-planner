@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { GOLD_ANCHOR_ID } from "@/app/anchors";
-import { RARITY_LABEL } from "@/app/strings";
+import { daysWord, RARITY_LABEL } from "@/app/strings";
 import { Forge } from "@/components/kit/Forge";
 import { Coin } from "@/components/kit/icons";
 import { BuyButton } from "@/components/kit/BuyButton";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { trophies } from "@/domain/bosses";
 import { restPrice } from "@/domain/gear";
+import { INN_MAX_NIGHTS, stayNights } from "@/domain/inn";
 import { isOnSale, restDaysAhead, unusedRewards, usedRewards } from "@/domain/shop";
 import { addDays, gameDateOfIso, humanDate, humanWeekday } from "@/domain/time";
 import type { RealReward, RealRewardFields } from "@/domain/types";
@@ -66,6 +67,83 @@ function RestDayCard() {
   );
 }
 
+/** Комната в таверне: бесплатная пауза на 1–30 суток для болезни и отпуска. Серия в эти дни не растёт и не рвётся. */
+function InnCard() {
+  const { stay, today, checkIn, checkOutInn } = useGame();
+  const [start, setStart] = useState<"today" | "tomorrow">("today");
+  const [nights, setNights] = useState(3);
+
+  return (
+    <div className={card}>
+      <div>
+        <p className="font-display text-xl leading-tight text-parchment">Комната в таверне</p>
+        <p className="text-xs text-parchment/55">
+          Бесплатно, от 1 до {INN_MAX_NIGHTS} суток: на болезнь, отпуск, тяжёлую неделю. Серия и Попутный ветер ждут, усталость не приходит,
+          напоминания молчат.
+        </p>
+      </div>
+      {stay ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-parchment/80">
+            {stay.startDate > today ? `Комната ждёт с ${humanDate(stay.startDate)}` : "Герой в таверне"} до {humanDate(stay.endDate)} включительно
+            {" "}({stayNights(stay)} {daysWord(stayNights(stay))}).
+          </p>
+          <Button variant="outline" size="sm" onClick={checkOutInn}>
+            {stay.startDate > today ? "Отменить комнату" : "Вернуться раньше"}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className={label}>
+              С какого дня
+              <div className="flex gap-1.5">
+                <Chip
+                  active={start === "today"}
+                  onClick={() => {
+                    setStart("today");
+                  }}
+                >
+                  сегодня
+                </Chip>
+                <Chip
+                  active={start === "tomorrow"}
+                  onClick={() => {
+                    setStart("tomorrow");
+                  }}
+                >
+                  завтра
+                </Chip>
+              </div>
+            </div>
+            <label className={cn(label, "w-28")}>
+              Сколько суток
+              <Input
+                type="number"
+                min={1}
+                max={INN_MAX_NIGHTS}
+                value={nights}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isInteger(n)) setNights(Math.min(INN_MAX_NIGHTS, Math.max(1, n)));
+                }}
+              />
+            </label>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              checkIn(start === "today" ? today : addDays(today, 1), nights);
+            }}
+          >
+            Снять комнату
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RewardCard({ reward, onEdit }: { reward: RealReward; onEdit: () => void }) {
   const { character, buyReward } = useGame();
   return (
@@ -97,6 +175,7 @@ function Shop({ onEdit }: { onEdit: (r: RealReward | "new") => void }) {
   return (
     <div className="flex flex-col gap-3">
       <RestDayCard />
+      <InnCard />
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {onSale.map((r) => (
           <RewardCard
