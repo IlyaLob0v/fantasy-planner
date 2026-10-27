@@ -18,3 +18,31 @@ export function isBlank(entry: Pick<ChronicleEntry, "happened" | "noticed" | "fe
 }
 
 export const MOODS = [1, 2, 3, 4, 5] as const;
+
+/**
+ * Хроника дня в Markdown: записи от старых к новым, пустые пропускаются.
+ * `moodLabel[n]` подписывает настроение 1–5; `humanDate` превращает дату в заголовок.
+ */
+export function chronicleMarkdown(
+  entries: readonly ChronicleEntry[],
+  hero: string,
+  moodLabel: readonly string[],
+  humanDate: (date: GameDate) => string,
+): string {
+  const sections = [...entries]
+    .filter((e) => !isBlank(e))
+    .sort((a, b) => a.gameDate.localeCompare(b.gameDate))
+    .map((e) => {
+      const lines = [`## ${humanDate(e.gameDate)} ${e.gameDate.slice(0, 4)}`];
+      if (e.mood !== null) lines.push(`*Настроение: ${moodLabel[e.mood] ?? String(e.mood)}*`);
+      for (const [title, text] of [
+        ["Что произошло", e.happened],
+        ["Что заметил", e.noticed],
+        ["Что чувствую", e.feeling],
+      ] as const) {
+        if (text.trim()) lines.push(`**${title}.** ${text.trim()}`);
+      }
+      return lines.join("\n\n");
+    });
+  return [`# Хроника героя ${hero}`, ...sections].join("\n\n") + "\n";
+}
