@@ -2,6 +2,7 @@ mod commands;
 mod db;
 mod error;
 mod models;
+mod sync;
 
 use tauri::Manager;
 
@@ -13,6 +14,7 @@ pub fn run() {
             std::fs::create_dir_all(&dir)?;
             let pool = tauri::async_runtime::block_on(db::open(&dir.join("guild.db")))?;
             app.manage(db::Db(pool));
+            app.manage(sync::SyncGate::default());
             // На ПК окно создаётся скрытым и показывается после миграций; на телефоне окно одно и видно сразу.
             #[cfg(desktop)]
             if let Some(window) = app.get_webview_window("main") {
@@ -60,6 +62,11 @@ pub fn run() {
             commands::chronicle::save_chronicle,
             commands::locations::list_locations,
             commands::locations::set_home,
+            sync::sync_status,
+            sync::sync_sign_in,
+            sync::sync_link,
+            sync::sync_now,
+            sync::sync_sign_out,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|err| {

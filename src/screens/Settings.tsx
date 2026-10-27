@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import type { Rate, Settings as GameSettings } from "@/domain/types";
 import { useGame } from "@/services/game";
 
+import { GuildMail } from "./GuildMail";
+
 const DAY_START_HOURS = [0, 1, 2, 3, 4, 5, 6] as const;
 
 const RATE_ROWS: ReadonlyArray<[keyof GameSettings["rates"], string]> = [
@@ -307,7 +309,7 @@ function RestActions() {
   );
 }
 
-/** Настройки: ставки, граница суток, цена отдыха, анимации, привалы и авторы иллюстраций. */
+/** Настройки: гильдейская почта, ставки, граница суток, цена отдыха, анимации, привалы и авторы иллюстраций. */
 export function SettingsScreen() {
   const { settings, setSetting } = useGame();
   const origins = [
@@ -318,6 +320,10 @@ export function SettingsScreen() {
     <div className="h-full overflow-y-auto p-3 scrollbar-quiet md:p-6">
       <Panel className="mx-auto flex max-w-3xl flex-col gap-7 p-4 md:p-6">
         <PanelTitle>Устав гильдии</PanelTitle>
+
+        <Section title="Гильдейская почта" hint="Один герой на ПК и телефоне. Без сети всё работает как раньше, правки уйдут при следующей сверке.">
+          <GuildMail />
+        </Section>
 
         <Section title="Начало суток" hint="Дела после полуночи и до этого часа засчитываются вчерашнему дню.">
           <div className="flex flex-wrap gap-1">

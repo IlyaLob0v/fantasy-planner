@@ -342,3 +342,29 @@ export interface Location {
   price: number;
   sortOrder: number;
 }
+
+/** Гильдейская почта: вход и сверка с сервером (specs/sync.md). */
+export interface SyncStatus {
+  server: string | null;
+  email: string | null;
+  deviceName: string | null;
+  signedIn: boolean;
+  /** Герой выбран, устройство сверяется. */
+  linked: boolean;
+  lastSyncAt: string | null;
+  pending: number;
+}
+
+export interface SyncSignIn {
+  remoteRecords: number;
+  localProgress: boolean;
+}
+
+export interface SyncReport {
+  pushed: number;
+  applied: number;
+  /** Героя аккаунта заменили с другого устройства: местная летопись ушла в резервную копию. */
+  reset: boolean;
+}
+
+export type SyncKeep = "remote" | "local";

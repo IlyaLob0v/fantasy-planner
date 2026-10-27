@@ -14,6 +14,8 @@ pub enum ApiError {
     EmailTaken,
     #[error("Нужно войти заново")]
     Unauthorized,
+    #[error("Летопись аккаунта заменили с другого устройства")]
+    StaleEpoch,
     #[error("{0}")]
     Invalid(String),
     #[error("Сервер летописи недоступен")]
@@ -27,6 +29,7 @@ impl ApiError {
             Self::TooManyAttempts => "too_many_attempts",
             Self::EmailTaken => "email_taken",
             Self::Unauthorized => "unauthorized",
+            Self::StaleEpoch => "stale_epoch",
             Self::Invalid(_) => "invalid",
             Self::Internal(_) => "internal",
         }
@@ -36,7 +39,7 @@ impl ApiError {
         match self {
             Self::BadCredentials | Self::Unauthorized => StatusCode::UNAUTHORIZED,
             Self::TooManyAttempts => StatusCode::TOO_MANY_REQUESTS,
-            Self::EmailTaken => StatusCode::CONFLICT,
+            Self::EmailTaken | Self::StaleEpoch => StatusCode::CONFLICT,
             Self::Invalid(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }

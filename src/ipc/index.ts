@@ -24,6 +24,10 @@ import type {
   Ritual,
   RitualCompletion,
   RitualFields,
+  SyncKeep,
+  SyncReport,
+  SyncSignIn,
+  SyncStatus,
   WeekGoal,
   WeekGoalState,
 } from "@/domain/types";
@@ -73,7 +77,18 @@ export const ipc = {
   saveChronicle: (entry: ChronicleEntry) => invoke<ChronicleEntry>("save_chronicle", { entry }),
   listLocations: () => invoke<Location[]>("list_locations"),
   setHome: (key: string) => invoke<Character>("set_home", { key }),
+  syncStatus: () => invoke<SyncStatus>("sync_status"),
+  syncSignIn: (form: { server: string; email: string; password: string; deviceName: string; create: boolean }) =>
+    invoke<SyncSignIn>("sync_sign_in", form),
+  syncLink: (keep: SyncKeep) => invoke<SyncReport>("sync_link", { keep }),
+  syncNow: () => invoke<SyncReport>("sync_now"),
+  syncSignOut: () => invoke<null>("sync_sign_out"),
 };
+
+/** Ошибка IPC с этим видом: `AppError` из src-tauri/src/error.rs. */
+export function isErrorKind(error: unknown, kind: string): boolean {
+  return isRecord(error) && error["kind"] === kind;
+}
 
 /** Человеческое сообщение из ошибки IPC (AppError сериализуется как { kind, message }). */
 export function describeError(error: unknown): string {
