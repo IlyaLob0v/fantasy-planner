@@ -56,6 +56,7 @@ export function parseSettings(raw: unknown): Settings {
     },
     motion: raw["motion"] === "reduced" ? "reduced" : "full",
     oathDone: raw["oath_done"] === true,
+    starterPack: raw["starter_pack"] === true,
     loot: {
       basePct: readNumber(loot, "base_pct"),
       stepPct: readNumber(loot, "step_pct"),

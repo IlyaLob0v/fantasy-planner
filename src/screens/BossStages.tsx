@@ -171,7 +171,7 @@ export function BossStages({ boss }: { boss: Quest }) {
       <div className="flex items-baseline justify-between">
         <span>Этапы и урон</span>
         <span className="tabular-nums text-parchment/70">
-          HP {hp.current} / {hp.max}
+          Силы {hp.current} / {hp.max}
         </span>
       </div>
       <HpBar hp={hp} size="sm" />

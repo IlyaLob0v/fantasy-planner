@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 
-import { RARITY_LABEL } from "@/app/strings";
+import { RARITY_LABEL, xpText } from "@/app/strings";
 import { titleForLevel } from "@/domain/levels";
 import { unlockedBetween } from "@/domain/locations";
 import { cn } from "@/lib/utils";
@@ -87,7 +87,7 @@ function CoinFlight({ flight }: { flight: Flight }) {
           animate={{ y: flight.from.y - 52, opacity: [0, 1, 0] }}
           transition={{ duration: 1.2 }}
         >
-          +{flight.xp} XP
+          {xpText(flight.xp)}
         </motion.div>
       )}
     </>
@@ -203,7 +203,7 @@ export function RewardLayer({ onOpenMap }: { onOpenMap: () => void }) {
                     <p className="text-xs uppercase tracking-wider text-parchment/50">Трофей · {RARITY_LABEL[victory.loot.rarity]}</p>
                     <p className="mt-1 font-display text-xl text-parchment">{victory.loot.itemName}</p>
                     <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-parchment/70">
-                      +{victory.reward.xp} XP · <Coin className="h-4 w-4" /> {victory.reward.gold}
+                      {xpText(victory.reward.xp)} · <Coin className="h-4 w-4" /> {victory.reward.gold}
                     </p>
                   </div>
                   {levelUp !== null && <p className="mt-4 font-display text-2xl text-gold-bright">И новый уровень: {levelUp}</p>}

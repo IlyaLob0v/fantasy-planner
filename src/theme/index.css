@@ -1,10 +1,6 @@
 @import "tailwindcss";
-@import "@fontsource/cormorant-garamond/500.css";
-@import "@fontsource/cormorant-garamond/600.css";
-@import "@fontsource/cormorant-garamond/700.css";
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
+@import "@fontsource/yeseva-one/400.css";
+@import "@fontsource/kurale/400.css";
 
 /* Базовая палитра. Токены локации (src/assets/registry.ts) переопределяют переменные на корне сцены. */
 @theme {
@@ -20,8 +16,9 @@
   --color-ember: #d9772b;
   --color-sage: #6f8a5b;
 
-  --font-display: "Cormorant Garamond", "Georgia", serif;
-  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  /* Летописная пара: контрастная Yeseva One для заголовков, почти рукописная Kurale для текста. */
+  --font-display: "Yeseva One", "Georgia", serif;
+  --font-sans: "Kurale", "Georgia", serif;
 
   --radius-panel: 6px;
 }
@@ -62,7 +59,9 @@ h2,
 h3,
 .font-display {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 400;
+  /* У Yeseva One одно начертание: искусственный полужирный только портит контраст штриха. */
+  font-synthesis-weight: none;
   letter-spacing: 0.01em;
   font-variant-numeric: lining-nums;
 }

@@ -65,7 +65,7 @@ export const ipc = {
   listInventory: () => invoke<InventoryItem[]>("list_inventory"),
   redeemItem: (id: number) => invoke<null>("redeem_item", { id }),
   setSetting: (
-    key: "day_start_hour" | "rates" | "rest_price" | "motion" | "oath_done" | "hints_seen" | "loot" | "forge_prices" | "week" | "recap_seen" | "crest" | "crest_price",
+    key: "day_start_hour" | "rates" | "rest_price" | "motion" | "oath_done" | "hints_seen" | "loot" | "forge_prices" | "week" | "recap_seen" | "crest" | "crest_price" | "starter_pack",
     value: unknown,
   ) => invoke<null>("set_setting", { key, value }),
   commitOutcome: (outcome: Outcome) => invoke<Character>("commit_outcome", { outcome }),

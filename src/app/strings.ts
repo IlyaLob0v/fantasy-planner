@@ -23,10 +23,10 @@ export const QUEST_TYPE_LABEL: Record<QuestType, string> = {
 };
 
 export const QUEST_TYPE_SHORT: Record<QuestType, string> = {
-  main: "Main",
-  side: "Side",
-  boss: "Boss",
-  stage: "Stage",
+  main: "Главный",
+  side: "Побочный",
+  boss: "Босс",
+  stage: "Этап",
 };
 
 export const RARITY_LABEL: Record<Rarity, string> = {
@@ -35,6 +35,11 @@ export const RARITY_LABEL: Record<Rarity, string> = {
   epic: "эпический",
   legendary: "легендарный",
 };
+
+/** Опыт в подписях наград: «+10 опыта», без игрового сокращения XP. */
+export function xpText(n: number): string {
+  return `+${String(n)} опыта`;
+}
 
 export const MOOD_LABEL = ["", "Тяжёлый день", "Так себе", "Ровно", "Хорошо", "Отлично"] as const;
 

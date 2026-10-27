@@ -7,6 +7,7 @@ import { planBuyCrestPart, resolveCrest, type CrestChoice, type CrestPartDef } f
 import { activePerks, forgePrice, restPrice, type GearDef, type Perk } from "@/domain/gear";
 import { weekStart } from "@/domain/rituals";
 import { mergeRates, parseSettings } from "@/domain/settings";
+import { starterPack } from "@/domain/starter";
 import { addDays } from "@/domain/time";
 import {
   availableGoals,
@@ -261,6 +262,7 @@ export function useGameBoot(): Boot {
   /** Зал славы или цели недели прямо сейчас записывают заслуженное. */
   const settling = useRef(false);
   const weekOpenedFor = useRef<GameDate | null>(null);
+  const starterGiven = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const closedFor = useRef<GameDate | null>(null);
 
@@ -339,9 +341,54 @@ export function useGameBoot(): Boot {
     return { facts, progress, past, goals, available: availableGoals(quests.data, rituals.data, past) };
   }, [thisWeek, today, ledgerSince.data, quests.data, chronicle.data, rituals.data, weekGoals.data]);
 
-  /** Цели недели ставятся при первом входе в неделю: после Присяги и только один раз. */
+  /**
+   * Стартовый набор выдаётся один раз после Присяги: квесты на ближайшие дни, босс с этапами,
+   * а ритуалы и награды только если своих ещё нет. Так новый штаб сразу показывает, как всё работает.
+   */
   useEffect(() => {
-    if (!settings?.oathDone || !today || !thisWeek || !week || week.goals.length > 0 || weekOpenedFor.current === thisWeek) {
+    if (!settings?.oathDone || settings.starterPack || !today || !rituals.data || !rewards.data || starterGiven.current) {
+      return;
+    }
+    starterGiven.current = true;
+    const pack = starterPack(today);
+    const needRituals = rituals.data.length === 0;
+    const needRewards = rewards.data.length === 0;
+    const give = async () => {
+      for (const fields of pack.quests) {
+        await ipc.createQuest(fields);
+      }
+      const boss = await ipc.createQuest(pack.boss);
+      for (const [index, stage] of pack.stages.entries()) {
+        await ipc.createQuest({
+          ...pack.boss,
+          type: "stage",
+          title: stage.title,
+          description: null,
+          damage: stage.damage,
+          parentId: boss.id,
+          sortOrder: index,
+        });
+      }
+      if (needRituals) {
+        for (const fields of pack.rituals) {
+          await ipc.createRitual(fields);
+        }
+      }
+      if (needRewards) {
+        for (const fields of pack.rewards) {
+          await ipc.createReward(fields);
+        }
+      }
+      await ipc.setSetting("starter_pack", true);
+      await Promise.all([keys.quests, keys.rituals, keys.rewards].map((queryKey) => client.invalidateQueries({ queryKey })));
+      await client.invalidateQueries({ queryKey: keys.settings });
+    };
+    give().catch(fail);
+  }, [settings, today, rituals.data, rewards.data, client, fail]);
+
+  /** Цели недели ставятся при первом входе в неделю: после Присяги и стартового набора, только один раз. */
+  useEffect(() => {
+    if (!settings?.oathDone || !settings.starterPack || !today || !thisWeek || !week || week.goals.length > 0 || weekOpenedFor.current === thisWeek) {
       return;
     }
     weekOpenedFor.current = thisWeek;

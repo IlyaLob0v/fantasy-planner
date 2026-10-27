@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { SCHEDULE_LABEL } from "@/app/strings";
+import { SCHEDULE_LABEL, xpText } from "@/app/strings";
 import { Coin } from "@/components/kit/icons";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { AttributePicker, Chip, DifficultyPicker } from "@/components/kit/pickers";
@@ -196,7 +196,7 @@ function RitualForm({ ritual, onDone }: { ritual: Ritual | null; onDone: () => v
       </div>
 
       <p className="flex items-center gap-1.5 text-sm text-parchment/70">
-        Награда: +{reward.xp} XP, <Coin className="h-4 w-4" /> {reward.gold}
+        Награда: {xpText(reward.xp)}, <Coin className="h-4 w-4" /> {reward.gold}
       </p>
       {ritual && prepareRitual(ritual, draft, today).startDate !== ritual.startDate && (
         <p className="text-xs text-parchment/45">Новое расписание начнёт действовать с сегодняшнего дня.</p>
