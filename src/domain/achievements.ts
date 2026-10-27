@@ -1,5 +1,6 @@
 import { applyReward, stateOf } from "./character";
 import { newGear, relicFor } from "./gear";
+import { journeyDays } from "./journey";
 import { completedOn } from "./quests";
 import { isSuccess } from "./streak";
 import type { TurnContext } from "./turns";
@@ -23,9 +24,11 @@ export interface GloryStats {
   restDays: number;
   /** Сколько раз усталость снята делом. */
   comebacks: number;
+  /** Дни в походе: дни хотя бы с одним делом, не обязательно подряд. */
+  journeyDays: number;
 }
 
-export const GLORY_BRANCHES = ["first", "streak", "quests", "main", "bosses", "levels", "rituals", "attributes", "comeback"] as const;
+export const GLORY_BRANCHES = ["first", "streak", "quests", "main", "bosses", "levels", "rituals", "attributes", "comeback", "journey"] as const;
 export type GloryBranch = (typeof GLORY_BRANCHES)[number];
 
 export const BRANCH_TITLE: Record<GloryBranch, string> = {
@@ -38,6 +41,7 @@ export const BRANCH_TITLE: Record<GloryBranch, string> = {
   rituals: "Обеты",
   attributes: "Мастерство",
   comeback: "Возвращение",
+  journey: "Поход",
 };
 
 /** Ступень достижения задаёт золото за него. */
@@ -69,6 +73,7 @@ function def(
 const quests = (s: GloryStats) => s.questsDone;
 const streak = (s: GloryStats) => s.streakBest;
 const level = (s: GloryStats) => s.level;
+const journey = (s: GloryStats) => s.journeyDays;
 
 /** Каталог Зала славы. Ключи стабильны: по ним хранится факт открытия. */
 export const GLORY: readonly GloryDef[] = [
@@ -117,6 +122,13 @@ export const GLORY: readonly GloryDef[] = [
 
   def("comeback", "comeback_1", "Снова в седле", "Вернуться к делам после усталости", 1, 1, (s) => s.comebacks),
   def("comeback", "comeback_10", "Неугасимый", "Вернуться к делам после усталости 10 раз", 2, 10, (s) => s.comebacks),
+
+  def("journey", "journey_10", "Тропа протоптана", "10 дней в походе, не обязательно подряд", 1, 10, journey),
+  def("journey", "journey_30", "Тридцать стоянок", "30 дней в походе", 2, 30, journey),
+  def("journey", "journey_60", "Бывалый путник", "60 дней в походе", 2, 60, journey),
+  def("journey", "journey_100", "Сто дней в пути", "100 дней в походе", 3, 100, journey),
+  def("journey", "journey_200", "Верстовой столб", "200 дней в походе", 3, 200, journey),
+  def("journey", "journey_365", "Год странствий", "365 дней в походе", 4, 365, journey),
 ];
 
 function counted(tally: readonly LedgerTally[], source: LedgerTally["sourceType"]): LedgerTally[] {
@@ -171,6 +183,7 @@ export function gloryStats(
     purchases: sum(counted(tally, "purchase")),
     restDays: sum(counted(tally, "rest")),
     comebacks: comebacks(days),
+    journeyDays: journeyDays(days),
   };
 }
 

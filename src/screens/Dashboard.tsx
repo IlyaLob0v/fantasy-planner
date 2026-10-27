@@ -6,6 +6,7 @@ import { HeroPanel } from "@/components/kit/HeroPanel";
 import { AttributePicker, DifficultyPicker, TypePicker } from "@/components/kit/pickers";
 import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { QuestCard } from "@/components/kit/QuestCard";
+import { ReturnCard } from "@/components/kit/ReturnCard";
 import { RitualRow } from "@/components/kit/RitualRow";
 import { WeekPanel } from "@/components/kit/WeekPanel";
 import { WeekRecap } from "@/components/kit/WeekRecap";
@@ -170,6 +171,7 @@ export function Dashboard({ onOpenBoard }: { onOpenBoard: () => void }) {
       </div>
       <div className="hidden xl:block" aria-hidden />
       <div className="order-1 flex shrink-0 flex-col gap-4 md:order-none md:min-h-0 md:shrink md:gap-5">
+        <ReturnCard />
         <WeekRecap />
         {ritualsOpen ? (
           <RitualsDrawer

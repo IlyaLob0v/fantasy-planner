@@ -27,6 +27,8 @@ export const settings: Settings = {
   },
   forgePrices: { common: 60, rare: 150 },
   week: { goalGold: 20, chestGold: 60, stretchPct: 10 },
+  journey: { returnAfterDays: 3, staleOffer: 5 },
+  returnSeen: "",
   recapSeen: "",
   crest: { shield: "heater", charge: "tower", tincture: "burgundy" },
   crestPrice: 40,

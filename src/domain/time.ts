@@ -63,3 +63,11 @@ const SHORT_WEEKDAYS = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
 export function shortWeekday(date: GameDate): string {
   return SHORT_WEEKDAYS[weekday(date)] ?? "";
 }
+
+const MONTHS_NOMINATIVE = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+
+/** Месяц из «YYYY-MM»: «март 2026». */
+export function humanMonth(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return `${MONTHS_NOMINATIVE[(m ?? 1) - 1] ?? ""} ${String(y ?? "")}`;
+}

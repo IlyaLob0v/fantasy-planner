@@ -8,7 +8,7 @@ export const PERKS = ["wind_guard", "rest_discount", "forge_discount", "lantern"
 export type Perk = (typeof PERKS)[number];
 
 export const PERK_TEXT: Record<Perk, string> = {
-  wind_guard: "Одиночный пропуск не опускает Попутный ветер",
+  wind_guard: "Один день без дел не опускает Попутный ветер",
   rest_discount: "День отдыха на 25 % дешевле",
   forge_discount: "Кузнец берёт на 20 % меньше",
   lantern: "Привал выбирается из списка, а не случайно",

@@ -33,6 +33,7 @@ export function parseSettings(raw: unknown): Settings {
   const forge = readRecord(raw, "forge_prices");
   const week = readRecord(raw, "week");
   const crest = readRecord(raw, "crest");
+  const journey = readRecord(raw, "journey");
   return {
     dayStartHour: readNumber(raw, "day_start_hour"),
     rates: {
@@ -70,6 +71,8 @@ export function parseSettings(raw: unknown): Settings {
     recapSeen: typeof raw["recap_seen"] === "string" ? raw["recap_seen"] : "",
     crest: { shield: readText(crest, "shield"), charge: readText(crest, "charge"), tincture: readText(crest, "tincture") },
     crestPrice: readNumber(raw, "crest_price"),
+    journey: { returnAfterDays: readNumber(journey, "return_after_days"), staleOffer: readNumber(journey, "stale_offer") },
+    returnSeen: typeof raw["return_seen"] === "string" ? raw["return_seen"] : "",
     hintsSeen: Array.isArray(raw["hints_seen"]) ? raw["hints_seen"].filter((k): k is string => typeof k === "string") : [],
   };
 }

@@ -242,6 +242,10 @@ export interface Settings {
   /** Выбранный герб: ключи частей из каталога src/domain/crest.ts. */
   crest: { shield: string; charge: string; tincture: string };
   crestPrice: number;
+  /** Возвращение странника: через сколько суток без дел встречать карточкой и со скольких застрявших квестов предлагать разобрать день. */
+  journey: { returnAfterDays: number; staleOffer: number };
+  /** Последний день перед перерывом, карточку которого уже закрыли. */
+  returnSeen: GameDate;
 }
 
 export interface Reward {
