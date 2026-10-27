@@ -236,12 +236,12 @@ WHEN (SELECT applying FROM sync_flags) = 0 AND (OLD.name IS NOT NEW.name OR OLD.
 END;
 
 -- settings
-CREATE TRIGGER settings_sync_insert AFTER INSERT ON settings WHEN (SELECT applying FROM sync_flags) = 0 AND NEW.key NOT IN ('motion','sound_enabled') BEGIN
+CREATE TRIGGER settings_sync_insert AFTER INSERT ON settings WHEN (SELECT applying FROM sync_flags) = 0 AND NEW.key NOT IN ('motion','sound_enabled','reminder') BEGIN
     DELETE FROM sync_outbox WHERE tbl = 'settings' AND key = NEW.key;
     INSERT INTO sync_outbox (tbl, key, changed_at) VALUES ('settings', NEW.key, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
 END;
 CREATE TRIGGER settings_sync_update AFTER UPDATE OF value ON settings
-WHEN (SELECT applying FROM sync_flags) = 0 AND NEW.key NOT IN ('motion','sound_enabled') AND (OLD.value IS NOT NEW.value) BEGIN
+WHEN (SELECT applying FROM sync_flags) = 0 AND NEW.key NOT IN ('motion','sound_enabled','reminder') AND (OLD.value IS NOT NEW.value) BEGIN
     DELETE FROM sync_outbox WHERE tbl = 'settings' AND key = NEW.key;
     INSERT INTO sync_outbox (tbl, key, changed_at) VALUES ('settings', NEW.key, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
 END;

@@ -272,7 +272,7 @@ const SPECS: &[Spec] = &[
         conflict: "key",
         cols: &[Json("value")],
         merge: Merge::Latest,
-        local_only: Some("key IN ('motion', 'sound_enabled')"),
+        local_only: Some("key IN ('motion', 'sound_enabled', 'reminder')"),
     },
 ];
 
@@ -828,7 +828,7 @@ mod tests {
         assert!(tables.contains(&("equipment".into(), 5)));
         assert!(tables.contains(&("rest_actions".into(), 4)));
         let (local,): (i64,) =
-            sqlx::query_as("SELECT count(*) FROM sync_outbox WHERE tbl = 'settings' AND key IN ('motion', 'sound_enabled')").fetch_one(&mut *conn).await?;
+            sqlx::query_as("SELECT count(*) FROM sync_outbox WHERE tbl = 'settings' AND key IN ('motion', 'sound_enabled', 'reminder')").fetch_one(&mut *conn).await?;
         assert_eq!(local, 0);
         Ok(())
     }
