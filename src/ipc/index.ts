@@ -94,6 +94,8 @@ export const ipc = {
   createQuestStep: (uid: string, questId: number, title: string) => invoke<QuestStep[]>("create_quest_step", { uid, questId, title }),
   setQuestStepDone: (id: number, done: boolean) => invoke<QuestStep[]>("set_quest_step_done", { id, done }),
   deleteQuestStep: (id: number) => invoke<QuestStep[]>("delete_quest_step", { id }),
+  /** Все данные героя одним JSON-документом. */
+  exportData: () => invoke<string>("export_data"),
   listInnStays: () => invoke<InnStay[]>("list_inn_stays"),
   /** Новая дата конца комнаты или null: отменить комнату, которая ещё не началась. */
   endInnStay: (id: number, endDate: string | null) => invoke<InnStay[]>("end_inn_stay", { id, endDate }),

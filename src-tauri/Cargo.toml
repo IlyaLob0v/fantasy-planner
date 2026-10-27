@@ -22,6 +22,8 @@ sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio",
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
 thiserror = "2"
 tauri-plugin-notification = "2"
+tauri-plugin-dialog = "2.8"
+tauri-plugin-fs = "2.7"
 # Сверка с сервером гильдии. rustls на ring: собирается и для Android без системного OpenSSL.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-webpki-roots"] }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { chronicleMarkdown } from "./chronicle";
 import { character, day, quest, ritual, settings } from "./fixtures.test-helpers";
 import { checkOut, currentStay, innDates, planCheckIn } from "./inn";
 import { cleanLabel, labelsOf, stepsDoneByQuest, stepsOf } from "./quests";
@@ -167,5 +168,13 @@ describe("чек-лист и метки", () => {
     expect(cleanLabel("  ")).toBeNull();
     expect(cleanLabel(" Учёба ")).toBe("Учёба");
     expect(cleanLabel("я".repeat(50))).toHaveLength(40);
+  });
+});
+
+describe("выгрузка хроники", () => {
+  it("пустые записи пропускаются, дни идут по порядку", () => {
+    const entry = (gameDate: string, happened: string, mood: number | null = null) => ({ gameDate, happened, noticed: "", feeling: "", mood, updatedAt: "" });
+    const md = chronicleMarkdown([entry(today, "Сдал отчёт", 1), entry("2026-10-01", "  "), entry(yesterday, "Дорога")], "Илья", ["хмуро", "ясно"], (d) => d.slice(5));
+    expect(md).toBe("# Хроника героя Илья\n\n## 10-26 2026\n\n**Что произошло.** Дорога\n\n## 10-27 2026\n\n*Настроение: ясно*\n\n**Что произошло.** Сдал отчёт\n");
   });
 });

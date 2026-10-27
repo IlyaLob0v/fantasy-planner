@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import type { Rate, Settings as GameSettings } from "@/domain/types";
 import { isMobile } from "@/app/platform";
 import { useGame } from "@/services/game";
+import { useExport } from "@/services/export";
 import { useSaveReminder } from "@/services/reminder";
 
 import { GuildMail } from "./GuildMail";
@@ -50,6 +51,21 @@ function NumberField({ value, min, label, onCommit }: { value: number; min: numb
         if (e.key === "Enter") commit();
       }}
     />
+  );
+}
+
+function ExportButtons() {
+  const { state, exportData, exportChronicle } = useExport();
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button size="sm" variant="outline" disabled={state === "saving"} onClick={exportData}>
+        Выгрузить летопись
+      </Button>
+      <Button size="sm" variant="outline" disabled={state === "saving"} onClick={exportChronicle}>
+        Хроника в Markdown
+      </Button>
+      {state === "saved" && <span className="text-xs text-parchment/55">Сохранено</span>}
+    </div>
   );
 }
 
@@ -493,6 +509,10 @@ export function SettingsScreen() {
 
         <Section title="Привалы" hint="Короткие дела, которые герой предлагает, когда устал.">
           <RestActions />
+        </Section>
+
+        <Section title="Летопись" hint="Твои данные принадлежат тебе. Летопись в JSON хранит всё: квесты, журнал наград, ритуалы, хронику. Хроника в Markdown читается в любом редакторе.">
+          <ExportButtons />
         </Section>
 
         <Section title="Справочник гильдии" hint="Как устроен мир, коротко.">
