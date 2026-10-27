@@ -135,6 +135,24 @@ const SPECS: &[Spec] = &[
             Plain("created_at"),
             Plain("completed_at"),
             Plain("archived_at"),
+            Plain("label"),
+        ],
+        merge: Merge::Latest,
+        local_only: None,
+    },
+    Spec {
+        table: "quest_steps",
+        key: "uid",
+        key_column: Some("uid"),
+        conflict: "uid",
+        cols: &[
+            Plain("quest_id"),
+            Plain("title"),
+            Plain("done_at"),
+            Plain("sort_order"),
+            Plain("created_at"),
+            Plain("updated_at"),
+            Plain("deleted_at"),
         ],
         merge: Merge::Latest,
         local_only: None,
@@ -391,6 +409,7 @@ fn refs(table: &str, data: &Map<String, Value>) -> Vec<Ref> {
         })
         .into_iter()
         .collect(),
+        "quest_steps" => vec![Ref { local: "quest_id", wire: "quest", target: Target::Quests, required: true }],
         "ritual_completions" => vec![Ref { local: "ritual_id", wire: "ritual", target: Target::Rituals, required: true }],
         "equipment" => vec![Ref { local: "gear_id", wire: "gear", target: Target::Gear, required: true }],
         _ => vec![],
@@ -630,6 +649,7 @@ pub async fn wipe(conn: &mut SqliteConnection) -> AppResult<()> {
         "DELETE FROM ledger",
         "DELETE FROM gear",
         "DELETE FROM inventory",
+        "DELETE FROM quest_steps",
         "DELETE FROM quests",
         "DELETE FROM rituals",
         "DELETE FROM rewards",
@@ -853,13 +873,16 @@ mod tests {
         Ok(())
     }
 
-    /// Комната в таверне и прочитанная глава Сказа доходят до второго устройства, отмена комнаты тоже.
+    /// Комната в таверне, глава Сказа, пункт чек-листа и метка квеста доходят до второго устройства, отмена комнаты тоже.
     #[tokio::test]
     async fn inn_and_saga_travel() -> AppResult<()> {
         let pc = open_memory().await?;
         exec(&pc, "DELETE FROM sync_outbox").await?;
         exec(&pc, "INSERT INTO inn_stays (uid, start_date, end_date) VALUES ('inn1', '2026-10-28', '2026-10-30')").await?;
         exec(&pc, "INSERT INTO saga_chapters (key, uid) VALUES ('ch01', 's1')").await?;
+        exec(&pc, "INSERT INTO quests (uid, type, title, attribute) VALUES ('q1', 'side', 'Уборка', 'agility')").await?;
+        exec(&pc, "INSERT INTO quest_steps (uid, quest_id, title) VALUES ('st1', (SELECT id FROM quests WHERE uid = 'q1'), 'Пропылесосить')").await?;
+        exec(&pc, "UPDATE quests SET label = 'Дом' WHERE uid = 'q1'").await?;
         exec(&pc, "UPDATE saga_chapters SET read_at = '2026-10-27T10:00:00.000Z'").await?;
         let phone = fresh().await?;
         receive(&phone, &outbox(&pc).await?).await?;
@@ -872,6 +895,12 @@ mod tests {
         .fetch_one(&phone)
         .await?;
         assert_eq!((stay.as_deref(), read.as_deref()), (Some("2026-10-27T11:00:00.000Z"), Some("2026-10-27T10:00:00.000Z")));
+        let (label, step): (Option<String>, Option<String>) = sqlx::query_as(
+            "SELECT q.label, (SELECT s.title FROM quest_steps s WHERE s.quest_id = q.id) FROM quests q WHERE q.uid = 'q1'",
+        )
+        .fetch_one(&phone)
+        .await?;
+        assert_eq!((label.as_deref(), step.as_deref()), (Some("Дом"), Some("Пропылесосить")));
         Ok(())
     }
 }
