@@ -171,14 +171,15 @@ function active(id: number): QuestStatusChange {
   return { id, status: "active", completedAt: null };
 }
 
-export function planCompleteQuest(ctx: TurnContext, quest: Quest): DeedResult {
+/** `stepsDone`: сколько пунктов чек-листа квеста отмечено; они прибавляют бонус к награде. */
+export function planCompleteQuest(ctx: TurnContext, quest: Quest, stepsDone = 0): DeedResult {
   if (quest.status === "done") {
     throw new Error("Квест уже выполнен");
   }
   if (quest.type === "stage" || quest.type === "boss") {
     throw new Error("Этапы босса выполняются из его карточки");
   }
-  const reward = questReward(quest, ctx.settings, ctx.character.windStep);
+  const reward = questReward(quest, ctx.settings, ctx.character.windStep, stepsDone);
   return deed(ctx, [{ reward, entry: ledgerFor(ctx, "quest", quest.id, reward) }], { quests: [done(ctx, quest.id)] }, { source: "quest", id: quest.id });
 }
 

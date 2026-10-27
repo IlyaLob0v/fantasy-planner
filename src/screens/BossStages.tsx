@@ -152,6 +152,7 @@ export function BossStages({ boss }: { boss: Quest }) {
       sortOrder: (stages.at(-1)?.sortOrder ?? 0) + 1,
       parentId: boss.id,
       damage: 2,
+      label: null,
     }).then(() => {
       setTitle("");
     });

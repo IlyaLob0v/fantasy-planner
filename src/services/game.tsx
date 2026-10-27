@@ -7,7 +7,7 @@ import { planBuyCrestPart, resolveCrest, type CrestChoice, type CrestPartDef } f
 import { activePerks, forgePrice, restPrice, type GearDef, type Perk } from "@/domain/gear";
 import { checkOut, currentStay, innDates, planCheckIn } from "@/domain/inn";
 import { journeyDays, returnAbsence, type Absence } from "@/domain/journey";
-import { fieldsOf } from "@/domain/quests";
+import { fieldsOf, stepsDoneByQuest } from "@/domain/quests";
 import { weekStart } from "@/domain/rituals";
 import { planRebuild } from "@/domain/rebuild";
 import { newSagaChapters } from "@/domain/saga";
@@ -62,6 +62,7 @@ import type {
   Outcome,
   Quest,
   QuestFields,
+  QuestStep,
   RealReward,
   RealRewardFields,
   RestAction,
@@ -103,6 +104,7 @@ const keys = {
   crestParts: ["crest-parts"] as const,
   saga: ["saga"] as const,
   inn: ["inn-stays"] as const,
+  steps: ["quest-steps"] as const,
 };
 
 /** Цели недели, закрытые только что: для тоста. */
@@ -169,6 +171,8 @@ export interface GameState {
   /** Перерыв перед сегодняшним днём, пока карточку возвращения не закрыли и ничего не сделано. */
   absence: Absence | null;
   crestParts: CrestPart[];
+  /** Пункты чек-листов всех открытых квестов. */
+  steps: QuestStep[];
   /** Комнаты в таверне и все их даты. */
   innStays: InnStay[];
   innDates: ReadonlySet<GameDate>;
@@ -230,6 +234,9 @@ export interface GameState {
   recordYesterday: (rituals: readonly Ritual[], quests: readonly Quest[]) => void;
   checkIn: (startDate: GameDate, nights: number) => void;
   checkOutInn: () => void;
+  addStep: (questId: number, title: string) => Promise<void>;
+  toggleStep: (step: QuestStep) => void;
+  deleteStep: (step: QuestStep) => void;
 }
 
 const GameContext = createContext<GameState | null>(null);
@@ -291,6 +298,8 @@ export function useGameBoot(): Boot {
   const crestParts = useQuery({ queryKey: keys.crestParts, queryFn: ipc.listCrestParts });
   const saga = useQuery({ queryKey: keys.saga, queryFn: ipc.listSagaChapters });
   const innStays = useQuery({ queryKey: keys.inn, queryFn: ipc.listInnStays });
+  const steps = useQuery({ queryKey: keys.steps, queryFn: ipc.listQuestSteps });
+  const stepsDone = useMemo(() => stepsDoneByQuest(steps.data ?? []), [steps.data]);
   const fetching = useIsFetching();
   const mutating = useIsMutating();
 
@@ -345,6 +354,7 @@ export function useGameBoot(): Boot {
         keys.weekGoals,
         keys.crestParts,
         keys.inn,
+        keys.steps,
       ].map((queryKey) =>
         client.invalidateQueries({ queryKey }),
       ),
@@ -552,12 +562,12 @@ export function useGameBoot(): Boot {
     (quest: Quest, origin: DOMRect | null) => {
       const allQuests = quests.data ?? [];
       deed(
-        (ctx) => (quest.type === "stage" ? planCompleteStage(ctx, quest, allQuests) : planCompleteQuest(ctx, quest)),
+        (ctx) => (quest.type === "stage" ? planCompleteStage(ctx, quest, allQuests) : planCompleteQuest(ctx, quest, stepsDone.get(quest.id) ?? 0)),
         origin,
         quest.id,
       );
     },
-    [deed, quests.data],
+    [deed, quests.data, stepsDone],
   );
 
   const takeRest = useCallback(
@@ -940,7 +950,7 @@ export function useGameBoot(): Boot {
       let reward: Reward = { xp: 0, gold: 0, attribute: null, attributeDelta: 0 };
       play(
         (ctx) => {
-          const outcome = planYesterday(ctx, yesterday, marked, done);
+          const outcome = planYesterday(ctx, yesterday, marked, done, stepsDone);
           reward = outcome.ledger.reduce<Reward>(
             (sum, e) => ({ xp: sum.xp + e.xpDelta, gold: sum.gold + e.goldDelta, attribute: sum.attribute ?? e.attribute, attributeDelta: sum.attributeDelta + e.attributeDelta }),
             reward,
@@ -954,7 +964,7 @@ export function useGameBoot(): Boot {
         },
       );
     },
-    [yesterday, play, announce],
+    [yesterday, play, announce, stepsDone],
   );
 
   const stay = useMemo(() => (innStays.data && today ? currentStay(innStays.data, today) : null), [innStays.data, today]);
@@ -977,6 +987,38 @@ export function useGameBoot(): Boot {
       })
       .catch(fail);
   }, [stay, today, client, fail]);
+
+  const addStep = useCallback(
+    async (questId: number, title: string) => {
+      const list = await ipc.createQuestStep(uuidv7(), questId, title);
+      client.setQueryData(keys.steps, list);
+    },
+    [client],
+  );
+
+  const toggleStep = useCallback(
+    (step: QuestStep) => {
+      ipc
+        .setQuestStepDone(step.id, step.doneAt === null)
+        .then((list) => {
+          client.setQueryData(keys.steps, list);
+        })
+        .catch(fail);
+    },
+    [client, fail],
+  );
+
+  const deleteStep = useCallback(
+    (step: QuestStep) => {
+      ipc
+        .deleteQuestStep(step.id)
+        .then((list) => {
+          client.setQueryData(keys.steps, list);
+        })
+        .catch(fail);
+    },
+    [client, fail],
+  );
 
   const clearError = useCallback(() => {
     setError(null);
@@ -1032,7 +1074,8 @@ export function useGameBoot(): Boot {
       !crestParts.data ||
       !saga.data ||
       !innStays.data ||
-      !inn
+      !inn ||
+      !steps.data
     ) {
       return null;
     }
@@ -1060,6 +1103,7 @@ export function useGameBoot(): Boot {
       saga: saga.data,
       crestParts: crestParts.data,
       crest: resolveCrest(settings.crest, crestParts.data),
+      steps: steps.data,
       innStays: innStays.data,
       innDates: inn,
       stay,
@@ -1109,6 +1153,9 @@ export function useGameBoot(): Boot {
       recordYesterday,
       checkIn,
       checkOutInn,
+      addStep,
+      toggleStep,
+      deleteStep,
     };
   }, [
     settings,
@@ -1181,6 +1228,10 @@ export function useGameBoot(): Boot {
     recordYesterday,
     checkIn,
     checkOutInn,
+    steps.data,
+    addStep,
+    toggleStep,
+    deleteStep,
   ]);
 
   const firstError = [
@@ -1204,6 +1255,7 @@ export function useGameBoot(): Boot {
     crestParts,
     saga,
     innStays,
+    steps,
   ].find(
     (q) => q.error,
   )?.error;

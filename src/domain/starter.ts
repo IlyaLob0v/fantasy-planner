@@ -23,7 +23,7 @@ function quest(
   sortOrder: number,
   dueDate: GameDate | null = null,
 ): QuestFields {
-  return { type, title, description, attribute, difficulty, scheduledDate, dueDate, sortOrder, parentId: null, damage: 1 };
+  return { type, title, description, attribute, difficulty, scheduledDate, dueDate, sortOrder, parentId: null, damage: 1, label: null };
 }
 
 export function starterPack(today: GameDate): StarterPack {

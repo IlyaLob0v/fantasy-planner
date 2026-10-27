@@ -73,6 +73,10 @@ pub fn run() {
             commands::saga::read_saga_chapter,
             commands::inn::list_inn_stays,
             commands::inn::end_inn_stay,
+            commands::steps::list_quest_steps,
+            commands::steps::create_quest_step,
+            commands::steps::set_quest_step_done,
+            commands::steps::delete_quest_step,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|err| {

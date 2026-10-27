@@ -75,6 +75,7 @@ export function quest(overrides: Partial<Quest> = {}): Quest {
     createdAt: "2026-10-26T08:00:00.000Z",
     completedAt: null,
     archivedAt: null,
+    label: null,
     ...overrides,
   };
 }

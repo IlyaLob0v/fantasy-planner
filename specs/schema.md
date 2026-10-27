@@ -302,3 +302,9 @@ CREATE INDEX idx_inventory_source ON inventory(source_type, source_id);
 - **`inn_stays`**: `id`, `uid`, `start_date`, `end_date` (включительно, `CHECK end_date >= start_date`), `created_at`, `updated_at`, `deleted_at`. Создаётся ходом `commit_outcome` (`innStays`), потому что заселение на сегодня снимает усталость. Команды: `list_inn_stays` (без удалённых), `end_inn_stay(id, end_date | null)`: новая дата конца (не раньше начала) или отмена через `deleted_at`.
 - Итог хода вместо одной отметки `ritual` несёт список `rituals`: карточка «Что было вчера?» отмечает несколько ритуалов вчерашней датой одним ходом.
 - Вчерашние сутки, пока ждёт карточка, остаются с `closed_at = NULL`; их закрывает ход карточки или следующая смена суток.
+
+## Миграция 0012 (V0.7): чек-лист в квесте и метки
+
+- **`quest_steps`**: `id`, `uid`, `quest_id` (→ `quests`, каскад), `title` (1–200), `done_at`, `sort_order`, `created_at`, `updated_at`, `deleted_at` (мягкое удаление). До 10 пунктов, только у открытых `main` и `side`; пока квест выполнен, пункты не меняются. Команды: `list_quest_steps`, `create_quest_step(uid, quest_id, title)`, `set_quest_step_done(id, done)`, `delete_quest_step(id)`.
+- **`quests.label`**: необязательная метка, 1–40 знаков, приходит в `QuestFields`.
+- Бонус чек-листа считается в TS (`stepsBonusPct`): +10 % опыта и золота за каждые 3 отмеченных пункта, потолок +30 %.

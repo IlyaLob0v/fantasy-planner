@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { character, day, quest, ritual, settings } from "./fixtures.test-helpers";
 import { checkOut, currentStay, innDates, planCheckIn } from "./inn";
+import { cleanLabel, labelsOf, stepsDoneByQuest, stepsOf } from "./quests";
 import { reminderPlan } from "./reminder";
 import { closePastDays, currentStreak } from "./streak";
-import { planDayClose, type TurnContext } from "./turns";
-import type { InnStay } from "./types";
+import { questReward, stepsBonusPct } from "./rewards";
+import { planCompleteQuest, planDayClose, type TurnContext } from "./turns";
+import type { InnStay, QuestStep } from "./types";
 import { planYesterday, yesterdayOffer } from "./yesterday";
 
 const today = "2026-10-27";
@@ -129,5 +131,41 @@ describe("что было вчера", () => {
     const outcome = planYesterday(base, offer, [], []);
     expect(outcome.ledger).toEqual([]);
     expect(outcome.character).toMatchObject({ windStep: 1, fatiguedSince: yesterday, streakCurrent: 0 });
+  });
+});
+
+describe("чек-лист и метки", () => {
+  function step(id: number, questId: number, done: boolean, sortOrder = id): QuestStep {
+    return { id, questId, title: `пункт ${String(id)}`, doneAt: done ? "2026-10-27T08:00:00.000Z" : null, sortOrder };
+  }
+
+  it("каждые три отмеченных пункта дают +10 %, не больше +30 %", () => {
+    expect([0, 2, 3, 5, 6, 9, 10].map(stepsBonusPct)).toEqual([0, 0, 10, 10, 20, 30, 30]);
+    const main = quest({ type: "main", difficulty: 2 });
+    expect(questReward(main, settings, 0)).toMatchObject({ xp: 60, gold: 20 });
+    expect(questReward(main, settings, 0, 6)).toMatchObject({ xp: 72, gold: 24 });
+  });
+
+  it("выполнение квеста учитывает отмеченные пункты", () => {
+    const result = planCompleteQuest(ctx(), quest({ scheduledDate: today }), 3);
+    expect(result.reward).toMatchObject({ xp: 11, gold: 3 });
+    expect(result.outcome.ledger[0]?.xpDelta).toBe(11);
+  });
+
+  it("пункты по порядку, отмеченные считаются по квестам", () => {
+    const steps = [step(3, 1, true, 0), step(1, 1, false, 1), step(2, 2, true)];
+    expect(stepsOf(steps, 1).map((s) => s.id)).toEqual([3, 1]);
+    expect([...stepsDoneByQuest(steps)]).toEqual([
+      [1, 1],
+      [2, 1],
+    ]);
+  });
+
+  it("метки без повторов по алфавиту, пустая метка значит «без метки»", () => {
+    const quests = [quest({ label: "Работа" }), quest({ id: 2, label: "Дом" }), quest({ id: 3, label: "Работа" }), quest({ id: 4 })];
+    expect(labelsOf(quests)).toEqual(["Дом", "Работа"]);
+    expect(cleanLabel("  ")).toBeNull();
+    expect(cleanLabel(" Учёба ")).toBe("Учёба");
+    expect(cleanLabel("я".repeat(50))).toHaveLength(40);
   });
 });
