@@ -30,7 +30,7 @@ export function BottomNav({ screen, onNavigate }: { screen: ScreenKey; onNavigat
           }}
           className={cn(
             "flex h-14 cursor-pointer flex-col items-center justify-center gap-0.5 text-[11px] transition-colors",
-            screen === key ? "text-gold-bright" : "text-parchment/55",
+            screen === key ? "text-gold-bright" : "text-parchment/65",
           )}
         >
           <Icon className="h-5 w-5" />
@@ -48,7 +48,7 @@ export function MobileHeader({ location }: { location: string }) {
     <header className="relative z-30 flex shrink-0 items-center gap-2 border-b border-gold/25 bg-wood/85 px-4 pb-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] backdrop-blur">
       <Crest choice={crest} className="h-5 w-4" />
       <span className="font-display text-base text-gold-bright">Штаб гильдии</span>
-      <span className="text-sm text-parchment/50">· {location}</span>
+      <span className="text-sm text-parchment/65">· {location}</span>
     </header>
   );
 }

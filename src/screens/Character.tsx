@@ -46,7 +46,7 @@ function JourneyCalendar() {
 
   return (
     <div className="flex gap-2">
-      <div className="grid grid-rows-7 gap-[3px] text-[10px] text-parchment/40">
+      <div className="grid grid-rows-7 gap-[3px] text-[10px] text-parchment/60">
         {WEEKDAY_SHORT.map((d) => (
           <span key={d} className="h-3 leading-3">
             {d}
@@ -75,7 +75,7 @@ function Fact({ value, label }: { value: string; label: string }) {
   return (
     <div>
       <p className="font-display text-xl leading-none text-gold-bright tabular-nums">{value}</p>
-      <p className="mt-1 text-xs text-parchment/55">{label}</p>
+      <p className="mt-1 text-xs text-parchment/65">{label}</p>
     </div>
   );
 }
@@ -96,7 +96,7 @@ function BookOfDeeds() {
           <span className="font-display text-lg text-gold-bright">{total}</span> {plural(total, "день", "дня", "дней")} в походе
         </span>
       </div>
-      <p className="mb-4 text-sm text-parchment/55">
+      <p className="mb-4 text-sm text-parchment/65">
         Серия сейчас {character.streakCurrent} {daysWord(character.streakCurrent)}, лучшая {character.streakBest}. В поход засчитывается каждый день с делом, подряд не обязательно.
       </p>
       <JourneyCalendar />
@@ -181,7 +181,7 @@ function Chronicle() {
         </Button>
       </div>
       {entries.length === 0 ? (
-        <p className="text-sm text-parchment/50">Здесь будут твои вечерние записи: что произошло, что заметил, что чувствуешь.</p>
+        <p className="text-sm text-parchment/65">Здесь будут твои вечерние записи: что произошло, что заметил, что чувствуешь.</p>
       ) : (
         <ul className="flex flex-col gap-1.5">
           {entries.map((e) => {
@@ -198,7 +198,7 @@ function Chronicle() {
                 >
                   <span className="w-28 shrink-0 text-sm text-gold-bright/80">{humanDate(e.gameDate)}</span>
                   <span className="min-w-0 flex-1 truncate text-sm text-parchment/80">{e.happened || e.noticed || e.feeling || "—"}</span>
-                  {e.mood !== null && <span className="shrink-0 text-xs text-parchment/45">{MOOD_LABEL[e.mood]}</span>}
+                  {e.mood !== null && <span className="shrink-0 text-xs text-parchment/60">{MOOD_LABEL[e.mood]}</span>}
                 </button>
                 {open && (
                   <dl className="flex flex-col gap-2 border-t border-parchment/10 px-3 py-2.5 text-sm">
@@ -212,7 +212,7 @@ function Chronicle() {
                       .filter(([, text]) => text.trim())
                       .map(([title, text]) => (
                         <div key={title}>
-                          <dt className="text-xs text-parchment/45">{title}</dt>
+                          <dt className="text-xs text-parchment/60">{title}</dt>
                           <dd className="whitespace-pre-wrap text-parchment/85">{text}</dd>
                         </div>
                       ))}
@@ -272,7 +272,7 @@ export function CharacterScreen() {
                   <div className="mt-1 h-2 overflow-hidden rounded-full bg-ink-deep/70">
                     <div className="h-full rounded-full bg-gradient-to-r from-gold to-gold-bright" style={{ width: `${(character[a] / maxAttr) * 100}%` }} />
                   </div>
-                  <p className="mt-1 text-xs text-parchment/50">{ATTRIBUTE_HINT[a]}</p>
+                  <p className="mt-1 text-xs text-parchment/65">{ATTRIBUTE_HINT[a]}</p>
                 </li>
               );
             })}

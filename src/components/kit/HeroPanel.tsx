@@ -32,7 +32,7 @@ function RestPrompt() {
   if (!action && perks.has("lantern")) {
     return (
       <div className="flex flex-col gap-1.5">
-        <p className="text-xs text-parchment/50">Фонарь путника: выбери привал сам</p>
+        <p className="text-xs text-parchment/65">Фонарь путника: выбери привал сам</p>
         {restActions.map((a) => (
           <Button
             key={a.id}
@@ -67,7 +67,7 @@ function RestPrompt() {
   }
   return (
     <div className="rounded-[var(--radius-panel)] border border-gold/30 bg-ink-deep/40 p-3">
-      <p className="text-xs uppercase tracking-wider text-parchment/50">Привал</p>
+      <p className="text-xs uppercase tracking-wider text-parchment/65">Привал</p>
       <p className="mt-0.5 font-display text-lg text-parchment">{action.title}</p>
       <div className="mt-2 flex gap-2">
         <Button
@@ -112,7 +112,8 @@ export function HeroPanel() {
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="line-clamp-2 break-words font-display text-2xl leading-tight text-parchment">{character.name}</h1>
-          <p className="text-sm text-gold-bright/90">{character.title}</p>
+          {/* Пока герой не назван, имя совпадает со званием: второй раз его не пишем. */}
+          {character.title !== character.name && <p className="text-sm text-gold-bright/90">{character.title}</p>}
           {fatigued && (
             <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-ember/50 bg-ember/15 px-2 py-0.5 text-xs text-ember">
               Усталость
@@ -123,7 +124,7 @@ export function HeroPanel() {
       </div>
 
       <div>
-        <div className="mb-1 flex justify-between text-xs text-parchment/60">
+        <div className="mb-1 flex justify-between text-xs text-parchment/70">
           <span>Опыт</span>
           <span>
             {progress.into} / {progress.needed}
@@ -136,7 +137,7 @@ export function HeroPanel() {
         <div id={GOLD_ANCHOR_ID} className="flex items-center gap-2">
           <Coin className="h-6 w-6" />
           <span className="font-display text-2xl text-gold-bright">{character.gold}</span>
-          <span className="text-xs text-parchment/50">в сундуке</span>
+          <span className="text-xs text-parchment/65">в сундуке</span>
         </div>
         {bonus > 0 ? (
           <Tooltip
@@ -152,7 +153,7 @@ export function HeroPanel() {
           </Tooltip>
         ) : character.streakCurrent > 0 ? (
           <Tooltip content="Каждые 7 дней серии дают +10 % золота, до +30 %">
-            <span className="cursor-default text-xs text-parchment/50">
+            <span className="cursor-default text-xs text-parchment/65">
               ⚑ ветер через {untilWind} {daysWord(untilWind)}
             </span>
           </Tooltip>
@@ -185,11 +186,11 @@ export function HeroPanel() {
           Серия: <span className="font-display text-lg text-gold-bright">{character.streakCurrent}</span>{" "}
           {daysWord(character.streakCurrent)}
         </span>
-        <span className="text-xs text-parchment/50">лучшая {character.streakBest}</span>
+        <span className="text-xs text-parchment/65">лучшая {character.streakBest}</span>
       </div>
 
       {nearest && (
-        <p className="-mt-2 text-xs text-parchment/55">
+        <p className="-mt-2 text-xs text-parchment/65">
           Ближайшая слава: <span className="text-parchment/80">{nearest.def.title}</span>, {nearest.current} / {nearest.def.target}
         </p>
       )}

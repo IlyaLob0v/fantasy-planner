@@ -24,7 +24,7 @@ import { WorldMap } from "./WorldMap";
 
 export type InventoryTab = "shop" | "forge" | "chest" | "map";
 
-const label = "flex flex-col gap-1 text-xs text-parchment/60";
+const label = "flex flex-col gap-1 text-xs text-parchment/70";
 const card = "flex flex-col gap-3 rounded-[var(--radius-panel)] border border-parchment/10 bg-ink-deep/40 p-4";
 
 function RestDayCard() {
@@ -39,7 +39,7 @@ function RestDayCard() {
         <Hearth lit className="h-10 w-10 shrink-0" />
         <div>
           <p className="font-display text-xl leading-tight text-parchment">День отдыха у камина</p>
-          <p className="text-xs text-parchment/55">Серия не прерывается, даже если в этот день не будет ни одного дела.</p>
+          <p className="text-xs text-parchment/65">Серия не прерывается, даже если в этот день не будет ни одного дела.</p>
         </div>
       </div>
       <div className="flex items-end justify-between gap-3">
@@ -77,7 +77,7 @@ function InnCard() {
     <div className={card}>
       <div>
         <p className="font-display text-xl leading-tight text-parchment">Комната в таверне</p>
-        <p className="text-xs text-parchment/55">
+        <p className="text-xs text-parchment/65">
           Бесплатно, от 1 до {INN_MAX_NIGHTS} суток: на болезнь, отпуск, тяжёлую неделю. Серия и Попутный ветер ждут, усталость не приходит,
           напоминания молчат.
         </p>
@@ -151,11 +151,11 @@ function RewardCard({ reward, onEdit }: { reward: RealReward; onEdit: () => void
       <div className="flex items-start justify-between gap-2">
         <button type="button" onClick={onEdit} className="min-w-0 cursor-pointer text-left" aria-label={`Изменить: ${reward.title}`}>
           <p className="font-display text-xl leading-tight text-parchment hover:text-gold-bright">{reward.title}</p>
-          {reward.description && <p className="mt-0.5 line-clamp-2 text-xs text-parchment/55">{reward.description}</p>}
+          {reward.description && <p className="mt-0.5 line-clamp-2 text-xs text-parchment/65">{reward.description}</p>}
         </button>
       </div>
       <div className="mt-auto flex items-center justify-between gap-2">
-        <span className="text-xs text-parchment/45">{reward.repeatable ? "многоразовая" : "разовая"}</span>
+        <span className="text-xs text-parchment/60">{reward.repeatable ? "многоразовая" : "разовая"}</span>
         <BuyButton
           price={reward.price}
           gold={character.gold}
@@ -188,7 +188,7 @@ function Shop({ onEdit }: { onEdit: (r: RealReward | "new") => void }) {
         ))}
       </div>
       {onSale.length === 0 && (
-        <p className="text-sm text-parchment/50">
+        <p className="text-sm text-parchment/65">
           Прилавок пуст. Выставь то, чем хочешь себя порадовать: вечер с книгой, поход в кино, новую настолку.
         </p>
       )}
@@ -217,7 +217,7 @@ function Chest() {
   return (
     <div className="flex flex-col gap-5">
       {unused.length === 0 && restDays.length === 0 && loot.length === 0 && (
-        <p className="text-sm text-parchment/50">
+        <p className="text-sm text-parchment/65">
           {used.length > 0 ? "Всё купленное уже пошло в дело." : "Сундук пока пуст. Всё купленное в лавке ждёт здесь своего часа."}
         </p>
       )}
@@ -227,7 +227,7 @@ function Chest() {
             <li key={item.id} className={cn(card, "flex-row items-center justify-between py-3")}>
               <div>
                 <p className="text-[15px] text-parchment">{item.itemName}</p>
-                <p className="text-xs text-parchment/45">куплено {dateOf(item.obtainedAt)}</p>
+                <p className="text-xs text-parchment/60">куплено {dateOf(item.obtainedAt)}</p>
               </div>
               <Button
                 size="sm"
@@ -243,12 +243,12 @@ function Chest() {
       )}
       {loot.length > 0 && (
         <div>
-          <p className="mb-2 text-xs uppercase tracking-wider text-parchment/40">Трофеи</p>
+          <p className="mb-2 text-xs uppercase tracking-wider text-parchment/60">Трофеи</p>
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {loot.map((item) => (
               <li key={item.id} className={cn("rounded-[var(--radius-panel)] border-2 bg-ink-deep/40 px-3 py-2", RARITY_FRAME[item.rarity])}>
                 <p className="text-[15px] leading-snug text-parchment">{item.itemName}</p>
-                <p className="text-xs text-parchment/45">
+                <p className="text-xs text-parchment/60">
                   {RARITY_LABEL[item.rarity]} · {dateOf(item.obtainedAt)}
                 </p>
               </li>
@@ -258,7 +258,7 @@ function Chest() {
       )}
       {restDays.length > 0 && (
         <div>
-          <p className="mb-2 text-xs uppercase tracking-wider text-parchment/40">Дни отдыха впереди</p>
+          <p className="mb-2 text-xs uppercase tracking-wider text-parchment/60">Дни отдыха впереди</p>
           <ul className="flex flex-wrap gap-2">
             {restDays.map((d) => (
               <li key={d} className="flex items-center gap-1.5 rounded-full border border-gold/30 bg-ink-deep/40 px-3 py-1 text-sm text-parchment/80">
@@ -271,8 +271,8 @@ function Chest() {
       )}
       {used.length > 0 && (
         <div>
-          <p className="mb-2 text-xs uppercase tracking-wider text-parchment/40">Уже порадовался</p>
-          <ul className="flex flex-col gap-1 text-sm text-parchment/55">
+          <p className="mb-2 text-xs uppercase tracking-wider text-parchment/60">Уже порадовался</p>
+          <ul className="flex flex-col gap-1 text-sm text-parchment/65">
             {used.map((item) => (
               <li key={item.id} className="flex justify-between gap-3">
                 <span className="truncate">{item.itemName}</span>
@@ -354,7 +354,7 @@ function RewardEditor({ reward, onDone }: { reward: RealReward | null; onDone: (
             }}
           />
         </label>
-        <p className="flex items-center gap-1.5 text-xs text-parchment/45">
+        <p className="flex items-center gap-1.5 text-xs text-parchment/60">
           Это примерно {Math.max(1, Math.round((valid ? price : 1) / Math.max(1, sideGold)))} побочных квестов по <Coin className="h-3.5 w-3.5" />
           {sideGold}.
         </p>

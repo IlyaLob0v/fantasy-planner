@@ -10,7 +10,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
       <p className="font-display text-2xl leading-none text-gold-bright tabular-nums">{value}</p>
-      <p className="mt-1 text-xs text-parchment/55">{label}</p>
+      <p className="mt-1 text-xs text-parchment/65">{label}</p>
     </div>
   );
 }
@@ -25,7 +25,7 @@ export function WeekRecap() {
     <Panel className="p-5">
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3">
         <PanelTitle className="text-xl">Летопись недели</PanelTitle>
-        <span className="text-sm text-parchment/50">
+        <span className="text-sm text-parchment/65">
           {humanDate(recap.weekStart)} — {humanDate(addDays(recap.weekStart, 6))}
         </span>
       </div>

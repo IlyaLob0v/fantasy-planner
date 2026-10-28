@@ -60,8 +60,18 @@ function BoardCard({
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={onSelect}
+      // Без мыши карточка выбирается с клавиатуры, а переносится полем «День» в карточке квеста.
+      tabIndex={0}
+      role="button"
+      aria-pressed={selected}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       className={cn(
-        "cursor-grab rounded-[var(--radius-panel)] border bg-[var(--panel-parchment)] px-3 py-2 text-wood shadow-md transition-transform active:cursor-grabbing",
+        "cursor-grab rounded-[var(--radius-panel)] border bg-[var(--panel-parchment)] px-3 py-2 text-wood shadow-md transition-transform focus-visible:outline-2 focus-visible:outline-gold-bright active:cursor-grabbing",
         selected ? "border-gold ring-2 ring-gold/60" : "border-wood/20 hover:-translate-y-0.5",
       )}
     >
@@ -69,7 +79,7 @@ function BoardCard({
         <span className={cn("mt-1 h-3 w-3 shrink-0 rounded-full", SEAL_COLOR[quest.type])} />
         <p className="flex-1 text-sm font-medium leading-snug">{quest.title}</p>
       </div>
-      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-5 text-xs text-wood/60">
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-5 text-xs text-wood/75">
         <span>{QUEST_TYPE_SHORT[quest.type]}</span>
         <span>{ATTRIBUTE_LABEL[quest.attribute]}</span>
         <span>{"✦".repeat(quest.difficulty)}</span>
@@ -79,7 +89,7 @@ function BoardCard({
           (isOverdue(quest, today) ? <Ribbon>Срок вышел</Ribbon> : <span>до {humanDate(quest.dueDate)}</span>)}
       </div>
       {hp && (
-        <div className="mt-1.5 flex items-center gap-2 pl-5 text-[11px] text-wood/60">
+        <div className="mt-1.5 flex items-center gap-2 pl-5 text-[11px] text-wood/75">
           <HpBar hp={hp} size="sm" className="flex-1" />
           <span className="tabular-nums">
             {hp.current}/{hp.max}
@@ -162,23 +172,23 @@ function Lane({
         <span className={cn("font-display text-xl", focused ? "text-gold-bright" : "text-parchment/80")}>
           {laneTitle(lane, today)}
         </span>
-        {lane !== null && <span className="text-xs text-parchment/45">{humanDate(lane)}</span>}
-        <span className="text-xs text-parchment/45">
+        {lane !== null && <span className="text-xs text-parchment/60">{humanDate(lane)}</span>}
+        <span className="text-xs text-parchment/60">
           {load.count > 0 ? `${load.count} ${plural(load.count, "квест", "квеста", "квестов")}${load.xp > 0 ? ` · ${String(load.xp)} опыта` : ""}` : "свободно"}
         </span>
       </button>
       {lane === today && quests.length > 0 && (
-        <p className="mb-2 px-1 text-[11px] text-parchment/45">Выполняются в Тронном зале</p>
+        <p className="mb-2 px-1 text-xs text-parchment/60">Выполняются в Тронном зале</p>
       )}
       <ul className="flex flex-col gap-2 overflow-y-auto pb-2 scrollbar-quiet">
         {cards(quests, false)}
         {quests.length === 0 && later.length === 0 && (
-          <li className="grid min-h-28 place-items-center rounded-lg border border-dashed border-parchment/15 bg-wood/30 px-3 py-6 text-center text-xs leading-relaxed text-parchment/40">
+          <li className="grid min-h-28 place-items-center rounded-lg border border-dashed border-parchment/15 bg-wood/30 px-3 py-6 text-center text-xs leading-relaxed text-parchment/60">
             {lane === null ? "Здесь ждут квесты без даты" : "День свободен. Перетащи сюда свиток или возьми квест в поле сверху"}
           </li>
         )}
         {later.length > 0 && (
-          <li className="mt-2 px-1 text-xs uppercase tracking-wider text-parchment/40">Позже</li>
+          <li className="mt-2 px-1 text-xs uppercase tracking-wider text-parchment/60">Позже</li>
         )}
         {cards(later, true)}
       </ul>
@@ -219,7 +229,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
           Закрыть
         </Button>
       </div>
-      <label className="flex flex-col gap-1 text-xs text-parchment/60">
+      <label className="flex flex-col gap-1 text-xs text-parchment/70">
         Название
         <Input
           value={draft.title}
@@ -228,7 +238,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
           }}
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-parchment/60">
+      <label className="flex flex-col gap-1 text-xs text-parchment/70">
         Описание
         <Textarea
           value={draft.description ?? ""}
@@ -237,7 +247,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
           }}
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-parchment/60">
+      <label className="flex flex-col gap-1 text-xs text-parchment/70">
         Метка
         <Input
           value={labelText}
@@ -255,7 +265,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
           ))}
         </datalist>
       </label>
-      <div className="flex flex-col gap-1 text-xs text-parchment/60">
+      <div className="flex flex-col gap-1 text-xs text-parchment/70">
         Тип
         <TypePicker
           options={BOARD_TYPES}
@@ -267,7 +277,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
         />
       </div>
       <div className="flex gap-4">
-        <div className="flex flex-col gap-1 text-xs text-parchment/60">
+        <div className="flex flex-col gap-1 text-xs text-parchment/70">
           Атрибут
           <AttributePicker
             value={draft.attribute}
@@ -276,7 +286,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
             }}
           />
         </div>
-        <div className="flex flex-col gap-1 text-xs text-parchment/60">
+        <div className="flex flex-col gap-1 text-xs text-parchment/70">
           Сложность
           <DifficultyPicker
             value={draft.difficulty}
@@ -293,7 +303,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
         <BossStages boss={quest} />
       ) : (
         quest.type !== "boss" && (
-          <div className="flex flex-col gap-1 text-xs text-parchment/60">
+          <div className="flex flex-col gap-1 text-xs text-parchment/70">
             Чек-лист
             <QuestSteps quest={quest} editable />
           </div>
@@ -320,7 +330,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
         ))}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-xs text-parchment/60">
+        <label className="flex flex-col gap-1 text-xs text-parchment/70">
           День
           <Input
             type="date"
@@ -331,7 +341,7 @@ function Editor({ quest, onClose }: { quest: Quest; onClose: () => void }) {
             }}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-parchment/60">
+        <label className="flex flex-col gap-1 text-xs text-parchment/70">
           Дедлайн
           <Input
             type="date"
@@ -484,7 +494,7 @@ export function QuestLog() {
         <div className="mt-2 border-t border-gold/15 px-2 pt-2">
           <button
             type="button"
-            className="cursor-pointer text-sm text-parchment/60 hover:text-parchment"
+            className="cursor-pointer text-sm text-parchment/70 hover:text-parchment"
             onClick={() => {
               setArchiveOpen((v) => !v);
             }}
@@ -492,7 +502,7 @@ export function QuestLog() {
             {archiveOpen ? "▾" : "▸"} Архив подвигов за 30 дней · {map.archive.length}
           </button>
           {archiveOpen && (
-            <ul className="mt-2 flex max-h-40 flex-col gap-1 overflow-y-auto text-sm text-parchment/60 scrollbar-quiet">
+            <ul className="mt-2 flex max-h-40 flex-col gap-1 overflow-y-auto text-sm text-parchment/70 scrollbar-quiet">
               {map.archive.map((q) => (
                 <li key={q.id} className="flex justify-between gap-4">
                   <span className="truncate line-through decoration-gold/50">{q.title}</span>

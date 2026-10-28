@@ -12,7 +12,7 @@ const buttonVariants = cva(
         gold: "bg-gold text-wood hover:bg-gold-bright shadow-[inset_0_-2px_0_rgb(0_0_0/0.18)]",
         ghost: "text-parchment/80 hover:bg-parchment/10 hover:text-parchment",
         outline: "border border-gold/50 text-gold-bright hover:bg-gold/10",
-        quiet: "text-parchment/60 hover:text-parchment underline-offset-4 hover:underline",
+        quiet: "text-parchment/70 hover:text-parchment underline-offset-4 hover:underline",
       },
       size: {
         sm: "h-8 px-3",
