@@ -438,3 +438,25 @@ pub struct Location {
     pub price: i64,
     pub sort_order: i64,
 }
+
+/// Доблесть: счётчик без расписания. Отметки лежат только в журнале наград.
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct Valor {
+    pub id: i64,
+    pub title: String,
+    pub real_name: Option<String>,
+    pub attribute: String,
+    pub sort_order: i64,
+    pub created_at: String,
+    pub archived_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ValorFields {
+    pub title: String,
+    pub real_name: Option<String>,
+    pub attribute: String,
+    pub sort_order: i64,
+}

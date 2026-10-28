@@ -8,7 +8,8 @@ import { reminderPlan } from "./reminder";
 import { closePastDays, currentStreak } from "./streak";
 import { questReward, stepsBonusPct } from "./rewards";
 import { planCompleteQuest, planDayClose, type TurnContext } from "./turns";
-import type { InnStay, QuestStep } from "./types";
+import type { InnStay, LedgerEntry, QuestStep, Valor } from "./types";
+import { blankValor, paidLeft, planMarkValor, planUndoValor, prepareValor, VALOR_DAILY_CAP, valorCounts, valorProblem } from "./valors";
 import { planYesterday, yesterdayOffer } from "./yesterday";
 
 const today = "2026-10-27";
@@ -176,5 +177,67 @@ describe("выгрузка хроники", () => {
     const entry = (gameDate: string, happened: string, mood: number | null = null) => ({ gameDate, happened, noticed: "", feeling: "", mood, updatedAt: "" });
     const md = chronicleMarkdown([entry(today, "Сдал отчёт", 1), entry("2026-10-01", "  "), entry(yesterday, "Дорога")], "Илья", ["хмуро", "ясно"], (d) => d.slice(5));
     expect(md).toBe("# Хроника героя Илья\n\n## 10-26 2026\n\n**Что произошло.** Дорога\n\n## 10-27 2026\n\n*Настроение: ясно*\n\n**Что произошло.** Сдал отчёт\n");
+  });
+});
+
+describe("доблести", () => {
+  const valor: Valor = { id: 3, title: "Глоток из родника", realName: "выпил воды", attribute: "strength", sortOrder: 0, createdAt: "", archivedAt: null };
+
+  function entry(id: number, over: Partial<LedgerEntry> = {}): LedgerEntry {
+    return {
+      id,
+      occurredAt: "",
+      gameDate: today,
+      sourceType: "valor",
+      sourceId: valor.id,
+      xpDelta: 2,
+      goldDelta: 1,
+      attribute: "strength",
+      attributeDelta: 1,
+      revertsId: null,
+      note: valor.title,
+      ...over,
+    };
+  }
+
+  it("отметка даёт малую награду, не дело дня и не меняет серию и усталость", () => {
+    const base = ctx({ character: character({ fatiguedSince: yesterday, streakCurrent: 4 }) });
+    const result = planMarkValor(base, valor, []);
+    expect(result.reward).toMatchObject({ xp: 2, gold: 1, attribute: "strength", attributeDelta: 1 });
+    expect(result.outcome.days).toEqual([]);
+    expect(result.outcome.gear).toEqual([]);
+    expect(result.outcome.character).toMatchObject({ xp: 2, gold: 1, streakCurrent: 4, fatiguedSince: yesterday });
+    expect(result.outcome.ledger).toMatchObject([{ sourceType: "valor", sourceId: 3, xpDelta: 2, goldDelta: 1 }]);
+  });
+
+  it("после пятой оплаченной отметки за сутки награды нет, но запись в журнале остаётся", () => {
+    const paid = [1, 2, 3, 4, 5].map((id) => entry(id));
+    expect(paidLeft(paid.slice(0, 4), today)).toBe(1);
+    expect(paidLeft(paid, today)).toBe(0);
+    const sixth = planMarkValor(ctx(), valor, paid);
+    expect(sixth.reward).toEqual({ xp: 0, gold: 0, attribute: null, attributeDelta: 0 });
+    expect(sixth.outcome.ledger).toHaveLength(1);
+    expect(sixth.outcome.character).toMatchObject({ xp: 0, gold: 0 });
+    expect(paidLeft([entry(9, { gameDate: yesterday })], today)).toBe(VALOR_DAILY_CAP);
+  });
+
+  it("отмена откатывает последнюю отметку обратной записью и освобождает место под награду", () => {
+    const marks = [entry(1), entry(2)];
+    const undone = planUndoValor(ctx({ character: character({ xp: 4, gold: 2 }) }), valor, marks);
+    expect(undone.ledger).toMatchObject([{ sourceType: "revert", sourceId: 3, revertsId: 2, xpDelta: -2, goldDelta: -1, note: "valor" }]);
+    expect(undone.character).toMatchObject({ xp: 2, gold: 1 });
+    expect(paidLeft([...marks, entry(3, { sourceType: "revert", revertsId: 2, xpDelta: -2, goldDelta: -1, attributeDelta: -1 })], today)).toBe(VALOR_DAILY_CAP - 1);
+    expect(() => planUndoValor(ctx(), valor, [])).toThrow();
+  });
+
+  it("счёт за сегодня и за неделю берётся из журнала без отменённых", () => {
+    const ledger = [entry(1), entry(2), entry(3, { gameDate: "2026-10-26" }), entry(4, { sourceType: "revert", revertsId: 2, xpDelta: -2, goldDelta: -1, attributeDelta: -1 })];
+    const [count] = valorCounts([valor], ledger, today);
+    expect(count).toMatchObject({ today: 1, week: 2 });
+  });
+
+  it("название обязательно, пробелы обрезаются, пустое «в жизни это» становится null", () => {
+    expect(valorProblem({ ...blankValor(0), title: "  " })).not.toBeNull();
+    expect(prepareValor({ ...blankValor(0), title: "  Страница  ", realName: "  " })).toMatchObject({ title: "Страница", realName: null });
   });
 });

@@ -27,6 +27,7 @@ const TABLES: &[&str] = &[
     "crest_parts",
     "saga_chapters",
     "inn_stays",
+    "valors",
 ];
 
 /// Формат файла летописи; растёт, если поменяется устройство файла.

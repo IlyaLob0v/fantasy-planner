@@ -9,6 +9,7 @@ export const settings: Settings = {
     bossDefeat: { xp: 60, gold: 25 },
     ritual: { xp: 5, gold: 2 },
     restAction: { xp: 3, gold: 0 },
+    valor: { xp: 2, gold: 1 },
   },
   restPrice: 40,
   streakBonus: { stepDays: 7, stepPct: 10, maxPct: 30 },

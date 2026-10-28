@@ -27,6 +27,8 @@ import type {
   Ritual,
   RitualCompletion,
   RitualFields,
+  Valor,
+  ValorFields,
   SyncKeep,
   SyncReport,
   SyncSignIn,
@@ -96,6 +98,10 @@ export const ipc = {
   deleteQuestStep: (id: number) => invoke<QuestStep[]>("delete_quest_step", { id }),
   /** Все данные героя одним JSON-документом. */
   exportData: () => invoke<string>("export_data"),
+  listValors: () => invoke<Valor[]>("list_valors"),
+  createValor: (fields: ValorFields) => invoke<Valor>("create_valor", { fields }),
+  updateValor: (id: number, fields: ValorFields) => invoke<Valor>("update_valor", { id, fields }),
+  archiveValor: (id: number) => invoke<null>("archive_valor", { id }),
   listInnStays: () => invoke<InnStay[]>("list_inn_stays"),
   /** Новая дата конца комнаты или null: отменить комнату, которая ещё не началась. */
   endInnStay: (id: number, endDate: string | null) => invoke<InnStay[]>("end_inn_stay", { id, endDate }),
