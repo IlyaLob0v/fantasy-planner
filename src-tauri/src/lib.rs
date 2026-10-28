@@ -70,6 +70,7 @@ pub fn run() {
             sync::sync_link,
             sync::sync_now,
             sync::sync_sign_out,
+            sync::sync_change_password,
             commands::saga::list_saga_chapters,
             commands::saga::unlock_saga_chapters,
             commands::saga::read_saga_chapter,

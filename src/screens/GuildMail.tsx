@@ -3,6 +3,7 @@ import { useState } from "react";
 import { isMobile } from "@/app/platform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { describeError } from "@/ipc";
 import { useGame } from "@/services/game";
 
 const SERVER_HINT = "http://192.168.1.10:8080";
@@ -166,9 +167,80 @@ function ChooseHero() {
   );
 }
 
+function ChangePassword({ onDone }: { onDone: (note: string) => void }) {
+  const { busy, changePassword } = useGame().sync;
+  const [password, setPassword] = useState("");
+  const [fresh, setFresh] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ready = password !== "" && fresh.length >= 8 && !sending && !busy;
+  const field = "flex flex-col gap-1 text-xs text-parchment/60";
+  return (
+    <form
+      className="grid gap-2.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!ready) return;
+        setSending(true);
+        changePassword(password, fresh)
+          .then(() => {
+            onDone("Пароль сменён. Другие устройства вышли из почты и войдут уже с новым");
+          })
+          .catch((err: unknown) => {
+            setError(describeError(err));
+          })
+          .finally(() => {
+            setSending(false);
+          });
+      }}
+    >
+      <label className={field}>
+        Нынешний пароль
+        <Input
+          type="password"
+          value={password}
+          autoComplete="current-password"
+          onChange={(e) => {
+            setPassword(e.target.value);
+          }}
+        />
+      </label>
+      <label className={field}>
+        Новый пароль, от 8 символов
+        <Input
+          type="password"
+          value={fresh}
+          autoComplete="new-password"
+          onChange={(e) => {
+            setFresh(e.target.value);
+          }}
+        />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" size="sm" disabled={!ready}>
+          Сменить пароль
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="quiet"
+          onClick={() => {
+            onDone("");
+          }}
+        >
+          Отмена
+        </Button>
+      </div>
+      <Quiet text={error} />
+    </form>
+  );
+}
+
 function Linked() {
   const { sync } = useGame();
   const { status, busy, error, syncNow, signOut } = sync;
+  const [changing, setChanging] = useState(false);
+  const [note, setNote] = useState("");
   if (!status) return null;
   const last = status.lastSyncAt ? `Последняя сверка: ${when(status.lastSyncAt)}` : "Сверки ещё не было";
   return (
@@ -181,10 +253,32 @@ function Linked() {
         {status.pending > 0 && !busy ? ` · ждут отправки: ${String(status.pending)}` : ""}
       </p>
       <Quiet text={error} />
+      <Quiet text={note || null} />
+      {changing ? (
+        <ChangePassword
+          onDone={(text) => {
+            setChanging(false);
+            setNote(text);
+          }}
+        />
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" disabled={busy} onClick={syncNow}>
           Сверить летопись
         </Button>
+        {changing ? null : (
+          <Button
+            size="sm"
+            variant="quiet"
+            disabled={busy}
+            onClick={() => {
+              setNote("");
+              setChanging(true);
+            }}
+          >
+            Сменить пароль
+          </Button>
+        )}
         <Button
           size="sm"
           variant="quiet"

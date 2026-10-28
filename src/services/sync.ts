@@ -28,6 +28,8 @@ export interface GuildSync {
   link: (keep: SyncKeep) => Promise<void>;
   syncNow: () => void;
   signOut: () => Promise<void>;
+  /** Смена пароля; ошибка возвращается вызывающему, чтобы форма показала её у себя. */
+  changePassword: (password: string, newPassword: string) => Promise<void>;
 }
 
 /**
@@ -129,6 +131,20 @@ export function useGuildSync(onApplied: () => Promise<void>): GuildSync {
     await refreshStatus();
   }, [refreshStatus]);
 
+  const changePassword = useCallback(
+    async (password: string, newPassword: string) => {
+      try {
+        await ipc.syncChangePassword(password, newPassword);
+      } finally {
+        await refreshStatus();
+      }
+    },
+    [refreshStatus],
+  );
+
   const data = status.data ?? null;
-  return useMemo(() => ({ status: data, busy, error, signIn, link, syncNow, signOut }), [data, busy, error, signIn, link, syncNow, signOut]);
+  return useMemo(
+    () => ({ status: data, busy, error, signIn, link, syncNow, signOut, changePassword }),
+    [data, busy, error, signIn, link, syncNow, signOut, changePassword],
+  );
 }
