@@ -22,6 +22,8 @@ pub struct Change {
 
 #[derive(Deserialize)]
 pub struct PushIn {
+    /// Эпоха, которую знает устройство: после замены героя старые записи не принимаются.
+    epoch: i64,
     changes: Vec<Change>,
 }
 
@@ -42,6 +44,26 @@ pub struct PullOut {
     changes: Vec<Change>,
     cursor: i64,
     more: bool,
+    epoch: i64,
+}
+
+#[derive(Serialize)]
+pub struct InfoOut {
+    epoch: i64,
+    /// Сколько записей в летописи аккаунта: пустой аккаунт просто получает героя устройства.
+    records: i64,
+}
+
+#[derive(Serialize)]
+pub struct EpochOut {
+    epoch: i64,
+}
+
+/// Блокирует строку аккаунта до конца транзакции и отдаёт его эпоху.
+/// Пока идёт запись, другие отправки и замены этого аккаунта ждут: так номера seq растут в порядке фиксации.
+async fn lock_account(tx: &mut sqlx::PgConnection, user_id: i64) -> ApiResult<i64> {
+    let (epoch,): (i64,) = sqlx::query_as("SELECT epoch FROM users WHERE id = $1 FOR UPDATE").bind(user_id).fetch_one(tx).await?;
+    Ok(epoch)
 }
 
 fn is_name(s: &str) -> bool {
@@ -80,8 +102,9 @@ fn validate(changes: &[Change]) -> ApiResult<()> {
 pub async fn push(State(state): State<AppState>, session: Session, Json(input): Json<PushIn>) -> ApiResult<Json<PushOut>> {
     validate(&input.changes)?;
     let mut tx = state.db.begin().await?;
-    // Пока идёт запись, другие отправки этого аккаунта ждут: так номера seq растут в порядке фиксации.
-    sqlx::query("SELECT id FROM users WHERE id = $1 FOR UPDATE").bind(session.user_id).execute(&mut *tx).await?;
+    if lock_account(&mut tx, session.user_id).await? != input.epoch {
+        return Err(ApiError::StaleEpoch);
+    }
     let mut accepted = 0;
     for c in &input.changes {
         let result = sqlx::query(
@@ -111,6 +134,7 @@ pub async fn push(State(state): State<AppState>, session: Session, Json(input): 
 /// Отдать записи аккаунта после курсора. Свои записи устройство не получает,
 /// но курсор сдвигается и за них, чтобы не перечитывать их снова.
 pub async fn pull(State(state): State<AppState>, session: Session, Query(q): Query<PullQuery>) -> ApiResult<Json<PullOut>> {
+    let (epoch,): (i64,) = sqlx::query_as("SELECT epoch FROM users WHERE id = $1").bind(session.user_id).fetch_one(&state.db).await?;
     let rows: Vec<(String, String, String, String, Value, i64)> = sqlx::query_as(
         "SELECT tbl, uid, updated_at, device_id, data, seq FROM records
          WHERE user_id = $1 AND seq > $2 ORDER BY seq LIMIT $3",
@@ -127,7 +151,43 @@ pub async fn pull(State(state): State<AppState>, session: Session, Query(q): Que
         .filter(|r| r.3 != session.device_id)
         .map(|(table, uid, updated_at, _, data, _)| Change { table, uid, updated_at, data })
         .collect();
-    Ok(Json(PullOut { changes, cursor, more }))
+    Ok(Json(PullOut { changes, cursor, more, epoch }))
+}
+
+/// Эпоха и размер летописи аккаунта: по ним устройство решает, что делать при первом входе.
+pub async fn info(State(state): State<AppState>, session: Session) -> ApiResult<Json<InfoOut>> {
+    let (epoch, records): (i64, i64) =
+        sqlx::query_as("SELECT epoch, (SELECT count(*) FROM records WHERE user_id = $1) FROM users WHERE id = $1")
+            .bind(session.user_id)
+            .fetch_one(&state.db)
+            .await?;
+    Ok(Json(InfoOut { epoch, records }))
+}
+
+/// Замена героя: летопись аккаунта уходит в архив на 30 дней, эпоха растёт.
+/// После этого устройство отправляет свою летопись целиком, а остальные принимают её заново.
+pub async fn replace(State(state): State<AppState>, session: Session) -> ApiResult<Json<EpochOut>> {
+    let mut tx = state.db.begin().await?;
+    let epoch = lock_account(&mut tx, session.user_id).await?;
+    sqlx::query(
+        "INSERT INTO records_archive (user_id, epoch, tbl, uid, updated_at, device_id, data)
+         SELECT user_id, $2, tbl, uid, updated_at, device_id, data FROM records WHERE user_id = $1",
+    )
+    .bind(session.user_id)
+    .bind(epoch)
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query("DELETE FROM records WHERE user_id = $1").bind(session.user_id).execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM records_archive WHERE user_id = $1 AND archived_at < now() - interval '30 days'")
+        .bind(session.user_id)
+        .execute(&mut *tx)
+        .await?;
+    let (epoch,): (i64,) = sqlx::query_as("UPDATE users SET epoch = epoch + 1 WHERE id = $1 RETURNING epoch")
+        .bind(session.user_id)
+        .fetch_one(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(Json(EpochOut { epoch }))
 }
 
 #[cfg(test)]

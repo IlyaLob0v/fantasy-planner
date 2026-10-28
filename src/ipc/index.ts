@@ -27,6 +27,10 @@ import type {
   Ritual,
   RitualCompletion,
   RitualFields,
+  SyncKeep,
+  SyncReport,
+  SyncSignIn,
+  SyncStatus,
   SagaProgress,
   WeekGoal,
   WeekGoalState,
@@ -77,6 +81,12 @@ export const ipc = {
   saveChronicle: (entry: ChronicleEntry) => invoke<ChronicleEntry>("save_chronicle", { entry }),
   listLocations: () => invoke<Location[]>("list_locations"),
   setHome: (key: string) => invoke<Character>("set_home", { key }),
+  syncStatus: () => invoke<SyncStatus>("sync_status"),
+  syncSignIn: (form: { server: string; email: string; password: string; deviceName: string; create: boolean }) =>
+    invoke<SyncSignIn>("sync_sign_in", form),
+  syncLink: (keep: SyncKeep) => invoke<SyncReport>("sync_link", { keep }),
+  syncNow: () => invoke<SyncReport>("sync_now"),
+  syncSignOut: () => invoke<null>("sync_sign_out"),
   listSagaChapters: () => invoke<SagaProgress[]>("list_saga_chapters"),
   unlockSagaChapters: (chapters: NewSagaChapter[]) => invoke<SagaProgress[]>("unlock_saga_chapters", { chapters }),
   readSagaChapter: (key: string) => invoke<SagaProgress[]>("read_saga_chapter", { key }),
@@ -90,6 +100,11 @@ export const ipc = {
   /** Новая дата конца комнаты или null: отменить комнату, которая ещё не началась. */
   endInnStay: (id: number, endDate: string | null) => invoke<InnStay[]>("end_inn_stay", { id, endDate }),
 };
+
+/** Ошибка IPC с этим видом: `AppError` из src-tauri/src/error.rs. */
+export function isErrorKind(error: unknown, kind: string): boolean {
+  return isRecord(error) && error["kind"] === kind;
+}
 
 /** Человеческое сообщение из ошибки IPC (AppError сериализуется как { kind, message }). */
 export function describeError(error: unknown): string {

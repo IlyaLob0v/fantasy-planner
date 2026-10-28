@@ -14,6 +14,11 @@ pub enum AppError {
     NotFound(String),
     #[error("неверные данные: {0}")]
     Invalid(String),
+    /// Сверка с сервером не удалась; текст уже в стиле мира.
+    #[error("{0}")]
+    Sync(String),
+    #[error("Гильдейская почта просит войти заново")]
+    SignedOut,
 }
 
 impl AppError {
@@ -25,6 +30,8 @@ impl AppError {
             AppError::Tauri(_) => "tauri",
             AppError::NotFound(_) => "not_found",
             AppError::Invalid(_) => "invalid",
+            AppError::Sync(_) => "sync",
+            AppError::SignedOut => "signed_out",
         }
     }
 }

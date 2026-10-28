@@ -9,6 +9,7 @@ import { checkOut, currentStay, innDates, planCheckIn } from "@/domain/inn";
 import { journeyDays, returnAbsence, type Absence } from "@/domain/journey";
 import { fieldsOf, stepsDoneByQuest } from "@/domain/quests";
 import { weekStart } from "@/domain/rituals";
+import { planRebuild } from "@/domain/rebuild";
 import { newSagaChapters } from "@/domain/saga";
 import { mergeRates, parseSettings } from "@/domain/settings";
 import { starterPack } from "@/domain/starter";
@@ -77,6 +78,7 @@ import { describeError, ipc } from "@/ipc";
 import { uuidv7 } from "@/lib/uid";
 
 import { useGameDate } from "./clock";
+import { useGuildSync, type GuildSync } from "./sync";
 
 /** Сутки грузятся за всё время: дни в походе и вехи считаются по всему пути. Строка на сутки, это немного. */
 const ALL_DAYS = "0000-01-01";
@@ -226,6 +228,8 @@ export interface GameState {
   clearStale: (stale: readonly Quest[]) => void;
   buyCrestPart: (def: CrestPartDef, origin: DOMRect | null) => void;
   setCrest: (choice: CrestChoice) => void;
+  /** Гильдейская почта: вход, выбор героя и сверка с сервером. */
+  sync: GuildSync;
   /** Записывает отмеченное за вчера и закрывает вчерашние сутки; пустой выбор просто закрывает их. */
   recordYesterday: (rituals: readonly Ritual[], quests: readonly Quest[]) => void;
   checkIn: (startDate: GameDate, nights: number) => void;
@@ -1020,6 +1024,34 @@ export function useGameBoot(): Boot {
     setError(null);
   }, []);
 
+  /** Сверка принесла чужие дела: кэш героя и дела дней снова выводятся из журнала (src/domain/rebuild.ts). */
+  const rebuildWanted = useRef(false);
+  const rebuildHero = useCallback(async () => {
+    const ctx = context();
+    if (!ctx) {
+      rebuildWanted.current = true;
+      return;
+    }
+    rebuildWanted.current = false;
+    const [freshSettings, hero, ledger, allDays] = await Promise.all([
+      ipc.getSettings(),
+      ipc.getCharacter(),
+      ipc.listLedgerSince(ALL_DAYS),
+      ipc.listDays(ALL_DAYS),
+    ]);
+    const rebuilt = await ipc.commitOutcome(planRebuild({ ...ctx, character: hero, settings: parseSettings(freshSettings) }, ledger, allDays));
+    client.setQueryData(keys.character, rebuilt);
+    await client.invalidateQueries();
+  }, [context, client]);
+
+  useEffect(() => {
+    if (rebuildWanted.current && context()) {
+      rebuildHero().catch(fail);
+    }
+  }, [context, rebuildHero, fail]);
+
+  const sync = useGuildSync(rebuildHero);
+
   const game = useMemo<GameState | null>(() => {
     if (
       !settings ||
@@ -1117,6 +1149,7 @@ export function useGameBoot(): Boot {
       clearStale,
       buyCrestPart,
       setCrest,
+      sync,
       recordYesterday,
       checkIn,
       checkOutInn,
@@ -1187,6 +1220,7 @@ export function useGameBoot(): Boot {
     clearStale,
     buyCrestPart,
     setCrest,
+    sync,
     innStays.data,
     inn,
     stay,

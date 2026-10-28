@@ -31,6 +31,8 @@ pub fn app(db: PgPool) -> Router {
         .route("/v1/account", delete(auth::delete_account))
         .route("/v1/sync/push", post(sync::push))
         .route("/v1/sync/pull", get(sync::pull))
+        .route("/v1/sync/info", get(sync::info))
+        .route("/v1/sync/replace", post(sync::replace))
         .layer(RequestBodyLimitLayer::new(BODY_LIMIT))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
