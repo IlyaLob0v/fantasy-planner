@@ -9,6 +9,7 @@ import { checkOut, currentStay, innDates, planCheckIn } from "@/domain/inn";
 import { journeyDays, returnAbsence, type Absence } from "@/domain/journey";
 import { fieldsOf, stepsDoneByQuest } from "@/domain/quests";
 import { weekStart } from "@/domain/rituals";
+import { planMarkValor, planUndoValor, valorCounts, type ValorCount } from "@/domain/valors";
 import { planRebuild } from "@/domain/rebuild";
 import { newSagaChapters } from "@/domain/saga";
 import { mergeRates, parseSettings } from "@/domain/settings";
@@ -70,6 +71,8 @@ import type {
   Ritual,
   RitualCompletion,
   RitualFields,
+  Valor,
+  ValorFields,
   SagaProgress,
   Settings,
   WeekGoal,
@@ -105,6 +108,7 @@ const keys = {
   saga: ["saga"] as const,
   inn: ["inn-stays"] as const,
   steps: ["quest-steps"] as const,
+  valors: ["valors"] as const,
 };
 
 /** Цели недели, закрытые только что: для тоста. */
@@ -148,6 +152,9 @@ export interface GameState {
   days: Day[];
   restActions: RestAction[];
   rituals: Ritual[];
+  valors: Valor[];
+  /** Счёт доблестей за сегодня и за неделю. */
+  valorCounts: ValorCount[];
   completions: RitualCompletion[];
   rewards: RealReward[];
   inventory: InventoryItem[];
@@ -205,6 +212,10 @@ export interface GameState {
   archiveQuest: (id: number) => void;
   saveRitual: (id: number | null, fields: RitualFields) => Promise<Ritual>;
   archiveRitual: (id: number) => void;
+  markValor: (valor: Valor, origin: DOMRect | null) => void;
+  undoValor: (valor: Valor) => void;
+  saveValor: (id: number | null, fields: ValorFields) => Promise<Valor>;
+  archiveValor: (id: number) => void;
   saveReward: (id: number | null, fields: RealRewardFields) => Promise<RealReward>;
   archiveReward: (id: number) => void;
   addRestAction: (title: string) => void;
@@ -271,6 +282,7 @@ export function useGameBoot(): Boot {
   });
   const restActions = useQuery({ queryKey: keys.restActions, queryFn: ipc.listRestActions });
   const rituals = useQuery({ queryKey: keys.rituals, queryFn: ipc.listRituals });
+  const valors = useQuery({ queryKey: keys.valors, queryFn: ipc.listValors });
   const completions = useQuery({
     queryKey: [...keys.completions, today],
     queryFn: () => ipc.listRitualCompletions(weekStart(addDays(today ?? "2000-01-04", -1))),
@@ -715,6 +727,62 @@ export function useGameBoot(): Boot {
     [invalidate, fail],
   );
 
+  const markValor = useCallback(
+    (valor: Valor, origin: DOMRect | null) => {
+      const ctx = context();
+      if (!ctx) return;
+      ipc
+        .listLedgerForDate(ctx.today)
+        .then((ledger) => {
+          let result: ReturnType<typeof planMarkValor> | null = null;
+          play(
+            (fresh) => {
+              result = planMarkValor(fresh, valor, ledger);
+              return result.outcome;
+            },
+            () => {
+              if (result && (result.reward.xp > 0 || result.reward.gold > 0)) {
+                announce({ direction: "in", reward: result.reward, levelUp: result.levelUp, revived: false, victory: null, find: null, origin, questId: null });
+              }
+            },
+          );
+        })
+        .catch(fail);
+    },
+    [context, play, announce, fail],
+  );
+
+  const undoValor = useCallback(
+    (valor: Valor) => {
+      withTodayLedger((ctx, ledger) => planUndoValor(ctx, valor, ledger));
+    },
+    [withTodayLedger],
+  );
+
+  const saveValor = useCallback(
+    async (id: number | null, fields: ValorFields) => {
+      const saved = id === null ? await ipc.createValor(fields) : await ipc.updateValor(id, fields);
+      await invalidate(keys.valors);
+      return saved;
+    },
+    [invalidate],
+  );
+
+  const archiveValor = useCallback(
+    (id: number) => {
+      ipc
+        .archiveValor(id)
+        .then(() => invalidate(keys.valors))
+        .catch(fail);
+    },
+    [invalidate, fail],
+  );
+
+  const counts = useMemo(
+    () => (today && valors.data ? valorCounts(valors.data, ledgerSince.data ?? [], today) : []),
+    [today, valors.data, ledgerSince.data],
+  );
+
   const saveReward = useCallback(
     async (id: number | null, fields: RealRewardFields) => {
       const saved = id === null ? await ipc.createReward(fields) : await ipc.updateReward(id, fields);
@@ -1061,6 +1129,7 @@ export function useGameBoot(): Boot {
       !days.data ||
       !restActions.data ||
       !rituals.data ||
+      !valors.data ||
       !completions.data ||
       !rewards.data ||
       !inventory.data ||
@@ -1086,6 +1155,8 @@ export function useGameBoot(): Boot {
       days: days.data,
       restActions: restActions.data,
       rituals: rituals.data,
+      valors: valors.data,
+      valorCounts: counts,
       completions: completions.data,
       rewards: rewards.data,
       inventory: inventory.data,
@@ -1130,6 +1201,10 @@ export function useGameBoot(): Boot {
       archiveQuest,
       saveRitual,
       archiveRitual,
+      markValor,
+      undoValor,
+      saveValor,
+      archiveValor,
       saveReward,
       archiveReward,
       addRestAction,
@@ -1165,6 +1240,8 @@ export function useGameBoot(): Boot {
     days.data,
     restActions.data,
     rituals.data,
+    valors.data,
+    counts,
     completions.data,
     rewards.data,
     inventory.data,
@@ -1201,6 +1278,10 @@ export function useGameBoot(): Boot {
     archiveQuest,
     saveRitual,
     archiveRitual,
+    markValor,
+    undoValor,
+    saveValor,
+    archiveValor,
     saveReward,
     archiveReward,
     addRestAction,
@@ -1241,6 +1322,7 @@ export function useGameBoot(): Boot {
     days,
     restActions,
     rituals,
+    valors,
     completions,
     rewards,
     inventory,

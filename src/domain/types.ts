@@ -110,7 +110,7 @@ export interface Day {
   closedAt: string | null;
 }
 
-export type LedgerSource = "quest" | "boss_defeat" | "ritual" | "rest_action" | "purchase" | "rest" | "revert" | "achievement" | "week_chest";
+export type LedgerSource = "quest" | "boss_defeat" | "ritual" | "rest_action" | "purchase" | "rest" | "revert" | "achievement" | "week_chest" | "valor";
 
 export interface LedgerEntry {
   id: number;
@@ -262,7 +262,7 @@ export interface Rate {
 
 export interface Settings {
   dayStartHour: number;
-  rates: { side: Rate; main: Rate; stage: Rate; bossDefeat: Rate; ritual: Rate; restAction: Rate };
+  rates: { side: Rate; main: Rate; stage: Rate; bossDefeat: Rate; ritual: Rate; restAction: Rate; valor: Rate };
   restPrice: number;
   streakBonus: { stepDays: number; stepPct: number; maxPct: number };
   levelCurve: { base: number; exp: number; round: number };
@@ -325,6 +325,20 @@ export interface RitualFields {
 }
 
 export interface Ritual extends RitualFields {
+  id: number;
+  createdAt: string;
+  archivedAt: string | null;
+}
+
+/** Доблесть: счётчик без расписания. Отметки лежат только в журнале наград. */
+export interface ValorFields {
+  title: string;
+  realName: string | null;
+  attribute: Attribute;
+  sortOrder: number;
+}
+
+export interface Valor extends ValorFields {
   id: number;
   createdAt: string;
   archivedAt: string | null;

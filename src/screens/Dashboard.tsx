@@ -8,6 +8,7 @@ import { Panel, PanelTitle } from "@/components/kit/Panel";
 import { QuestCard } from "@/components/kit/QuestCard";
 import { ReturnCard } from "@/components/kit/ReturnCard";
 import { RitualRow } from "@/components/kit/RitualRow";
+import { ValorRow } from "@/components/kit/ValorRow";
 import { SagaSeal } from "@/components/kit/Saga";
 import { WeekPanel } from "@/components/kit/WeekPanel";
 import { WeekRecap } from "@/components/kit/WeekRecap";
@@ -123,6 +124,7 @@ function TodayPanel({ onOpenBoard, onEditRituals }: { onOpenBoard: () => void; o
         <div className="border-t border-gold/15 pt-4">
           <InnLine />
           <RitualRow onEdit={onEditRituals} />
+          <ValorRow />
         </div>
         <ChronicleLine />
       </div>

@@ -57,6 +57,17 @@ describe("пересчёт героя после сверки", () => {
     expect(changed).toEqual([{ gameDate: today, kind: "normal", deedsCount: 1, closedAt: null }]);
   });
 
+  it("отметки доблестей добавляют опыт, золото и атрибут, но не делают день деянием", () => {
+    const mark = { sourceType: "valor" as const, sourceId: 3, xpDelta: 2, goldDelta: 1, attribute: "agility" as const, attributeDelta: 1 };
+    const kept = entry(mark);
+    const undone = entry(mark);
+    const undo = entry({ ...mark, xpDelta: -2, goldDelta: -1, attributeDelta: -1, sourceType: "revert", revertsId: undone.id });
+    const ledger = [kept, undone, undo];
+    const { character: hero, days: changed } = planRebuild(turn(), ledger, [day(today, 0, false)]);
+    expect(hero).toMatchObject({ xp: 2, gold: 1, agility: 1, streakCurrent: 0 });
+    expect(changed).toEqual([]);
+  });
+
   it("прощает золото, потраченное дважды без сети, и не платит дважды за одно достижение", () => {
     const ledger = [
       entry({ sourceType: "achievement", sourceId: null, goldDelta: 25, note: "first_quest" }),

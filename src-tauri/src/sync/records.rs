@@ -167,6 +167,15 @@ const SPECS: &[Spec] = &[
         local_only: None,
     },
     Spec {
+        table: "valors",
+        key: "uid",
+        key_column: Some("uid"),
+        conflict: "uid",
+        cols: &[Plain("title"), Plain("real_name"), Plain("attribute"), Plain("sort_order"), Plain("created_at"), Plain("archived_at")],
+        merge: Merge::Latest,
+        local_only: None,
+    },
+    Spec {
         table: "ledger",
         key: "uid",
         key_column: Some("uid"),
@@ -328,6 +337,7 @@ enum Target {
     Rituals,
     RestActions,
     Rewards,
+    Valors,
     Ledger,
     Gear,
     WeekGoal,
@@ -340,6 +350,7 @@ impl Target {
             Target::Rituals => "SELECT uid FROM rituals WHERE id = ?",
             Target::RestActions => "SELECT uid FROM rest_actions WHERE id = ?",
             Target::Rewards => "SELECT uid FROM rewards WHERE id = ?",
+            Target::Valors => "SELECT uid FROM valors WHERE id = ?",
             Target::Ledger => "SELECT uid FROM ledger WHERE id = ?",
             Target::Gear => "SELECT item_key FROM gear WHERE id = ?",
             Target::WeekGoal => "SELECT week_start || '_' || goal_key FROM week_goals WHERE id = ?",
@@ -352,6 +363,7 @@ impl Target {
             Target::Rituals => "SELECT id FROM rituals WHERE uid = ?",
             Target::RestActions => "SELECT id FROM rest_actions WHERE uid = ?",
             Target::Rewards => "SELECT id FROM rewards WHERE uid = ?",
+            Target::Valors => "SELECT id FROM valors WHERE uid = ?",
             Target::Ledger => "SELECT id FROM ledger WHERE uid = ?",
             Target::Gear => "SELECT id FROM gear WHERE item_key = ?",
             Target::WeekGoal => "SELECT id FROM week_goals WHERE week_start || '_' || goal_key = ?",
@@ -378,6 +390,7 @@ fn ledger_source(source_type: &str, note: &str) -> Option<(Target, bool)> {
         ("quest" | "boss_defeat", _) | ("revert", "quest" | "boss_defeat") => Some((Target::Quests, true)),
         ("ritual", _) | ("revert", "ritual") => Some((Target::Rituals, true)),
         ("rest_action", _) => Some((Target::RestActions, true)),
+        ("valor", _) | ("revert", "valor") => Some((Target::Valors, true)),
         ("purchase", _) => Some((Target::Rewards, true)),
         ("week_chest", _) => Some((Target::WeekGoal, false)),
         _ => None,
@@ -675,6 +688,12 @@ pub async fn wipe(conn: &mut SqliteConnection) -> AppResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn valor_marks_and_their_reverts_point_to_valors() {
+        assert!(matches!(ledger_source("valor", ""), Some((Target::Valors, true))));
+        assert!(matches!(ledger_source("revert", "valor"), Some((Target::Valors, true))));
+    }
     use crate::db::open_memory;
     use sqlx::SqlitePool;
 

@@ -21,6 +21,13 @@ function rate(source: JsonRecord, key: string): Rate {
   return { xp: readNumber(raw, "xp"), gold: readNumber(raw, "gold") };
 }
 
+/** Ставка доблести пришла позже остальных: устройство без неё в настройках получает значение по умолчанию. */
+const DEFAULT_VALOR: Rate = { xp: 2, gold: 1 };
+
+function valorRate(source: JsonRecord): Rate {
+  return isRecord(source["valor"]) ? rate(source, "valor") : DEFAULT_VALOR;
+}
+
 /** Разбирает сырые настройки из SQLite в типизированный вид. Ошибка формата бросается сразу. */
 export function parseSettings(raw: unknown): Settings {
   if (!isRecord(raw)) {
@@ -45,6 +52,7 @@ export function parseSettings(raw: unknown): Settings {
       bossDefeat: rate(rates, "boss_defeat"),
       ritual: rate(rates, "ritual"),
       restAction: rate(rates, "rest_action"),
+      valor: valorRate(rates),
     },
     restPrice: readNumber(raw, "rest_price"),
     streakBonus: {
@@ -96,5 +104,6 @@ export function mergeRates(rawSettings: unknown, rates: Settings["rates"]): Json
     boss_defeat: { ...rates.bossDefeat },
     ritual: { ...rates.ritual },
     rest_action: { ...rates.restAction },
+    valor: { ...rates.valor },
   };
 }

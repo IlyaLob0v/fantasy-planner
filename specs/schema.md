@@ -308,3 +308,11 @@ CREATE INDEX idx_inventory_source ON inventory(source_type, source_id);
 - **`quest_steps`**: `id`, `uid`, `quest_id` (→ `quests`, каскад), `title` (1–200), `done_at`, `sort_order`, `created_at`, `updated_at`, `deleted_at` (мягкое удаление). До 10 пунктов, только у открытых `main` и `side`; пока квест выполнен, пункты не меняются. Команды: `list_quest_steps`, `create_quest_step(uid, quest_id, title)`, `set_quest_step_done(id, done)`, `delete_quest_step(id)`.
 - **`quests.label`**: необязательная метка, 1–40 знаков, приходит в `QuestFields`.
 - Бонус чек-листа считается в TS (`stepsBonusPct`): +10 % опыта и золота за каждые 3 отмеченных пункта, потолок +30 %.
+
+## Миграция 0014 (V0.7): доблести
+
+- **`valors`**: `id`, `uid`, `title`, `real_name`, `attribute`, `sort_order`, `created_at`, `archived_at`. Команды: `list_valors`, `create_valor`, `update_valor`, `archive_valor`. Отметок в таблице нет: счёт лежит в журнале.
+- **`ledger`** пересобран с источником `valor` в `CHECK` (`source_id` = id доблести). Столбец `uid`, индексы и триггер журнала исходящих из 0007 перенесены. Отмена: строка `revert` с `note = 'valor'`.
+- Оплаченная отметка несёт +1 к атрибуту доблести, неоплаченная (после пятой за сутки) нулевая. По этому признаку считается остаток наград на сегодня.
+- **`settings.rates.valor`**: `{xp: 2, gold: 1}`, правится в «Уставе». Устройство, где ключа нет, берёт значение по умолчанию.
+- Доблесть не входит в `DEEDS`: день с одними доблестями «пустой» для серии и усталости.
