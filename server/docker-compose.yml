@@ -1,12 +1,14 @@
 # Тестовый сервер на своём компьютере: `docker compose up -d` из каталога server/.
-# Телефон подключается по адресу http://<IP компьютера в Wi-Fi>:8080.
+# Пароль базы берётся из файла .env (образец в .env.example).
+# Телефон подключается по адресу http://<IP компьютера в Wi-Fi>:8080, только в домашней сети.
+# Настоящий сервер в интернете запускается с HTTPS: см. docker-compose.prod.yml и README.
 services:
   db:
     image: postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_USER: guild
-      POSTGRES_PASSWORD: guild
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?задай POSTGRES_PASSWORD в файле .env}
       POSTGRES_DB: guild
     volumes:
       - guild-db:/var/lib/postgresql/data
@@ -19,7 +21,7 @@ services:
     build: .
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://guild:guild@db:5432/guild
+      DATABASE_URL: postgres://guild:${POSTGRES_PASSWORD}@db:5432/guild
     ports:
       - "8080:8080"
     depends_on:

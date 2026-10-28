@@ -28,16 +28,16 @@ export function BossCard({ onOpenBoard }: { onOpenBoard: () => void }) {
     <Panel className="flex flex-col gap-3 p-5">
       <div className="flex items-baseline justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wider text-parchment/40">Босс</p>
+          <p className="text-xs uppercase tracking-wider text-parchment/60">Босс</p>
           <PanelTitle className="truncate">{boss.title}</PanelTitle>
         </div>
-        <div className="flex shrink-0 items-center gap-2 text-sm text-parchment/50">
+        <div className="flex shrink-0 items-center gap-2 text-sm text-parchment/65">
           {boss.dueDate &&
             (isOverdue(boss, today) ? <Ribbon>Срок вышел</Ribbon> : <span>до {humanDate(boss.dueDate)}</span>)}
           {bosses.length > 1 && (
             <button
               type="button"
-              className="cursor-pointer rounded px-1.5 text-parchment/60 hover:text-parchment"
+              className="cursor-pointer rounded px-1.5 text-parchment/70 hover:text-parchment"
               aria-label="Следующий босс"
               onClick={() => {
                 setIndex((i) => (i + 1) % bosses.length);
@@ -67,7 +67,7 @@ export function BossCard({ onOpenBoard }: { onOpenBoard: () => void }) {
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] text-parchment">{next.title}</p>
-            <p className="text-xs text-parchment/50">Следующий этап · урон {next.damage}</p>
+            <p className="text-xs text-parchment/65">Следующий этап · урон {next.damage}</p>
           </div>
           <ol className="flex shrink-0 gap-1" aria-label="Этапы">
             {stages.map((s) => (
@@ -80,7 +80,7 @@ export function BossCard({ onOpenBoard }: { onOpenBoard: () => void }) {
           </ol>
         </div>
       ) : (
-        <p className="text-sm text-parchment/50">
+        <p className="text-sm text-parchment/65">
           У босса пока нет этапов.{" "}
           <button type="button" className="cursor-pointer text-gold/80 hover:text-gold-bright" onClick={onOpenBoard}>
             Разбить на доске

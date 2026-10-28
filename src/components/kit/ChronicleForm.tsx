@@ -9,7 +9,7 @@ import { Chip } from "./pickers";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/input";
 
-const label = "flex flex-col gap-1 text-xs text-parchment/60";
+const label = "flex flex-col gap-1 text-xs text-parchment/70";
 
 const FIELDS: ReadonlyArray<[keyof Pick<ChronicleEntry, "happened" | "noticed" | "feeling">, string, string]> = [
   ["happened", "Что произошло", "Сдал отчёт, позвонил маме"],

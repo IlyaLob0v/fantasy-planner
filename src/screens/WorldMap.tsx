@@ -32,7 +32,7 @@ function LocationCard({ location, state }: { location: Location; state: Location
         )}
       </div>
       <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-        <p className={cn("font-display text-lg leading-tight", locked ? "text-parchment/50" : "text-parchment")}>{location.name}</p>
+        <p className={cn("font-display text-lg leading-tight", locked ? "text-parchment/65" : "text-parchment")}>{location.name}</p>
         {state === "available" && (
           <BuyButton
             price={location.price}
@@ -63,7 +63,7 @@ export function WorldMap() {
   const { locations, character, inventory } = useGame();
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-parchment/55">Уровень открывает путь, золото открывает ворота. Дом задаёт фон Тронного зала и доски квестов.</p>
+      <p className="text-sm text-parchment/65">Уровень открывает путь, золото открывает ворота. Дом задаёт фон Тронного зала и доски квестов.</p>
       <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {locations.map((l) => (
           <LocationCard key={l.key} location={l} state={locationState(l, character, inventory)} />

@@ -64,7 +64,7 @@ function ExportButtons() {
       <Button size="sm" variant="outline" disabled={state === "saving"} onClick={exportChronicle}>
         Хроника в Markdown
       </Button>
-      {state === "saved" && <span className="text-xs text-parchment/55">Сохранено</span>}
+      {state === "saved" && <span className="text-xs text-parchment/65">Сохранено</span>}
     </div>
   );
 }
@@ -305,7 +305,7 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
     <section className="flex flex-col gap-2.5">
       <div>
         <h3 className="font-display text-xl text-parchment">{title}</h3>
-        {hint && <p className="text-xs text-parchment/50">{hint}</p>}
+        {hint && <p className="text-xs text-parchment/65">{hint}</p>}
       </div>
       {children}
     </section>
@@ -320,7 +320,7 @@ function Rates() {
   return (
     <table className="w-full max-w-md text-sm">
       <thead>
-        <tr className="text-left text-xs text-parchment/45">
+        <tr className="text-left text-xs text-parchment/60">
           <th className="pb-1 font-normal">Дело</th>
           <th className="pb-1 font-normal">Опыт</th>
           <th className="pb-1 font-normal">Золото</th>
@@ -374,7 +374,7 @@ function RestActions() {
             <button
               type="button"
               aria-label={`Убрать: ${a.title}`}
-              className="cursor-pointer text-parchment/40 hover:text-parchment"
+              className="cursor-pointer text-parchment/60 hover:text-parchment"
               disabled={restActions.length <= 1}
               onClick={() => {
                 archiveRestAction(a.id);
@@ -526,7 +526,7 @@ export function SettingsScreen() {
           </dl>
           <button
             type="button"
-            className="cursor-pointer self-start text-xs text-parchment/50 hover:text-gold-bright"
+            className="cursor-pointer self-start text-xs text-parchment/65 hover:text-gold-bright"
             onClick={() => {
               setSetting("hints_seen", []);
             }}
@@ -544,7 +544,7 @@ export function SettingsScreen() {
             ))}
           </ul>
           {origins.map((origin) => (
-            <p key={origin} className="text-xs text-parchment/45">
+            <p key={origin} className="text-xs text-parchment/60">
               {origin}
             </p>
           ))}

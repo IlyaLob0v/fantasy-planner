@@ -11,7 +11,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
       <p className="font-display text-2xl leading-none text-gold-bright tabular-nums">{value}</p>
-      <p className="mt-1 text-xs text-parchment/55">{label}</p>
+      <p className="mt-1 text-xs text-parchment/65">{label}</p>
     </div>
   );
 }

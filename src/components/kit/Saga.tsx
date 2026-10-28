@@ -93,13 +93,13 @@ export function SagaArchive() {
   return (
     <Panel className="p-6">
       <PanelTitle className="mb-1 text-xl">Сказ о герое</PanelTitle>
-      <p className="mb-4 text-sm text-parchment/55">
+      <p className="mb-4 text-sm text-parchment/65">
         {next === null
           ? "Первый том сказа дописан до конца."
           : `Следующая глава через ${String(next)} ${daysWord(next)} в походе. Подряд не обязательно.`}
       </p>
       {chapters.length === 0 ? (
-        <p className="text-sm text-parchment/60">Сказ начнётся, когда наберутся первые дни в походе.</p>
+        <p className="text-sm text-parchment/70">Сказ начнётся, когда наберутся первые дни в походе.</p>
       ) : (
         <ol className="flex flex-col gap-1">
           {chapters.map((ch) => (
@@ -112,7 +112,7 @@ export function SagaArchive() {
                   readChapter(ch.key);
                 }}
               >
-                <span className="w-6 shrink-0 text-right text-xs tabular-nums text-parchment/40">{chapterNumber(ch)}</span>
+                <span className="w-6 shrink-0 text-right text-xs tabular-nums text-parchment/60">{chapterNumber(ch)}</span>
                 <span className="font-display text-base">{ch.title}</span>
                 {unread.has(ch.key) && <span className="text-xs text-gold">новая</span>}
               </button>

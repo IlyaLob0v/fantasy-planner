@@ -45,13 +45,13 @@ export function GloryToast() {
         >
           <GlorySeal tier={first.tier} open />
           <span>
-            <span className="block text-xs uppercase tracking-wider text-parchment/50">
+            <span className="block text-xs uppercase tracking-wider text-parchment/65">
               {defs.length > 1 ? `Зал славы: +${defs.length} достижения` : "Зал славы"}
             </span>
             <span className="block font-display text-lg text-gold-bright">
               {defs.length > 1 ? defs.map((d) => d.title).join(", ") : first.title}
             </span>
-            <span className="block text-xs text-parchment/60">+{gold} золота</span>
+            <span className="block text-xs text-parchment/70">+{gold} золота</span>
           </span>
         </motion.button>
       )}

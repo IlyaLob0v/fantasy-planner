@@ -1,0 +1,6 @@
+# Обратный прокси с HTTPS перед сервером летописи. Caddy сам ставит X-Forwarded-For
+# с адресом клиента, по нему сервер считает лимиты входа и регистрации.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy server:8080
+}
