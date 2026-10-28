@@ -54,7 +54,7 @@ function SlotButton({ slot, item, active, onClick }: { slot: GearSlot; item: Gea
       )}
     >
       <Icon className={cn("h-6 w-6", item ? RARITY_TEXT[item.rarity] : "text-parchment/30")} />
-      <span className={cn("line-clamp-2 text-[11px] leading-tight", item ? RARITY_TEXT[item.rarity] : "text-parchment/40")}>
+      <span className={cn("line-clamp-2 text-[11px] leading-tight", item ? RARITY_TEXT[item.rarity] : "text-parchment/60")}>
         {item ? item.name : SLOT_LABEL[slot]}
       </span>
     </button>
@@ -68,7 +68,7 @@ function Chooser({ slot, owned, equippedId }: { slot: GearSlot; owned: readonly 
     return def && def.slot === slot ? [{ gear: g, def }] : [];
   });
   if (options.length === 0) {
-    return <p className="text-sm text-parchment/55">Здесь пока пусто. Предметы находятся за дела, падают с боссов и продаются у кузнеца.</p>;
+    return <p className="text-sm text-parchment/65">Здесь пока пусто. Предметы находятся за дела, падают с боссов и продаются у кузнеца.</p>;
   }
   return (
     <ul className="flex flex-col gap-1.5">
@@ -78,7 +78,7 @@ function Chooser({ slot, owned, equippedId }: { slot: GearSlot; owned: readonly 
           <li key={gear.id} className="flex items-center gap-3 rounded-[var(--radius-panel)] border border-parchment/10 bg-ink-deep/35 px-3 py-2">
             <div className="min-w-0 flex-1">
               <p className={cn("truncate text-sm", RARITY_TEXT[def.rarity])}>{def.name}</p>
-              <p className="text-xs text-parchment/50">
+              <p className="text-xs text-parchment/65">
                 {RARITY_LABEL[def.rarity]}
                 {def.relicOf !== null && " · реликвия"}
                 {def.perk && ` · ${PERK_TEXT[def.perk]}`}
@@ -113,7 +113,7 @@ export function Equipment() {
     <Panel className="p-6">
       <div className="mb-4 flex items-baseline justify-between">
         <PanelTitle className="text-xl">Снаряжение</PanelTitle>
-        <span className="text-sm text-parchment/60">
+        <span className="text-sm text-parchment/70">
           {gear.length} / {GEAR.length}
         </span>
       </div>
@@ -148,7 +148,7 @@ export function Equipment() {
       </div>
       {open && (
         <div className="mt-4 flex flex-col gap-2">
-          <p className="text-xs uppercase tracking-wider text-parchment/45">{SLOT_LABEL[open]}</p>
+          <p className="text-xs uppercase tracking-wider text-parchment/60">{SLOT_LABEL[open]}</p>
           <Chooser slot={open} owned={gear} equippedId={equippedOf(open)} />
         </div>
       )}

@@ -9,7 +9,7 @@ import { Tooltip } from "../ui/tooltip";
 
 const chip = "grid h-8 cursor-pointer place-items-center rounded-[var(--radius-panel)] border px-2.5 text-xs transition-colors";
 const on = "border-gold/70 bg-gold/20 text-gold-bright";
-const off = "border-parchment/15 text-parchment/60 hover:text-parchment";
+const off = "border-parchment/15 text-parchment/70 hover:text-parchment";
 
 /** Кнопка-переключатель в общем стиле выборщиков. */
 export function Chip({

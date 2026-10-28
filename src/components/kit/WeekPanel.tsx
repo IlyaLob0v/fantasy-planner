@@ -24,14 +24,14 @@ function GoalRow({ goal }: { goal: WeekGoal }) {
       <div className="flex items-baseline gap-2">
         {done && <CheckIcon className="h-4 w-4 shrink-0 self-center text-gold-bright" />}
         <span className={cn("min-w-0 flex-1 text-sm", done ? "text-gold-bright" : "text-parchment/85")}>{def.label(goal.target)}</span>
-        <span className="text-xs tabular-nums text-parchment/55">
+        <span className="text-xs tabular-nums text-parchment/65">
           {progress} / {goal.target}
         </span>
         {!done && (
           <button
             type="button"
             aria-expanded={editing}
-            className="cursor-pointer text-xs text-parchment/40 hover:text-gold-bright"
+            className="cursor-pointer text-xs text-parchment/60 hover:text-gold-bright"
             onClick={() => {
               setEditing((v) => !v);
             }}
@@ -60,7 +60,7 @@ function GoalRow({ goal }: { goal: WeekGoal }) {
           ))}
           <button
             type="button"
-            className="cursor-pointer px-2 py-1 text-xs text-parchment/45 hover:text-parchment"
+            className="cursor-pointer px-2 py-1 text-xs text-parchment/60 hover:text-parchment"
             onClick={() => {
               setEditing(false);
               turnOffWeekGoal(goal);
@@ -87,7 +87,7 @@ export function WeekPanel() {
     <Panel className="p-5">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <PanelTitle className="text-xl">Неделя гильдии</PanelTitle>
-        <span className="text-sm text-parchment/50">{left === 1 ? "последний день" : `ещё ${String(left)} ${daysWord(left)}`}</span>
+        <span className="text-sm text-parchment/65">{left === 1 ? "последний день" : `ещё ${String(left)} ${daysWord(left)}`}</span>
       </div>
       <ul className="flex flex-col gap-3">
         {shown.map((g) => (
@@ -95,7 +95,7 @@ export function WeekPanel() {
         ))}
       </ul>
       {chestReachable && (
-        <p className={cn("mt-4 flex items-center gap-2 text-xs", done === shown.length ? "text-gold-bright" : "text-parchment/55")}>
+        <p className={cn("mt-4 flex items-center gap-2 text-xs", done === shown.length ? "text-gold-bright" : "text-parchment/65")}>
           <ChestIcon className="h-4 w-4" />
           {done === shown.length ? "Сундук недели открыт" : `Сундук недели: ${String(done)} / ${String(shown.length)}`}
           <span className="ml-auto flex items-center gap-1 whitespace-nowrap tabular-nums">

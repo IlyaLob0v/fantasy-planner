@@ -43,11 +43,11 @@ export function WeekToast() {
           }}
           className="fixed left-1/2 top-14 z-40 flex -translate-x-1/2 cursor-pointer items-center gap-3 rounded-[var(--radius-panel)] border border-gold/40 bg-wood/95 px-4 py-2 text-left shadow-xl"
         >
-          <ChestIcon className={cn("h-7 w-7", lastWeek.chest ? "text-gold-bright" : "text-parchment/60")} />
+          <ChestIcon className={cn("h-7 w-7", lastWeek.chest ? "text-gold-bright" : "text-parchment/70")} />
           <span>
-            <span className="block text-xs uppercase tracking-wider text-parchment/50">{lastWeek.chest ? "Сундук недели" : "Цель недели"}</span>
+            <span className="block text-xs uppercase tracking-wider text-parchment/65">{lastWeek.chest ? "Сундук недели" : "Цель недели"}</span>
             <span className="block font-display text-lg text-gold-bright">{labels.join(", ")}</span>
-            <span className="block text-xs text-parchment/60">
+            <span className="block text-xs text-parchment/70">
               +{lastWeek.gold} золота
               {lastWeek.find && (
                 <>

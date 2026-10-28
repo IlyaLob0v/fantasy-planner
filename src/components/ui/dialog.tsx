@@ -32,7 +32,7 @@ export function Dialog({
           <div>
             <DialogPrimitive.Title className="font-display text-2xl text-gold-bright">{title}</DialogPrimitive.Title>
             {description ? (
-              <DialogPrimitive.Description className="text-sm text-parchment/55">{description}</DialogPrimitive.Description>
+              <DialogPrimitive.Description className="text-sm text-parchment/65">{description}</DialogPrimitive.Description>
             ) : (
               <DialogPrimitive.Description className="sr-only">{title}</DialogPrimitive.Description>
             )}

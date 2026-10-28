@@ -43,7 +43,7 @@ function RitualSeal({ item }: { item: RitualToday }) {
           <span className="flex flex-col leading-tight">
             <span className={cn("text-sm", done ? "text-gold-bright" : "text-parchment")}>{ritual.title}</span>
             {(ritual.realName ?? quota) !== null && (
-              <span className="text-[11px] text-parchment/45">
+              <span className="text-xs text-parchment/60">
                 {[ritual.realName, quota].filter((part) => part !== null).join(" · ")}
               </span>
             )}
@@ -62,7 +62,7 @@ export function RitualRow({ onEdit }: { onEdit: () => void }) {
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-xs uppercase tracking-wider text-parchment/40">Ритуалы дня</p>
+        <p className="text-xs uppercase tracking-wider text-parchment/60">Ритуалы дня</p>
         <button type="button" onClick={onEdit} className="cursor-pointer text-xs text-gold/80 hover:text-gold-bright">
           {rituals.length === 0 ? "+ Ритуал" : "Ритуалы"}
         </button>
@@ -74,7 +74,7 @@ export function RitualRow({ onEdit }: { onEdit: () => void }) {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-parchment/45">
+        <p className="text-sm text-parchment/60">
           {rituals.length === 0 ? (
             <>
               Обеты, которые повторяются: зарядка, чтение, прогулка. Каждый приносит {settings.rates.ritual.xp} опыта и{" "}

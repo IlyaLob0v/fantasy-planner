@@ -1,0 +1,29 @@
+# Сервер в интернете: HTTPS через Caddy (сертификат Let's Encrypt выпускается сам).
+# Запуск: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Нужны DOMAIN и POSTGRES_PASSWORD в .env, а DNS-запись домена должна указывать на этот сервер.
+services:
+  server:
+    # Наружу смотрит только Caddy, сам сервер доступен лишь внутри сети Docker.
+    ports: !reset []
+    environment:
+      TRUST_PROXY: "1"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?задай DOMAIN в файле .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+
+volumes:
+  caddy-data:
+  caddy-config:
