@@ -96,7 +96,7 @@ async fn changes_travel_to_the_other_device_only(db: PgPool) {
     let (phone, _) = session(&app, "/v1/auth/login", "ilya@example.com", "Телефон").await;
 
     let (status, body) =
-        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Отчёт")] }))).await;
+        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Отчёт")] }))).await;
     assert_eq!(status, StatusCode::OK, "{body}");
     assert_eq!(body["accepted"], 1);
 
@@ -115,12 +115,12 @@ async fn newer_edit_wins_older_is_ignored(db: PgPool) {
     let (phone, _) = session(&app, "/v1/auth/login", "ilya@example.com", "Телефон").await;
     let (tablet, _) = session(&app, "/v1/auth/login", "ilya@example.com", "Планшет").await;
 
-    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Старое")] }))).await;
+    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Старое")] }))).await;
     let (_, body) =
-        call(&app, "POST", "/v1/sync/push", Some(&phone), Some(json!({ "changes": [quest("q1", "2026-10-27T11:00:00.000Z", "Новое")] }))).await;
+        call(&app, "POST", "/v1/sync/push", Some(&phone), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T11:00:00.000Z", "Новое")] }))).await;
     assert_eq!(body["accepted"], 1);
     let (_, body) =
-        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [quest("q1", "2026-10-27T10:30:00.000Z", "Запоздалое")] }))).await;
+        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T10:30:00.000Z", "Запоздалое")] }))).await;
     assert_eq!(body["accepted"], 0, "правка старше хранимой не принимается");
 
     assert_eq!(pull_all(&app, &tablet).await, vec![quest("q1", "2026-10-27T11:00:00.000Z", "Новое")]);
@@ -133,8 +133,8 @@ async fn ledger_is_append_only(db: PgPool) {
     let (phone, _) = session(&app, "/v1/auth/login", "ilya@example.com", "Телефон").await;
     let entry = |at: &str, gold: i64| json!({ "table": "ledger", "uid": "l1", "updated_at": at, "data": { "gold_delta": gold } });
 
-    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [entry("2026-10-27T10:00:00.000Z", 3)] }))).await;
-    let (_, body) = call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [entry("2026-10-27T12:00:00.000Z", 999)] }))).await;
+    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [entry("2026-10-27T10:00:00.000Z", 3)] }))).await;
+    let (_, body) = call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [entry("2026-10-27T12:00:00.000Z", 999)] }))).await;
     assert_eq!(body["accepted"], 0);
 
     assert_eq!(pull_all(&app, &phone).await, vec![entry("2026-10-27T10:00:00.000Z", 3)]);
@@ -145,7 +145,7 @@ async fn accounts_do_not_see_each_other(db: PgPool) {
     let app = guild_sync::app(db);
     let (ilya, _) = session(&app, "/v1/auth/register", "ilya@example.com", "ПК").await;
     let (other, _) = session(&app, "/v1/auth/register", "other@example.com", "ПК").await;
-    call(&app, "POST", "/v1/sync/push", Some(&ilya), Some(json!({ "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Тайное")] }))).await;
+    call(&app, "POST", "/v1/sync/push", Some(&ilya), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Тайное")] }))).await;
     assert!(pull_all(&app, &other).await.is_empty());
 }
 
@@ -155,7 +155,7 @@ async fn pull_pages_through_cursor(db: PgPool) {
     let (pc, _) = session(&app, "/v1/auth/register", "ilya@example.com", "ПК").await;
     let (phone, _) = session(&app, "/v1/auth/login", "ilya@example.com", "Телефон").await;
     let changes: Vec<Value> = (0..600).map(|i| quest(&format!("q{i}"), "2026-10-27T10:00:00.000Z", "Дело")).collect();
-    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": changes }))).await;
+    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": changes }))).await;
 
     let (_, first) = call(&app, "GET", "/v1/sync/pull?after=0", Some(&phone), None).await;
     assert_eq!(first["changes"].as_array().map(Vec::len), Some(500));
@@ -176,7 +176,7 @@ async fn malformed_changes_are_rejected(db: PgPool) {
         json!({ "table": "quests", "uid": "q1", "updated_at": "вчера", "data": {} }),
         json!({ "table": "quests", "uid": "q1", "updated_at": "2026-10-27T10:00:00.000Z", "data": [1] }),
     ] {
-        let (status, body) = call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [bad] }))).await;
+        let (status, body) = call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [bad] }))).await;
         assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
     }
 }
@@ -186,7 +186,7 @@ async fn logout_revokes_and_delete_wipes(db: PgPool) {
     let app = guild_sync::app(db.clone());
     let (pc, _) = session(&app, "/v1/auth/register", "ilya@example.com", "ПК").await;
     let (phone, _) = session(&app, "/v1/auth/login", "ilya@example.com", "Телефон").await;
-    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Дело")] }))).await;
+    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Дело")] }))).await;
 
     let (status, _) = call(&app, "POST", "/v1/auth/logout", Some(&phone), None).await;
     assert_eq!(status, StatusCode::OK);
@@ -288,7 +288,7 @@ async fn idle_session_expires(db: PgPool) {
 async fn full_account_takes_edits_but_not_new_records(db: PgPool) {
     let app = guild_sync::app(db.clone());
     let (pc, device) = session(&app, "/v1/auth/register", "ilya@example.com", "ПК").await;
-    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Дело")] }))).await;
+    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Дело")] }))).await;
     sqlx::query(
         "INSERT INTO records (user_id, tbl, uid, updated_at, device_id, data)
          SELECT u.id, 'chronicle', 'c' || g, '2026-10-27T10:00:00.000Z', $1, '{}'::jsonb
@@ -301,10 +301,37 @@ async fn full_account_takes_edits_but_not_new_records(db: PgPool) {
     .expect("наполнить");
 
     let (status, body) =
-        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [quest("q2", "2026-10-27T10:00:00.000Z", "Новое")] }))).await;
+        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q2", "2026-10-27T10:00:00.000Z", "Новое")] }))).await;
     assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE, "{body}");
     assert_eq!(body["kind"], "quota_exceeded");
     let (status, body) =
-        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "changes": [quest("q1", "2026-10-27T11:00:00.000Z", "Правка")] }))).await;
+        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T11:00:00.000Z", "Правка")] }))).await;
     assert_eq!(status, StatusCode::OK, "правка старой записи проходит: {body}");
+}
+
+#[sqlx::test(migrator = "guild_sync::MIGRATOR")]
+async fn replace_archives_and_bumps_the_epoch(db: PgPool) {
+    let app = guild_sync::app(db.clone());
+    let (pc, _) = session(&app, "/v1/auth/register", "ilya@example.com", "ПК").await;
+    let (phone, _) = session(&app, "/v1/auth/login", "ilya@example.com", "Телефон").await;
+    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "С ПК")] }))).await;
+
+    let (_, body) = call(&app, "GET", "/v1/sync/info", Some(&phone), None).await;
+    assert_eq!((body["epoch"].as_i64(), body["records"].as_i64()), (Some(1), Some(1)));
+
+    let (status, body) = call(&app, "POST", "/v1/sync/replace", Some(&phone), None).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["epoch"], 2);
+    let (archived,): (i64,) = sqlx::query_as("SELECT count(*) FROM records_archive").fetch_one(&db).await.expect("count");
+    assert_eq!(archived, 1);
+
+    let (status, body) =
+        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q2", "2026-10-27T11:00:00.000Z", "Старая эпоха")] }))).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(body["kind"], "stale_epoch");
+
+    call(&app, "POST", "/v1/sync/push", Some(&phone), Some(json!({ "epoch": 2, "changes": [quest("q9", "2026-10-27T12:00:00.000Z", "С телефона")] }))).await;
+    let (_, body) = call(&app, "GET", "/v1/sync/pull?after=0", Some(&pc), None).await;
+    assert_eq!(body["epoch"], 2);
+    assert_eq!(body["changes"], json!([quest("q9", "2026-10-27T12:00:00.000Z", "С телефона")]));
 }

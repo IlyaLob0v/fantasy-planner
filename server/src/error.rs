@@ -16,6 +16,8 @@ pub enum ApiError {
     Unauthorized,
     #[error("Летопись аккаунта переполнена")]
     QuotaExceeded,
+    #[error("Летопись аккаунта заменили с другого устройства")]
+    StaleEpoch,
     #[error("{0}")]
     Invalid(String),
     #[error("Сервер летописи недоступен")]
@@ -30,6 +32,7 @@ impl ApiError {
             Self::EmailTaken => "email_taken",
             Self::Unauthorized => "unauthorized",
             Self::QuotaExceeded => "quota_exceeded",
+            Self::StaleEpoch => "stale_epoch",
             Self::Invalid(_) => "invalid",
             Self::Internal(_) => "internal",
         }
@@ -39,7 +42,7 @@ impl ApiError {
         match self {
             Self::BadCredentials | Self::Unauthorized => StatusCode::UNAUTHORIZED,
             Self::TooManyAttempts => StatusCode::TOO_MANY_REQUESTS,
-            Self::EmailTaken => StatusCode::CONFLICT,
+            Self::EmailTaken | Self::StaleEpoch => StatusCode::CONFLICT,
             Self::QuotaExceeded => StatusCode::PAYLOAD_TOO_LARGE,
             Self::Invalid(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
