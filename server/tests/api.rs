@@ -9,7 +9,16 @@ use sqlx::PgPool;
 use tower::ServiceExt;
 
 async fn call(app: &Router, method: &str, uri: &str, token: Option<&str>, body: Option<Value>) -> (StatusCode, Value) {
-    let mut req = Request::builder().method(method).uri(uri).header("content-type", "application/json");
+    call_from(app, "203.0.113.1", method, uri, token, body).await
+}
+
+/// Запрос с адреса `ip`: его видит сервер, который стоит за прокси (`trust_proxy`).
+async fn call_from(app: &Router, ip: &str, method: &str, uri: &str, token: Option<&str>, body: Option<Value>) -> (StatusCode, Value) {
+    let mut req = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header("content-type", "application/json")
+        .header("x-forwarded-for", format!("10.0.0.9, {ip}"));
     if let Some(t) = token {
         req = req.header("authorization", format!("Bearer {t}"));
     }
@@ -192,6 +201,112 @@ async fn logout_revokes_and_delete_wipes(db: PgPool) {
     assert_eq!(left, 0);
     let (status, _) = call(&app, "GET", "/v1/sync/pull", Some(&pc), None).await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
+}
+
+fn behind_proxy(db: PgPool) -> Router {
+    guild_sync::app_with(db, guild_sync::Config { trust_proxy: true })
+}
+
+#[sqlx::test(migrator = "guild_sync::MIGRATOR")]
+async fn failed_logins_from_one_address_do_not_lock_out_another(db: PgPool) {
+    let app = behind_proxy(db);
+    session(&app, "/v1/auth/register", "a@b.ru", "ПК").await;
+    let wrong = json!({ "email": "a@b.ru", "password": "не-тот-пароль", "device_name": "x" });
+    for _ in 0..5 {
+        call_from(&app, "198.51.100.7", "POST", "/v1/auth/login", None, Some(wrong.clone())).await;
+    }
+    let right = json!({ "email": "a@b.ru", "password": "секретный-пароль", "device_name": "x" });
+    let (status, _) = call_from(&app, "198.51.100.7", "POST", "/v1/auth/login", None, Some(right.clone())).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS, "подбирающий адрес на паузе");
+    let (status, body) = call_from(&app, "192.0.2.44", "POST", "/v1/auth/login", None, Some(right)).await;
+    assert_eq!(status, StatusCode::OK, "хозяин аккаунта с другого адреса входит: {body}");
+}
+
+#[sqlx::test(migrator = "guild_sync::MIGRATOR")]
+async fn one_address_cannot_flood_signups(db: PgPool) {
+    let app = behind_proxy(db);
+    for i in 0..5 {
+        session(&app, "/v1/auth/register", &format!("hero{i}@b.ru"), "ПК").await;
+    }
+    let extra = json!({ "email": "hero5@b.ru", "password": "секретный-пароль", "device_name": "ПК" });
+    let (status, _) = call(&app, "POST", "/v1/auth/register", None, Some(extra.clone())).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+    let (status, _) = call_from(&app, "192.0.2.44", "POST", "/v1/auth/register", None, Some(extra)).await;
+    assert_eq!(status, StatusCode::OK);
+}
+
+#[sqlx::test(migrator = "guild_sync::MIGRATOR")]
+async fn password_change_signs_out_other_devices(db: PgPool) {
+    let app = guild_sync::app(db);
+    let (pc, _) = session(&app, "/v1/auth/register", "ilya@example.com", "ПК").await;
+    let (phone, _) = session(&app, "/v1/auth/login", "ilya@example.com", "Телефон").await;
+
+    let (status, _) =
+        call(&app, "POST", "/v1/auth/password", Some(&pc), Some(json!({ "password": "не-тот", "new_password": "новый-пароль-1" }))).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    let (status, _) =
+        call(&app, "POST", "/v1/auth/password", Some(&pc), Some(json!({ "password": "секретный-пароль", "new_password": "коротко" }))).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    let (status, body) = call(
+        &app,
+        "POST",
+        "/v1/auth/password",
+        Some(&pc),
+        Some(json!({ "password": "секретный-пароль", "new_password": "новый-пароль-1" })),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let (status, _) = call(&app, "GET", "/v1/sync/pull", Some(&pc), None).await;
+    assert_eq!(status, StatusCode::OK, "устройство, сменившее пароль, остаётся");
+    let (status, _) = call(&app, "GET", "/v1/sync/pull", Some(&phone), None).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED, "остальные выходят");
+
+    let old = json!({ "email": "ilya@example.com", "password": "секретный-пароль", "device_name": "x" });
+    let (status, _) = call(&app, "POST", "/v1/auth/login", None, Some(old)).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    let new = json!({ "email": "ilya@example.com", "password": "новый-пароль-1", "device_name": "x" });
+    let (status, _) = call(&app, "POST", "/v1/auth/login", None, Some(new)).await;
+    assert_eq!(status, StatusCode::OK);
+}
+
+#[sqlx::test(migrator = "guild_sync::MIGRATOR")]
+async fn idle_session_expires(db: PgPool) {
+    let app = guild_sync::app(db.clone());
+    let (pc, device) = session(&app, "/v1/auth/register", "ilya@example.com", "ПК").await;
+    sqlx::query("UPDATE devices SET last_seen_at = now() - make_interval(days => $2) - interval '1 minute' WHERE id = $1")
+        .bind(&device)
+        .bind(guild_sync::auth::SESSION_IDLE_DAYS)
+        .execute(&db)
+        .await
+        .expect("состарить");
+    let (status, _) = call(&app, "GET", "/v1/sync/pull", Some(&pc), None).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+}
+
+#[sqlx::test(migrator = "guild_sync::MIGRATOR")]
+async fn full_account_takes_edits_but_not_new_records(db: PgPool) {
+    let app = guild_sync::app(db.clone());
+    let (pc, device) = session(&app, "/v1/auth/register", "ilya@example.com", "ПК").await;
+    call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T10:00:00.000Z", "Дело")] }))).await;
+    sqlx::query(
+        "INSERT INTO records (user_id, tbl, uid, updated_at, device_id, data)
+         SELECT u.id, 'chronicle', 'c' || g, '2026-10-27T10:00:00.000Z', $1, '{}'::jsonb
+         FROM users u, generate_series(2, $2) g",
+    )
+    .bind(&device)
+    .bind(guild_sync::sync::MAX_RECORDS)
+    .execute(&db)
+    .await
+    .expect("наполнить");
+
+    let (status, body) =
+        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q2", "2026-10-27T10:00:00.000Z", "Новое")] }))).await;
+    assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE, "{body}");
+    assert_eq!(body["kind"], "quota_exceeded");
+    let (status, body) =
+        call(&app, "POST", "/v1/sync/push", Some(&pc), Some(json!({ "epoch": 1, "changes": [quest("q1", "2026-10-27T11:00:00.000Z", "Правка")] }))).await;
+    assert_eq!(status, StatusCode::OK, "правка старой записи проходит: {body}");
 }
 
 #[sqlx::test(migrator = "guild_sync::MIGRATOR")]

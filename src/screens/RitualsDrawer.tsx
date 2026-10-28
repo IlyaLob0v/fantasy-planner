@@ -21,7 +21,7 @@ import { RITUAL_SCHEDULES, type Ritual, type RitualFields } from "@/domain/types
 import { cn } from "@/lib/utils";
 import { useGame } from "@/services/game";
 
-const label = "flex flex-col gap-1 text-xs text-parchment/60";
+const label = "flex flex-col gap-1 text-xs text-parchment/70";
 
 function clampInt(raw: string, min: number, max: number): number {
   const n = Math.round(Number(raw));
@@ -199,7 +199,7 @@ function RitualForm({ ritual, onDone }: { ritual: Ritual | null; onDone: () => v
         Награда: {xpText(reward.xp)}, <Coin className="h-4 w-4" /> {reward.gold}
       </p>
       {ritual && prepareRitual(ritual, draft, today).startDate !== ritual.startDate && (
-        <p className="text-xs text-parchment/45">Новое расписание начнёт действовать с сегодняшнего дня.</p>
+        <p className="text-xs text-parchment/60">Новое расписание начнёт действовать с сегодняшнего дня.</p>
       )}
 
       <div className="flex items-center justify-between gap-2">
@@ -267,9 +267,9 @@ export function RitualsDrawer({ onClose }: { onClose: () => void }) {
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-[15px] text-parchment">{r.title}</span>
-                      {r.realName && <span className="block truncate text-xs text-parchment/45">{r.realName}</span>}
+                      {r.realName && <span className="block truncate text-xs text-parchment/60">{r.realName}</span>}
                     </span>
-                    <span className="shrink-0 text-right text-xs text-parchment/55">
+                    <span className="shrink-0 text-right text-xs text-parchment/65">
                       {isPaused(r, today) && r.pausedUntil ? `пауза до ${humanDate(r.pausedUntil)}` : describeSchedule(r)}
                     </span>
                   </button>

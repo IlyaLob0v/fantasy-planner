@@ -87,7 +87,7 @@ function TodayPanel({ onOpenBoard, onEditRituals }: { onOpenBoard: () => void; o
     <Panel className="flex max-h-full min-h-0 flex-col p-5">
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3">
         <PanelTitle>Приказы на сегодня</PanelTitle>
-        <span className="text-sm text-parchment/50">
+        <span className="text-sm text-parchment/65">
           {humanWeekday(today)}, {humanDate(today)}
         </span>
       </div>
@@ -96,7 +96,7 @@ function TodayPanel({ onOpenBoard, onEditRituals }: { onOpenBoard: () => void; o
           <div className="grid place-items-center py-8 text-center">
             <div>
               <p className="font-display text-2xl text-parchment/80">Сегодня приказов нет</p>
-              <p className="mt-1 text-sm text-parchment/50">Возьми квест с доски или отдохни у камина.</p>
+              <p className="mt-1 text-sm text-parchment/65">Возьми квест с доски или отдохни у камина.</p>
               <Button variant="outline" size="sm" className="mt-4" onClick={onOpenBoard}>
                 Открыть доску квестов
               </Button>
@@ -111,7 +111,7 @@ function TodayPanel({ onOpenBoard, onEditRituals }: { onOpenBoard: () => void; o
             </ul>
             {board.done.length > 0 && (
               <div>
-                <p className="mb-2 text-xs uppercase tracking-wider text-parchment/40">Совершено сегодня</p>
+                <p className="mb-2 text-xs uppercase tracking-wider text-parchment/60">Совершено сегодня</p>
                 <ul className="flex flex-col gap-2">
                   {board.done.map((q) => (
                     <QuestCard key={q.id} quest={q} />
@@ -137,7 +137,7 @@ function InnLine() {
   const { stay, innDates, today, checkOutInn } = useGame();
   if (!stay || !innDates.has(today)) return null;
   return (
-    <p className="mb-3 text-sm text-parchment/60">
+    <p className="mb-3 text-sm text-parchment/70">
       Герой в таверне до {humanDate(stay.endDate)}, ритуалы подождут.{" "}
       <button type="button" className="cursor-pointer text-gold/80 hover:text-gold-bright" onClick={checkOutInn}>
         Вернуться раньше
@@ -159,7 +159,7 @@ function ChronicleLine() {
     <>
       <button
         type="button"
-        className="cursor-pointer self-start text-sm text-parchment/50 hover:text-gold-bright"
+        className="cursor-pointer self-start text-sm text-parchment/65 hover:text-gold-bright"
         onClick={() => {
           setOpen(true);
         }}

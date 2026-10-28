@@ -164,7 +164,7 @@ export function Oath() {
                     )}
                   >
                     <span className="block text-sm text-parchment">{p.title}</span>
-                    <span className="block text-xs text-parchment/50">{p.realName}</span>
+                    <span className="block text-xs text-parchment/65">{p.realName}</span>
                   </button>
                 </li>
               );

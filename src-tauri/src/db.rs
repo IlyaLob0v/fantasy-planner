@@ -90,4 +90,64 @@ mod tests {
         assert_eq!(outbox, 3);
         Ok(())
     }
+
+    type Snapshot = (
+        (String, i64, i64, i64),
+        Vec<(i64, Option<i64>, String, String, String)>,
+        Vec<(i64, i64, i64, Option<i64>)>,
+        Vec<(String, i64)>,
+        Vec<(i64, String)>,
+        String,
+    );
+
+    async fn snapshot(pool: &SqlitePool) -> AppResult<Snapshot> {
+        Ok((
+            sqlx::query_as("SELECT name, level, xp, gold FROM character WHERE id = 1").fetch_one(pool).await?,
+            sqlx::query_as("SELECT id, parent_id, type, title, status FROM quests ORDER BY id").fetch_all(pool).await?,
+            sqlx::query_as("SELECT id, xp_delta, gold_delta, reverts_id FROM ledger ORDER BY id").fetch_all(pool).await?,
+            sqlx::query_as("SELECT game_date, deeds_count FROM days ORDER BY game_date").fetch_all(pool).await?,
+            sqlx::query_as("SELECT id, item_name FROM inventory ORDER BY id").fetch_all(pool).await?,
+            sqlx::query_scalar("SELECT value FROM settings WHERE key = 'day_start_hour'").fetch_one(pool).await?,
+        ))
+    }
+
+    /// Герой, начавший с V0.1, проходит все миграции по одной: ничего не теряется и связи целы.
+    /// Обновление, съевшее прогресс, хуже любой ошибки, поэтому проверяется каждая ступень.
+    #[tokio::test]
+    async fn v01_hero_survives_every_migration() -> AppResult<()> {
+        let options = SqliteConnectOptions::from_str("sqlite::memory:")?.foreign_keys(true);
+        let pool = SqlitePoolOptions::new().max_connections(1).connect_with(options).await?;
+        let migrator = sqlx::migrate!("./migrations");
+        migrator.run_to(1, &pool).await?;
+        for sql in [
+            "UPDATE character SET name = 'Илья', level = 3, xp = 140, gold = 37, strength = 2 WHERE id = 1",
+            "INSERT INTO quests (id, type, title, attribute, difficulty, status, completed_at)
+             VALUES (1, 'main', 'Сдать отчёт', 'intellect', 2, 'done', '2026-10-20T10:00:00.000Z')",
+            "INSERT INTO quests (id, type, title, attribute, scheduled_date) VALUES (2, 'side', 'Зарядка', 'strength', '2026-10-21')",
+            "INSERT INTO quests (id, type, title, attribute, due_date) VALUES (3, 'boss', 'Переезд', 'agility', '2026-11-30')",
+            "INSERT INTO quests (id, parent_id, type, title, attribute, damage) VALUES (4, 3, 'stage', 'Коробки', 'agility', 2)",
+            "INSERT INTO ledger (id, game_date, source_type, source_id, xp_delta, gold_delta, attribute, attribute_delta)
+             VALUES (1, '2026-10-20', 'quest', 1, 60, 20, 'intellect', 1)",
+            "INSERT INTO ledger (id, game_date, source_type, gold_delta) VALUES (2, '2026-10-20', 'purchase', -10)",
+            "INSERT INTO ledger (id, game_date, source_type, gold_delta, reverts_id) VALUES (3, '2026-10-20', 'revert', 10, 2)",
+            "INSERT INTO days (game_date, deeds_count, closed_at) VALUES ('2026-10-20', 1, '2026-10-21T04:00:00.000Z')",
+            "INSERT INTO inventory (id, item_type, item_name) VALUES (1, 'reward', 'Вечер с книгой')",
+            "UPDATE settings SET value = '6' WHERE key = 'day_start_hour'",
+        ] {
+            sqlx::query(sqlx::AssertSqlSafe(sql)).execute(&pool).await?;
+        }
+        let before = snapshot(&pool).await?;
+
+        let versions: Vec<i64> = migrator.iter().map(|m| m.version).filter(|v| *v > 1).collect();
+        assert!(!versions.is_empty());
+        for version in versions {
+            migrator.run_to(version, &pool).await?;
+            assert_eq!(snapshot(&pool).await?, before, "миграция {version} изменила данные героя");
+            let broken: Vec<(String,)> = sqlx::query_as("SELECT \"table\" FROM pragma_foreign_key_check").fetch_all(&pool).await?;
+            assert!(broken.is_empty(), "миграция {version} порвала связи: {broken:?}");
+        }
+        let (integrity,): (String,) = sqlx::query_as("PRAGMA integrity_check").fetch_one(&pool).await?;
+        assert_eq!(integrity, "ok");
+        Ok(())
+    }
 }

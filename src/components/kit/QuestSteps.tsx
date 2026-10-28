@@ -40,7 +40,7 @@ export function QuestSteps({ quest, editable = false }: { quest: Quest; editable
   return (
     <div className="flex flex-col gap-1.5">
       {list.length > 0 && (
-        <p className="text-[11px] text-parchment/45">
+        <p className="text-xs text-parchment/60">
           Чек-лист {done}/{list.length}
           {bonus > 0 && ` · +${String(bonus)} % к награде`}
           {open && bonus < STEPS_BONUS_MAX_PCT && done + toNext <= MAX_STEPS && ` · ещё ${String(toNext)} до +${String(bonus + STEPS_BONUS_PCT)} %`}
@@ -64,7 +64,7 @@ export function QuestSteps({ quest, editable = false }: { quest: Quest; editable
             >
               <CheckIcon className={cn("h-3 w-3", s.doneAt !== null ? "opacity-100" : "opacity-0")} />
             </button>
-            <span className={cn("min-w-0 flex-1 truncate text-sm", s.doneAt !== null ? "text-parchment/50 line-through decoration-gold/50" : "text-parchment/85")}>
+            <span className={cn("min-w-0 flex-1 truncate text-sm", s.doneAt !== null ? "text-parchment/65 line-through decoration-gold/50" : "text-parchment/85")}>
               {s.title}
             </span>
             {editable && open && (
@@ -74,7 +74,7 @@ export function QuestSteps({ quest, editable = false }: { quest: Quest; editable
                 onClick={() => {
                   deleteStep(s);
                 }}
-                className="cursor-pointer px-1 text-xs text-parchment/35 hover:text-parchment"
+                className="cursor-pointer px-1 text-xs text-parchment/60 hover:text-parchment"
               >
                 ✕
               </button>

@@ -10,6 +10,8 @@ use crate::error::{ApiError, ApiResult};
 /// Записи этой таблицы только добавляются: повтор с тем же uid ничего не меняет.
 const APPEND_ONLY: &[&str] = &["ledger"];
 const MAX_CHANGES: usize = 1000;
+/// Записей на аккаунт: за годы игры набирается несколько тысяч, потолок защищает диск от засорения.
+pub const MAX_RECORDS: i64 = 200_000;
 pub const PAGE: i64 = 500;
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
@@ -104,6 +106,21 @@ pub async fn push(State(state): State<AppState>, session: Session, Json(input): 
     let mut tx = state.db.begin().await?;
     if lock_account(&mut tx, session.user_id).await? != input.epoch {
         return Err(ApiError::StaleEpoch);
+    }
+    let tables: Vec<&str> = input.changes.iter().map(|c| c.table.as_str()).collect();
+    let uids: Vec<&str> = input.changes.iter().map(|c| c.uid.as_str()).collect();
+    let (stored, fresh): (i64, i64) = sqlx::query_as(
+        "SELECT (SELECT count(*) FROM records WHERE user_id = $1),
+                (SELECT count(DISTINCT (c.tbl, c.uid)) FROM unnest($2::text[], $3::text[]) AS c(tbl, uid)
+                 WHERE NOT EXISTS (SELECT 1 FROM records r WHERE r.user_id = $1 AND r.tbl = c.tbl AND r.uid = c.uid))",
+    )
+    .bind(session.user_id)
+    .bind(&tables)
+    .bind(&uids)
+    .fetch_one(&mut *tx)
+    .await?;
+    if fresh > 0 && stored + fresh > MAX_RECORDS {
+        return Err(ApiError::QuotaExceeded);
     }
     let mut accepted = 0;
     for c in &input.changes {

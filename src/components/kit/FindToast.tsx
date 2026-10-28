@@ -50,9 +50,9 @@ export function FindToast() {
         >
           <Icon className={cn("h-8 w-8", RARITY_TEXT[find.rarity])} />
           <span>
-            <span className="block text-xs uppercase tracking-wider text-parchment/50">Находка · {RARITY_LABEL[find.rarity]}</span>
+            <span className="block text-xs uppercase tracking-wider text-parchment/65">Находка · {RARITY_LABEL[find.rarity]}</span>
             <span className={cn("block font-display text-lg", RARITY_TEXT[find.rarity])}>{find.name}</span>
-            {find.perk && <span className="block text-xs text-parchment/60">{PERK_TEXT[find.perk]}</span>}
+            {find.perk && <span className="block text-xs text-parchment/70">{PERK_TEXT[find.perk]}</span>}
           </span>
         </motion.button>
       )}

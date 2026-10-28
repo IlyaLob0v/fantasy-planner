@@ -24,7 +24,7 @@ function Rivet({ label, onClick, children, danger = false }: { label: string; on
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "grid h-7 w-9 cursor-pointer place-items-center rounded text-parchment/60 transition-colors hover:text-parchment",
+        "grid h-7 w-9 cursor-pointer place-items-center rounded text-parchment/70 transition-colors hover:text-parchment",
         danger ? "hover:bg-burgundy" : "hover:bg-parchment/10",
       )}
     >
@@ -47,7 +47,7 @@ export function Titlebar({ location, screen, onNavigate }: { location: string; s
         <span data-tauri-drag-region className="font-display text-base text-gold-bright">
           Штаб гильдии
         </span>
-        <span data-tauri-drag-region className="text-parchment/50">
+        <span data-tauri-drag-region className="text-parchment/65">
           · {location}
         </span>
       </div>
@@ -63,7 +63,7 @@ export function Titlebar({ location, screen, onNavigate }: { location: string; s
               }}
               className={cn(
                 "grid h-7 w-10 cursor-pointer place-items-center rounded transition-colors",
-                screen === key ? "bg-gold/20 text-gold-bright" : "text-parchment/60 hover:text-parchment",
+                screen === key ? "bg-gold/20 text-gold-bright" : "text-parchment/70 hover:text-parchment",
               )}
             >
               <Icon className="h-4.5 w-4.5" />
@@ -82,7 +82,7 @@ export function Titlebar({ location, screen, onNavigate }: { location: string; s
             }}
             className={cn(
               "mr-2 grid h-7 w-9 cursor-pointer place-items-center rounded transition-colors",
-              screen === "settings" ? "bg-gold/20 text-gold-bright" : "text-parchment/50 hover:text-parchment",
+              screen === "settings" ? "bg-gold/20 text-gold-bright" : "text-parchment/65 hover:text-parchment",
             )}
           >
             <GearIcon className="h-4 w-4" />

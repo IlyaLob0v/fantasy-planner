@@ -10,7 +10,7 @@ import type { Quest } from "@/domain/types";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/services/game";
 
-const label = "flex flex-col gap-1 text-xs text-parchment/60";
+const label = "flex flex-col gap-1 text-xs text-parchment/70";
 
 function clampDamage(raw: string): number | null {
   const n = Math.round(Number(raw));
@@ -118,7 +118,7 @@ function StageRow({
         type="button"
         aria-label={`Убрать этап: ${stage.title}`}
         disabled={done}
-        className="cursor-pointer text-parchment/40 hover:text-parchment disabled:invisible"
+        className="cursor-pointer text-parchment/60 hover:text-parchment disabled:invisible"
         onClick={() => {
           archiveQuest(stage.id);
         }}
@@ -202,7 +202,7 @@ export function BossStages({ boss }: { boss: Quest }) {
         />
       </form>
       {stages.length === 0 && (
-        <p className="text-parchment/45">Разбей проект на этапы. Каждый пройденный этап наносит боссу свой урон.</p>
+        <p className="text-parchment/60">Разбей проект на этапы. Каждый пройденный этап наносит боссу свой урон.</p>
       )}
     </div>
   );

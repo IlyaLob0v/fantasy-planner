@@ -11,7 +11,7 @@ export function OnceHint({ id, children }: { id: string; children: ReactNode }) 
       <p className="flex-1">{children}</p>
       <button
         type="button"
-        className="shrink-0 cursor-pointer text-parchment/50 hover:text-gold-bright"
+        className="shrink-0 cursor-pointer text-parchment/65 hover:text-gold-bright"
         onClick={() => {
           markHintSeen(id);
         }}

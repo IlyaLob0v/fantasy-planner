@@ -30,7 +30,7 @@ function Mark({ title, note, checked, onToggle }: { title: string; note: string 
         </span>
         <span className="flex flex-col leading-tight">
           <span className={cn("text-sm", checked ? "text-gold-bright" : "text-parchment")}>{title}</span>
-          {note && <span className="text-[11px] text-parchment/45">{note}</span>}
+          {note && <span className="text-xs text-parchment/60">{note}</span>}
         </span>
       </button>
     </li>
