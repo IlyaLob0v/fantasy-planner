@@ -35,6 +35,12 @@ pub struct PullOut {
 }
 
 #[derive(Serialize)]
+struct NewPassword<'a> {
+    password: &'a str,
+    new_password: &'a str,
+}
+
+#[derive(Serialize)]
 struct Credentials<'a> {
     email: &'a str,
     password: &'a str,
@@ -155,6 +161,12 @@ impl Client {
 
     pub async fn sign_out(&self) -> AppResult<()> {
         plain(self.send::<()>(self.http.post(self.url("/v1/auth/logout"))).await)
+    }
+
+    /// Смена пароля: сервер оставляет в почте только это устройство.
+    pub async fn change_password(&self, password: &str, new_password: &str) -> AppResult<()> {
+        let body = NewPassword { password, new_password };
+        plain(self.send::<()>(self.http.post(self.url("/v1/auth/password")).json(&body)).await)
     }
 
     pub async fn info(&self) -> AppResult<InfoOut> {

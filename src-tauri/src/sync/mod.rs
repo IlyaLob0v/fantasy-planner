@@ -320,6 +320,17 @@ pub async fn sync_now(app: AppHandle, db: State<'_, Db>, gate: State<'_, SyncGat
     on_signed_out(&db.0, result).await
 }
 
+/// Смена пароля. Остальные устройства выходят из почты и входят уже с новым паролем.
+#[tauri::command]
+pub async fn sync_change_password(db: State<'_, Db>, gate: State<'_, SyncGate>, password: String, new_password: String) -> AppResult<()> {
+    let _turn = gate.0.lock().await;
+    let result = match signed_client(&db.0).await {
+        Ok(client) => client.change_password(&password, &new_password).await,
+        Err(e) => Err(e),
+    };
+    on_signed_out(&db.0, result).await
+}
+
 /// Выход из почты. Адрес, e-mail и имя устройства остаются, чтобы войти снова было быстро.
 #[tauri::command]
 pub async fn sync_sign_out(db: State<'_, Db>, gate: State<'_, SyncGate>) -> AppResult<()> {

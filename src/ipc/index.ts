@@ -87,6 +87,7 @@ export const ipc = {
   syncLink: (keep: SyncKeep) => invoke<SyncReport>("sync_link", { keep }),
   syncNow: () => invoke<SyncReport>("sync_now"),
   syncSignOut: () => invoke<null>("sync_sign_out"),
+  syncChangePassword: (password: string, newPassword: string) => invoke<null>("sync_change_password", { password, newPassword }),
   listSagaChapters: () => invoke<SagaProgress[]>("list_saga_chapters"),
   unlockSagaChapters: (chapters: NewSagaChapter[]) => invoke<SagaProgress[]>("unlock_saga_chapters", { chapters }),
   readSagaChapter: (key: string) => invoke<SagaProgress[]>("read_saga_chapter", { key }),
