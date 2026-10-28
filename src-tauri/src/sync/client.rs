@@ -1,5 +1,6 @@
 //! HTTP к серверу гильдии (server/, протокол в specs/sync.md, раздел 3).
 
+use std::net::IpAddr;
 use std::time::Duration;
 
 use serde::de::DeserializeOwned;
@@ -77,10 +78,35 @@ pub fn normalize_server(raw: &str) -> AppResult<String> {
     if trimmed.is_empty() || trimmed.contains(char::is_whitespace) {
         return Err(AppError::Sync("Нужен адрес штаба гильдии, например http://192.168.1.10:8080".into()));
     }
-    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+    let explicit = trimmed.starts_with("http://") || trimmed.starts_with("https://");
+    let probe = if explicit { trimmed.to_owned() } else { format!("http://{trimmed}") };
+    let url = reqwest::Url::parse(&probe).map_err(|_| AppError::Sync("Адрес штаба гильдии записан с ошибкой".into()))?;
+    let home = url.host_str().is_some_and(at_home);
+    if explicit {
+        if url.scheme() == "http" && !home {
+            return Err(AppError::Sync("Вне домашней сети штаб принимает только https://, иначе пароль уйдёт открытым".into()));
+        }
         Ok(trimmed.to_owned())
+    } else if home {
+        Ok(probe)
     } else {
-        Ok(format!("http://{trimmed}"))
+        Ok(format!("https://{trimmed}"))
+    }
+}
+
+/// Адрес домашней сети: только туда токен можно слать по простому HTTP (specs/sync.md, раздел 3).
+fn at_home(host: &str) -> bool {
+    let bare = host.trim_start_matches('[').trim_end_matches(']');
+    match bare.parse::<IpAddr>() {
+        Ok(IpAddr::V4(ip)) => ip.is_loopback() || ip.is_private() || ip.is_link_local(),
+        Ok(IpAddr::V6(ip)) => {
+            let first = ip.segments()[0];
+            ip.is_loopback() || (first & 0xfe00) == 0xfc00 || (first & 0xffc0) == 0xfe80
+        }
+        Err(_) => {
+            let name = bare.to_ascii_lowercase();
+            name == "localhost" || !name.contains('.') || [".local", ".lan", ".home.arpa"].iter().any(|suffix| name.ends_with(suffix))
+        }
     }
 }
 
@@ -166,6 +192,13 @@ mod tests {
         assert_eq!(normalize_server(" 192.168.1.10:8080/ ")?, "http://192.168.1.10:8080");
         assert_eq!(normalize_server("https://guild.example.ru")?, "https://guild.example.ru");
         assert!(normalize_server("").is_err());
+        assert_eq!(normalize_server("guild.example.ru")?, "https://guild.example.ru");
+        assert_eq!(normalize_server("localhost:8080")?, "http://localhost:8080");
+        assert_eq!(normalize_server("http://desktop.lan:8080")?, "http://desktop.lan:8080");
+        assert_eq!(normalize_server("http://[fd00::5]:8080")?, "http://[fd00::5]:8080");
+        assert_eq!(normalize_server("http://10.0.0.7")?, "http://10.0.0.7");
+        assert!(normalize_server("http://guild.example.ru").is_err());
+        assert!(normalize_server("http://8.8.8.8:8080").is_err());
         Ok(())
     }
 }
